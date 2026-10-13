@@ -6,7 +6,7 @@
 #
 # Required GitHub Secrets (configure in Settings → Secrets and variables → Actions):
 #
-#   GCP_PROJECT_ID       — GCP project ID (e.g. "katsumijoias")
+#   GCP_PROJECT_ID       — GCP project *ID* (e.g. "katsumijoias"), NOT display name "KatsumiJoias"
 #   GCP_SA_KEY           — Service Account JSON key with the following roles:
 #                            • roles/run.admin
 #                            • roles/iam.serviceAccountUser
@@ -65,6 +65,12 @@ jobs:
           missing=0
           if [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
             echo "::error::Missing secret GCP_PROJECT_ID (ex.: katsumijoias). Repo Settings → Secrets and variables → Actions."
+            missing=1
+          elif echo "${{ secrets.GCP_PROJECT_ID }}" | grep -qE '[A-Z ]'; then
+            echo "::error::GCP_PROJECT_ID must be the project ID (katsumijoias), not the display name (KatsumiJoias). GCP Console → project picker shows ID under the name."
+            missing=1
+          elif echo "${{ secrets.GCP_PROJECT_ID }}" | grep -qE '^[0-9]+$'; then
+            echo "::error::GCP_PROJECT_ID must be the project ID (katsumijoias), not the project number (491109262402)."
             missing=1
           fi
           if [ -z "${{ secrets.GCP_REGION }}" ]; then

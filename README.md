@@ -152,7 +152,7 @@ No repositório GitHub, vá em **Settings → Secrets and variables → Actions*
 
 | Secret           | Valor                                                                 |
 | ---------------- | --------------------------------------------------------------------- |
-| `GCP_PROJECT_ID` | `katsumijoias`                                                        |
+| `GCP_PROJECT_ID` | `katsumijoias` (ID do projeto, **não** o nome "KatsumiJoias" nem o número 491109262402) |
 | `GCP_SA_KEY`     | Conteúdo completo do JSON da Service Account com permissões de deploy |
 | `GCP_REGION`     | `southamerica-east1`                                                  |
 
