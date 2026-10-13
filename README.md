@@ -150,14 +150,14 @@ O deploy é automático: a cada push na branch `main`, o GitHub Actions builda a
 
 No repositório GitHub, vá em **Settings → Secrets and variables → Actions** e adicione:
 
-| Secret           | Valor                                                                 |
-| ---------------- | --------------------------------------------------------------------- |
-| `GCP_PROJECT_ID` | `katsumijoias` (ID do projeto, **não** o nome "KatsumiJoias" nem o número 491109262402) |
-| `GCP_SA_KEY`     | Conteúdo completo do JSON da Service Account com permissões de deploy |
-| `GCP_REGION`     | `southamerica-east1`                                                  |
+| Secret       | Valor                                                                 |
+| ------------ | --------------------------------------------------------------------- |
+| `GCP_SA_KEY` | Conteúdo completo do JSON da Service Account de **deploy** (`github-deploy@...`) |
 
-> **Erro no Actions:** `must specify exactly one of workload_identity_provider or credentials_json`  
-> Significa que `GCP_SA_KEY` não está definido ou está vazio. Crie o secret com o JSON **inteiro** da service account de **deploy** (`github-deploy@...`). A chave Firebase local (`account_service.json`) **não** serve para este secret.
+O **project ID** (`katsumijoias`) e a **região** (`southamerica-east1`) já estão fixos em `.github/workflows/deploy.yml` — não use secrets `GCP_PROJECT_ID` / `GCP_REGION` (evita confundir nome "KatsumiJoias" com o ID).
+
+> **Erro:** `credentials_json` vazio → falta `GCP_SA_KEY`.  
+> **Erro:** `not the project name` → secret antigo `GCP_PROJECT_ID` errado; após o workflow atualizado, só `GCP_SA_KEY` é necessário.
 
 ### Service Account necessária
 
