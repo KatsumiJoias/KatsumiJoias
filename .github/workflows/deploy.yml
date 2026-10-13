@@ -88,15 +88,25 @@ jobs:
           docker push "${{ env.IMAGE }}:${{ github.sha }}"
           docker push "${{ env.IMAGE }}:latest"
 
-      - name: 8 — Deploy to Cloud Run
+      - name: 8 — Deploy to Cloud Run (public site)
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           project_id: katsumijoias
           image: ${{ env.IMAGE }}:${{ github.sha }}
+          flags: --allow-unauthenticated
 
-      - name: 9 — Show service URL
+      - name: 9 — Allow public HTTP access (run.invoker for allUsers)
+        run: |
+          gcloud run services add-iam-policy-binding "${{ env.SERVICE_NAME }}" \
+            --region="${{ env.REGION }}" \
+            --project="${{ env.PROJECT_ID }}" \
+            --member="allUsers" \
+            --role="roles/run.invoker" \
+            --quiet
+
+      - name: 10 — Show service URL
         run: |
           gcloud run services describe "${{ env.SERVICE_NAME }}" \
             --region="${{ env.REGION }}" \
