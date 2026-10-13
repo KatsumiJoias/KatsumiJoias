@@ -58,6 +58,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Fail fast with a clear message if deploy secrets are missing (empty
+      # credentials_json makes google-github-actions/auth throw a vague error).
+      - name: Verify deploy secrets
+        run: |
+          missing=0
+          if [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
+            echo "::error::Missing secret GCP_PROJECT_ID (ex.: katsumijoias). Repo Settings → Secrets and variables → Actions."
+            missing=1
+          fi
+          if [ -z "${{ secrets.GCP_REGION }}" ]; then
+            echo "::error::Missing secret GCP_REGION (ex.: southamerica-east1)."
+            missing=1
+          fi
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "::error::Missing secret GCP_SA_KEY. Use the JSON key of the *deploy* service account (github-deploy), NOT the Firebase Admin key used locally (account_service.json)."
+            missing=1
+          fi
+          exit $missing
+
       # ------------------------------------------------------------------
       # 2. Authenticate to Google Cloud
       #    Uses Service Account Key by default.

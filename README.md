@@ -156,6 +156,9 @@ No repositório GitHub, vá em **Settings → Secrets and variables → Actions*
 | `GCP_SA_KEY`     | Conteúdo completo do JSON da Service Account com permissões de deploy |
 | `GCP_REGION`     | `southamerica-east1`                                                  |
 
+> **Erro no Actions:** `must specify exactly one of workload_identity_provider or credentials_json`  
+> Significa que `GCP_SA_KEY` não está definido ou está vazio. Crie o secret com o JSON **inteiro** da service account de **deploy** (`github-deploy@...`). A chave Firebase local (`account_service.json`) **não** serve para este secret.
+
 ### Service Account necessária
 
 Crie uma Service Account no GCP com os seguintes papéis:
