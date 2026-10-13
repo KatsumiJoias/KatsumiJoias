@@ -1,91 +1,104 @@
-# ============================================================================
-# GitHub Actions — Deploy to Google Cloud Run (projeto katsumijoias)
-# ============================================================================
-#
-# Trigger: push to `main`
-#
-# Required GitHub Secret (Settings → Secrets and variables → Actions):
-#
-#   GCP_SA_KEY — JSON completo da Service Account de *deploy* (ex.: github-deploy@katsumijoias...)
-#                Papéis: run.admin, iam.serviceAccountUser, artifactregistry.writer
-#                NÃO use account_service.json (Firebase Admin local).
-#
-# Project ID e região estão fixos neste repo (evita confundir nome "KatsumiJoias" com ID).
-#
-# ============================================================================
-
-name: Deploy to Cloud Run
-
-on:
-  push:
-    branches:
-      - main
-
-env:
-  PROJECT_ID: katsumijoias
-  REGION: southamerica-east1
-  SERVICE_NAME: katsumijoias-app
-  AR_REPO: docker-repo
-  IMAGE: southamerica-east1-docker.pkg.dev/katsumijoias/docker-repo/katsumijoias-app
-
-jobs:
-  deploy:
-    name: Build & Deploy
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Verify deploy secret
-        run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "::error::Missing secret GCP_SA_KEY (JSON da SA github-deploy, não a chave Firebase local)."
-            exit 1
-          fi
-
-      - name: Authenticate to Google Cloud (SA Key)
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-          project_id: katsumijoias
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: katsumijoias
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-
-      - name: Build Docker image
-        run: |
-          docker build \
-            --tag "${{ env.IMAGE }}:${{ github.sha }}" \
-            --tag "${{ env.IMAGE }}:latest" \
-            .
-
-      - name: Push Docker image
-        run: |
-          docker push "${{ env.IMAGE }}:${{ github.sha }}"
-          docker push "${{ env.IMAGE }}:latest"
-
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.REGION }}
-          image: ${{ env.IMAGE }}:${{ github.sha }}
-
-      - name: Show service URL
-        run: |
-          echo "Deployed successfully."
-          gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROJECT_ID }} \
-            --format="value(status.url)"
-
+# Deploy to Cloud Run — project katsumijoias (ID fixo, não usar secret de project name)
+#
+# Repository secret obrigatório: GCP_SA_KEY = JSON inteiro da SA github-deploy
+# (NÃO account_service.json do Firebase)
+
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: katsumijoias
+  REGION: southamerica-east1
+  SERVICE_NAME: katsumijoias-app
+  IMAGE: southamerica-east1-docker.pkg.dev/katsumijoias/docker-repo/katsumijoias-app
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 1 — Checkout
+        uses: actions/checkout@v4
+
+      - name: 2 — Validate GCP_SA_KEY secret
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          set -e
+          echo "Checking repository secret GCP_SA_KEY..."
+          if [ -z "${GCP_SA_KEY}" ]; then
+            echo ""
+            echo "=========================================="
+            echo "ERRO: GCP_SA_KEY nao esta definido ou esta vazio."
+            echo "GitHub: repo KatsumiJoias/KatsumiJoias"
+            echo "  Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "  Nome: GCP_SA_KEY"
+            echo "  Valor: JSON completo da SA de DEPLOY (github-deploy@katsumijoias...)"
+            echo "  NAO use account_service.json (Firebase local)."
+            echo "=========================================="
+            exit 1
+          fi
+          python3 << 'PY'
+          import json, os, sys
+          raw = os.environ.get("GCP_SA_KEY", "")
+          try:
+              data = json.loads(raw)
+          except json.JSONDecodeError as e:
+              print("ERRO: GCP_SA_KEY nao e JSON valido:", e, file=sys.stderr)
+              print("Cole o arquivo .json inteiro, com { ... } em uma linha ou multiline.", file=sys.stderr)
+              sys.exit(1)
+          pid = data.get("project_id", "")
+          email = data.get("client_email", "")
+          print(f"GCP_SA_KEY OK — project_id={pid!r}, client_email={email!r}")
+          if pid != "katsumijoias":
+              print(f"AVISO: project_id da chave e {pid!r}, esperado katsumijoias.", file=sys.stderr)
+          PY
+
+      - name: 3 — Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: katsumijoias
+
+      - name: 4 — Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: katsumijoias
+
+      - name: 5 — Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ env.REGION }}-docker.pkg.dev" --quiet
+
+      - name: 6 — Build Docker image
+        run: |
+          docker build \
+            -t "${{ env.IMAGE }}:${{ github.sha }}" \
+            -t "${{ env.IMAGE }}:latest" \
+            .
+
+      - name: 7 — Push Docker image
+        run: |
+          docker push "${{ env.IMAGE }}:${{ github.sha }}"
+          docker push "${{ env.IMAGE }}:latest"
+
+      - name: 8 — Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          project_id: katsumijoias
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: 9 — Show service URL
+        run: |
+          gcloud run services describe "${{ env.SERVICE_NAME }}" \
+            --region="${{ env.REGION }}" \
+            --project="${{ env.PROJECT_ID }}" \
+            --format="value(status.url)"
