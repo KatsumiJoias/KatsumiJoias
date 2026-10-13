@@ -1,0 +1,278 @@
+{% extends "crm_base.html" %}
+
+{% macro brl(value) -%}
+R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X','.') }}
+{%- endmacro %}
+
+{% block crm_content %}
+{% set ns = namespace(total=0.0, received=0.0, balance=0.0, paid_count=0, pending_count=0, open_count=0) %}
+{% for o in orders %}
+    {% set ns.total    = ns.total + ((o.get('amount_brl') or 0) | float) %}
+    {% set ns.received = ns.received + (o.paid_total_brl | float) %}
+    {% set ns.balance  = ns.balance + (o.balance_brl | float) %}
+    {% if o.payment_status == 'paid' %}{% set ns.paid_count = ns.paid_count + 1 %}
+    {% elif o.payment_status == 'partial' %}{% set ns.pending_count = ns.pending_count + 1 %}
+    {% else %}{% set ns.open_count = ns.open_count + 1 %}{% endif %}
+{% endfor %}
+
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900">Pedidos</h2>
+        <p class="mt-1 text-sm text-gray-600">
+            {{ orders | length }} pedido{{ 's' if orders | length != 1 }}
+            {% if orders | length != all_orders_count %}
+            <span class="text-gray-400">de {{ all_orders_count }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <a href="{{ url_for('crm_new_order') }}"
+       class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all text-sm font-semibold">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        Criar pedido
+    </a>
+</div>
+
+<!-- Filtros -->
+<form method="GET" action="{{ url_for('crm_pedidos') }}" class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="lg:col-span-1">
+            <label for="filter-search" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Buscar</label>
+            <input type="search" id="filter-search" name="search" value="{{ filters.search or '' }}"
+                   placeholder="Cliente, e-mail, SKU, nº do pedido…"
+                   class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+        </div>
+        <div>
+            <label for="filter-source" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Origem</label>
+            <select id="filter-source" name="source" onchange="this.form.submit()"
+                    class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <option value="">Todas as origens</option>
+                {% for value, label in source_options.items() %}
+                <option value="{{ value }}" {% if filters.source == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="filter-payment" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pagamento</label>
+            <select id="filter-payment" name="payment_status" onchange="this.form.submit()"
+                    class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <option value="">Qualquer situação</option>
+                <option value="open"    {% if filters.payment_status == 'open'    %}selected{% endif %}>Sem pagamento</option>
+                <option value="partial" {% if filters.payment_status == 'partial' %}selected{% endif %}>Parcial</option>
+                <option value="paid"    {% if filters.payment_status == 'paid'    %}selected{% endif %}>Quitado</option>
+            </select>
+        </div>
+        <div>
+            <label for="filter-status" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Status do pedido</label>
+            <select id="filter-status" name="status" onchange="this.form.submit()"
+                    class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <option value="">Todos os status</option>
+                <option value="paid"            {% if filters.status == 'paid'            %}selected{% endif %}>Pago</option>
+                <option value="pending"         {% if filters.status == 'pending'         %}selected{% endif %}>Pendente</option>
+                <option value="waiting_payment" {% if filters.status == 'waiting_payment' %}selected{% endif %}>Aguardando pagamento</option>
+                <option value="processing"      {% if filters.status == 'processing'      %}selected{% endif %}>Processando</option>
+                <option value="failed"          {% if filters.status == 'failed'          %}selected{% endif %}>Falhou</option>
+                <option value="canceled"        {% if filters.status == 'canceled'        %}selected{% endif %}>Cancelado</option>
+            </select>
+        </div>
+    </div>
+    <div class="mt-3 flex items-center gap-3">
+        <button type="submit"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
+            Aplicar filtros
+        </button>
+        {% if filters.search or filters.source or filters.status or filters.payment_status %}
+        <a href="{{ url_for('crm_pedidos') }}" class="text-sm text-gray-500 hover:text-gray-700 hover:underline">Limpar</a>
+        {% endif %}
+    </div>
+</form>
+
+{% if not orders %}
+<div class="text-center py-16 bg-white rounded-lg shadow-sm border border-gray-100">
+    <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+    </svg>
+    <h3 class="text-sm font-medium text-gray-900 mb-1">
+        {% if all_orders_count %}Nenhum pedido encontrado com esses filtros{% else %}Nenhum pedido registrado{% endif %}
+    </h3>
+    <p class="text-sm text-gray-500 mb-5">Pedidos do site aparecem automaticamente; vendas internas são criadas aqui.</p>
+    <a href="{{ url_for('crm_new_order') }}"
+       class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
+        Criar pedido
+    </a>
+</div>
+
+{% else %}
+
+<!-- Resumo -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Valor total</p>
+        <p class="text-2xl font-bold text-gray-900">{{ brl(ns.total) }}</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Recebido</p>
+        <p class="text-2xl font-bold text-emerald-600">{{ brl(ns.received) }}</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Saldo devedor</p>
+        <p class="text-2xl font-bold text-amber-600">{{ brl(ns.balance) }}</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Situação</p>
+        <p class="text-sm font-semibold text-gray-900 mt-1.5">
+            <span class="text-emerald-600">{{ ns.paid_count }}</span> quitado{{ 's' if ns.paid_count != 1 }} ·
+            <span class="text-amber-600">{{ ns.pending_count }}</span> parcial ·
+            <span class="text-gray-500">{{ ns.open_count }}</span> em aberto
+        </p>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-100">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pedido</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Origem</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pagamento</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Próx. cobrança</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-50">
+                {% for order in orders %}
+                {% set status = order.get('status', 'pending') %}
+                {% set pm = order.get('payment_method', '') %}
+                <tr class="hover:bg-gray-50 transition-colors">
+
+                    <td class="px-4 py-3">
+                        <span class="text-sm font-mono font-medium text-gray-900">#{{ order.id[:8].upper() }}</span>
+                        {% if order.get('items') %}
+                        <p class="text-xs text-gray-400">{{ order['items'] | length }} item(ns)</p>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+                            {% if order.source == 'Internal' %}bg-indigo-50 text-indigo-700{% else %}bg-sky-50 text-sky-700{% endif %}">
+                            {{ order.source_label }}
+                        </span>
+                    </td>
+
+                    <td class="px-4 py-3">
+                        <p class="text-sm font-medium text-gray-900">{{ order.get('customer_name', '—') }}</p>
+                        <p class="text-xs text-gray-400">{{ order.get('customer_email', '') }}</p>
+                        {% if order.get('seller_name') %}
+                        <p class="text-[11px] text-purple-600 mt-0.5">Vendedor: {{ order.seller_name }}</p>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        {% if order.source == 'Internal' %}
+                            {% set pays = order.get('payments') or [] %}
+                            {% if pays %}
+                            <div class="flex flex-wrap gap-1">
+                                {% for method in pays | map(attribute='method') | unique %}
+                                <span class="inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">
+                                    {{ method | payment_method_label }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-xs text-gray-400">Sem lançamentos</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full
+                            {% if pm == 'pix' %}bg-green-50 text-green-700
+                            {% elif pm == 'credit_card' %}bg-blue-50 text-blue-700
+                            {% elif pm == 'boleto' %}bg-yellow-50 text-yellow-700
+                            {% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {% if pm == 'pix' %}PIX
+                            {% elif pm == 'credit_card' %}Cartão
+                            {% elif pm == 'boleto' %}Boleto
+                            {% else %}{{ pm | upper }}{% endif %}
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-4 py-3 text-right">
+                        <span class="text-sm font-semibold text-gray-900">{{ brl(order.get('amount_brl')) }}</span>
+                        {% if order.get('amount_usd') %}
+                        <p class="text-[11px] text-gray-400">US$ {{ "%.2f" | format(order.amount_usd | float) }}</p>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-4 py-3 text-right">
+                        {% if order.balance_brl > 0.009 %}
+                        <span class="text-sm font-bold text-amber-700">{{ brl(order.balance_brl) }}</span>
+                        {% if order.paid_total_brl > 0 %}
+                        <p class="text-[11px] text-emerald-600">pago {{ brl(order.paid_total_brl) }}</p>
+                        {% endif %}
+                        {% else %}
+                        <span class="text-xs font-semibold text-emerald-600">Quitado</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-4 py-3 text-sm text-gray-500">
+                        {% if order.balance_brl > 0.009 %}
+                            {% if order.get('next_charge_date') %}
+                            <span class="text-xs font-medium text-gray-700">{{ order.next_charge_date | date_br }}</span>
+                            {% else %}
+                            <span class="text-xs text-gray-400">—</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-xs text-gray-300">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full
+                            {% if status in ('paid','authorized') %}bg-green-100 text-green-700
+                            {% elif status in ('pending','waiting_payment') %}bg-yellow-100 text-yellow-700
+                            {% elif status == 'processing' %}bg-blue-100 text-blue-700
+                            {% elif status in ('failed','canceled') %}bg-red-100 text-red-700
+                            {% else %}bg-gray-100 text-gray-600{% endif %}">
+                            <span class="w-1.5 h-1.5 rounded-full
+                                {% if status in ('paid','authorized') %}bg-green-500
+                                {% elif status in ('pending','waiting_payment') %}bg-yellow-500
+                                {% elif status == 'processing' %}bg-blue-500
+                                {% elif status in ('failed','canceled') %}bg-red-500
+                                {% else %}bg-gray-400{% endif %}"></span>
+                            {% if status in ('paid','authorized') %}Pago
+                            {% elif status == 'waiting_payment' %}Aguardando Pgto
+                            {% elif status == 'pending' %}Pendente
+                            {% elif status == 'processing' %}Processando
+                            {% elif status == 'failed' %}Falhou
+                            {% elif status == 'canceled' %}Cancelado
+                            {% else %}{{ status | title }}{% endif %}
+                        </span>
+                    </td>
+
+                    <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                        {{ order.get('created_at', '—') }}
+                    </td>
+
+                    <td class="px-4 py-3">
+                        <a href="{{ url_for('crm_order_detail', order_id=order.id) }}"
+                           class="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline whitespace-nowrap">
+                            Ver pedido →
+                        </a>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}

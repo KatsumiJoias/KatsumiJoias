@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Nossa História — Katsumi Joias | Tradição desde 1942{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="relative bg-luxury-black overflow-hidden">
+    <img src="{{ url_for('static', filename='images/nossa-historia.png') }}"
+         alt="Wilson Alves Paixão — tradição Katsumi Joias desde 1942"
+         class="absolute inset-0 w-full h-full object-cover">
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 text-center">
+        <div class="inline-block w-full max-w-2xl mx-auto rounded-xl px-6 py-10 md:px-10 md:py-12 bg-black/30 backdrop-blur-[3px] ring-1 ring-white/10">
+            <p class="historia-hero-text text-luxury-gold-light text-xs sm:text-sm font-semibold tracking-[0.25em] uppercase mb-5">Tradição desde 1942</p>
+            <h1 class="historia-hero-text text-4xl md:text-6xl font-serif font-light text-luxury-gold-light mb-6 leading-tight">Uma história escrita<br>em pedras preciosas</h1>
+            <div class="w-20 h-px bg-luxury-gold mx-auto mb-6"></div>
+            <p class="historia-hero-text text-luxury-gold-light text-lg leading-relaxed max-w-2xl mx-auto">
+                Duas gerações dedicadas à arte da lapidação e à curadoria das gemas mais belas.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Founder narrative -->
+<section class="bg-luxury-cream py-20 md:py-28">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14">
+            <p class="text-luxury-gold text-sm font-semibold tracking-widest uppercase mb-3">O Fundador</p>
+            <h2 class="text-3xl md:text-4xl font-serif font-medium text-luxury-black">Wilson Alves Paixão</h2>
+        </div>
+
+        <div class="prose-luxury space-y-7 text-gray-700 text-lg leading-relaxed">
+            <p>
+                Na cidade de <strong class="text-luxury-black font-medium">Corinto&#8209;MG</strong>, berço dos mais belos cristais, nasceu um homem destinado a se apaixonar pelas pedras preciosas. Wilson Alves Paixão, filho da terra, passou sua infância em <strong class="text-luxury-black font-medium">Curvelo&#8209;MG</strong>, no coração de Minas Gerais, onde a fascinação pelas cores e brilhos das gemas começou a se formar.
+            </p>
+            <p>
+                A jornada de Wilson o levou, juntamente com sua numerosa família de treze irmãos, à movimentada Belo Horizonte, onde ele carregava consigo a paixão que o impulsionaria ao longo da vida. Com apenas <strong class="text-luxury-black font-medium">13 anos de idade</strong>, iniciou seu aprendizado na arte da lapidação de pedras preciosas, mergulhando profundamente no fascinante mundo das gemas.
+            </p>
+            <p>
+                Aos <strong class="text-luxury-black font-medium">26 anos</strong>, movido pela visão e pelo amor inabalável por essas riquezas naturais, Wilson Alves Paixão fundou a Katsumi Joias. Sua empresa logo se destacou como um renomado fornecedor de pedras calibradas, atendendo às demandas dos grandes mestres joalheiros do Brasil.
+            </p>
+            <p>
+                Hoje, a chama da Katsumi Joias continua acesa, com seu filho, <strong class="text-luxury-black font-medium">Wilson Paixão</strong>, liderando a empresa. Com dedicação inabalável, ele se destaca no setor de lapidação e nas complexas operações de importação e exportação de pedras preciosas.
+            </p>
+        </div>
+
+        <!-- Pull quote -->
+        <blockquote class="my-16 text-center">
+            <div class="w-12 h-px bg-luxury-gold mx-auto mb-6"></div>
+            <p class="text-2xl md:text-3xl font-serif font-light text-luxury-black leading-snug max-w-3xl mx-auto">
+                “A história da Katsumi Joias é uma história de amor, dedicação e excelência que atravessa gerações.”
+            </p>
+            <div class="w-12 h-px bg-luxury-gold mx-auto mt-6"></div>
+        </blockquote>
+
+        <p class="text-gray-700 text-lg leading-relaxed text-center max-w-2xl mx-auto">
+            Explore conosco o mundo brilhante e deslumbrante das pedras preciosas, onde a tradição se funde com a inovação, criando joias únicas que ecoam a paixão que nos impulsiona desde o início.
+        </p>
+    </div>
+</section>
+
+<!-- Timeline -->
+<section class="bg-white py-20 md:py-28 border-t border-gray-100">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <p class="text-luxury-gold text-sm font-semibold tracking-widest uppercase mb-3">A Jornada</p>
+            <h2 class="text-3xl md:text-4xl font-serif font-medium text-luxury-black">Trajetória</h2>
+        </div>
+
+        <div class="relative">
+            <!-- vertical line -->
+            <div class="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-luxury-gold/30 -translate-x-1/2"></div>
+
+            {% set milestones = [
+                {
+                    'k': 'Corinto-MG',
+                    'v': 'Berço dos mais belos cristais e origem de Wilson Alves Paixão.',
+                    'icon': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>'
+                },
+                {
+                    'k': 'Curvelo-MG',
+                    'v': 'A infância no coração de Minas, onde nasceu o fascínio pelas gemas.',
+                    'icon': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>'
+                },
+                {
+                    'k': 'Aos 13 anos',
+                    'v': 'O primeiro contato com a arte da lapidação de pedras preciosas.',
+                    'icon': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3l7 4v6l-7 8-7-8V7l7-4z"/>'
+                },
+                {
+                    'k': 'Desde 1942',
+                    'v': 'A fundação da Katsumi Joias, fornecendo pedras calibradas aos grandes mestres joalheiros do Brasil.',
+                    'icon': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>'
+                },
+                {
+                    'k': 'Hoje',
+                    'v': 'A segunda geração, liderada por Wilson Paixão, em lapidação, importação e exportação.',
+                    'icon': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+                }
+            ] %}
+
+            <div class="space-y-12 md:space-y-0">
+            {% for m in milestones %}
+                <div class="relative md:grid md:grid-cols-[1fr_auto_1fr] md:gap-8 md:items-center {{ 'md:mb-14' if not loop.last else '' }}">
+                    {% if loop.index is odd %}
+                    <div class="md:text-right md:pr-6">
+                        <div class="flex items-start gap-4 md:flex-row-reverse md:justify-end">
+                            <div class="flex-shrink-0 w-11 h-11 rounded-full bg-luxury-cream border border-luxury-gold/50 flex items-center justify-center text-luxury-gold shadow-sm md:hidden">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">{{ m.icon|safe }}</svg>
+                            </div>
+                            <div>
+                                <h3 class="font-serif text-xl text-luxury-gold mb-1">{{ m.k }}</h3>
+                                <p class="text-gray-600 leading-relaxed">{{ m.v }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hidden md:flex justify-center relative z-10">
+                        <div class="w-12 h-12 rounded-full bg-white border-2 border-luxury-gold/40 flex items-center justify-center text-luxury-gold shadow-md">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">{{ m.icon|safe }}</svg>
+                        </div>
+                    </div>
+                    <div class="hidden md:block"></div>
+                    {% else %}
+                    <div class="hidden md:block"></div>
+                    <div class="hidden md:flex justify-center relative z-10">
+                        <div class="w-12 h-12 rounded-full bg-white border-2 border-luxury-gold/40 flex items-center justify-center text-luxury-gold shadow-md">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">{{ m.icon|safe }}</svg>
+                        </div>
+                    </div>
+                    <div class="md:pl-6">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-11 h-11 rounded-full bg-luxury-cream border border-luxury-gold/50 flex items-center justify-center text-luxury-gold shadow-sm md:hidden">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">{{ m.icon|safe }}</svg>
+                            </div>
+                            <div>
+                                <h3 class="font-serif text-xl text-luxury-gold mb-1">{{ m.k }}</h3>
+                                <p class="text-gray-600 leading-relaxed">{{ m.v }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="relative bg-luxury-black overflow-hidden py-16 md:py-20">
+    <img src="{{ url_for('static', filename='images/faca-parte.png') }}"
+         alt=""
+         aria-hidden="true"
+         class="absolute inset-0 w-full h-full object-cover">
+    <div class="absolute inset-0 bg-gradient-to-t from-luxury-black/85 via-luxury-black/40 to-luxury-black/50"></div>
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-2xl md:text-3xl font-serif font-light text-white mb-4">Faça parte desta história</h2>
+        <p class="text-gray-200 mb-8 leading-relaxed">Descubra gemas selecionadas a dedo por duas gerações de uma mesma família.</p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="/products" class="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-luxury-gold text-white font-medium rounded-md hover:bg-luxury-gold-dark transition-colors duration-200 shadow-lg">
+                Explorar Catálogo
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            <a href="/o-que-procura" class="inline-flex items-center justify-center gap-2 px-8 py-3.5 border border-white/80 text-white font-medium rounded-md hover:bg-white hover:text-luxury-black transition-colors duration-200">
+                Fale com um especialista
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

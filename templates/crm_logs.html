@@ -1,0 +1,203 @@
+{% extends "crm_base.html" %}
+
+{% block crm_content %}
+{% set action_styles = {
+    'create': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    'update': 'bg-amber-50 text-amber-700 border-amber-200',
+    'delete': 'bg-red-50 text-red-700 border-red-200'
+} %}
+{% set entity_styles = {
+    'product':  'bg-purple-50 text-purple-700',
+    'customer': 'bg-green-50 text-green-700',
+    'order':    'bg-blue-50 text-blue-700',
+    'payment':  'bg-emerald-50 text-emerald-700',
+    'seller':   'bg-indigo-50 text-indigo-700',
+    'setting':  'bg-gray-100 text-gray-600'
+} %}
+
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="p-2 bg-gradient-to-br from-slate-600 to-gray-800 rounded-lg shadow-lg">
+                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <h1 class="text-xl md:text-3xl font-bold text-gray-900">Logs de atividade</h1>
+        </div>
+        <p class="text-sm text-gray-600 ml-14">
+            Histórico de criações, edições e deleções — com valor anterior, valor novo, autor e horário
+        </p>
+    </div>
+
+    <!-- Filtros -->
+    <form method="GET" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div class="lg:col-span-2">
+                <label for="search" class="block text-xs font-medium text-gray-500 mb-1">Busca</label>
+                <input type="text" name="search" id="search" value="{{ filters.search }}"
+                       placeholder="Nome, ID, autor…"
+                       class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-slate-500 focus:ring-slate-500">
+            </div>
+            <div>
+                <label for="entity_type" class="block text-xs font-medium text-gray-500 mb-1">Tipo</label>
+                <select name="entity_type" id="entity_type"
+                        class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-slate-500 focus:ring-slate-500">
+                    <option value="">Todos</option>
+                    {% for key, label in entity_labels.items() %}
+                    <option value="{{ key }}" {% if filters.entity_type == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="action" class="block text-xs font-medium text-gray-500 mb-1">Ação</label>
+                <select name="action" id="action"
+                        class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-slate-500 focus:ring-slate-500">
+                    <option value="">Todas</option>
+                    {% for key, label in action_labels.items() %}
+                    <option value="{{ key }}" {% if filters.action == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="actor" class="block text-xs font-medium text-gray-500 mb-1">Autor</label>
+                <select name="actor" id="actor"
+                        class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-slate-500 focus:ring-slate-500">
+                    <option value="">Todos</option>
+                    {% for email in actors %}
+                    <option value="{{ email }}" {% if filters.actor == email %}selected{% endif %}>{{ email }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="mt-3 flex items-center justify-between gap-3">
+            <p class="text-xs text-gray-400">
+                {{ logs|length }} registro{{ 's' if logs|length != 1 else '' }}
+                {% if logs|length >= 400 %}(exibindo os 400 mais recentes){% endif %}
+            </p>
+            <div class="flex gap-2">
+                {% if filters.search or filters.entity_type or filters.action or filters.actor %}
+                <a href="{{ url_for('crm_logs') }}"
+                   class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Limpar
+                </a>
+                {% endif %}
+                <button type="submit"
+                        class="px-5 py-2 text-sm font-semibold text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors">
+                    Filtrar
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% if logs %}
+    <div class="space-y-2">
+        {% for log in logs %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-4 py-3 sm:px-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-start gap-3 min-w-0">
+                    <span class="mt-0.5 inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full border
+                        {{ action_styles.get(log.action, 'bg-gray-50 text-gray-600 border-gray-200') }}">
+                        {{ action_labels.get(log.action, log.action) }}
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-gray-900 flex items-center gap-2 flex-wrap">
+                            <span class="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded
+                                {{ entity_styles.get(log.entity_type, 'bg-gray-100 text-gray-600') }}">
+                                {{ entity_labels.get(log.entity_type, log.entity_type) }}
+                            </span>
+                            {% if log.entity_type == 'order' and log.entity_id %}
+                            <a href="{{ url_for('crm_order_detail', order_id=log.entity_id) }}"
+                               class="text-indigo-600 hover:text-indigo-800 hover:underline">{{ log.entity_label or log.entity_id }}</a>
+                            {% elif log.entity_type == 'customer' and log.entity_id %}
+                            <a href="{{ url_for('crm_customer_detail', customer_id=log.entity_id) }}"
+                               class="text-indigo-600 hover:text-indigo-800 hover:underline">{{ log.entity_label or log.entity_id }}</a>
+                            {% elif log.entity_type == 'product' and log.entity_id and log.action != 'delete' %}
+                            <a href="{{ url_for('edit_product', product_id=log.entity_id) }}"
+                               class="text-indigo-600 hover:text-indigo-800 hover:underline">{{ log.entity_label or log.entity_id }}</a>
+                            {% else %}
+                            <span>{{ log.entity_label or log.entity_id or '—' }}</span>
+                            {% endif %}
+                        </p>
+                        {% if log.note %}
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            {% if log.source == 'automatic' %}
+                            <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 mr-1"
+                                  title="Alteração feita pelo sistema como consequência de outra ação">
+                                Automático
+                            </span>
+                            {% endif %}
+                            {{ log.note }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0 sm:justify-end">
+                    <span class="inline-flex items-center gap-1.5">
+                        <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        {{ log.actor_email or 'sistema' }}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                        <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ log.created_at_formatted or '—' }}
+                    </span>
+                </div>
+            </div>
+
+            {% if log.changes %}
+            <div class="border-t border-gray-100 bg-gray-50/70 px-4 py-3 sm:px-5">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr class="text-gray-400 uppercase tracking-wider">
+                                <th class="text-left font-semibold pb-1.5 pr-4">Campo</th>
+                                <th class="text-left font-semibold pb-1.5 pr-4">Antes</th>
+                                <th class="text-left font-semibold pb-1.5">Depois</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for change in log.changes %}
+                            <tr>
+                                <td class="py-1.5 pr-4 font-medium text-gray-700 whitespace-nowrap align-top">
+                                    {{ change.field | log_field_label }}
+                                </td>
+                                <td class="py-1.5 pr-4 text-gray-500 align-top">
+                                    <span class="{% if log.action != 'create' %}line-through decoration-red-300{% endif %}">{{ change.before if change.before not in (None, '') else '—' }}</span>
+                                </td>
+                                <td class="py-1.5 text-gray-800 font-medium align-top">
+                                    {{ change.after if change.after not in (None, '') else '—' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-16 px-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+            <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum registro encontrado</h3>
+        <p class="text-sm text-gray-600 max-w-sm mx-auto">
+            {% if filters.search or filters.entity_type or filters.action or filters.actor %}
+            Ajuste os filtros para ver outros registros.
+            {% else %}
+            As ações feitas no CRM a partir de agora aparecem aqui automaticamente.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

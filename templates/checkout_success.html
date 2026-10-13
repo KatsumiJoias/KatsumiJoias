@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedido Confirmado — Katsumi Joias</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <meta name="theme-color" content="#0E3B2E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'luxury-gold': '#B68C3F',
+                        'luxury-gold-dark': '#8C6B2E',
+                        'luxury-gold-light': '#D9C18A',
+                        'luxury-black': '#141210',
+                        'luxury-gray': '#F4EFE6',
+                        'luxury-cream': '#FAF7F1',
+                        'luxury-emerald': '#0E3B2E',
+                        'pp-border': '#e8e4dc',
+                    },
+                    fontFamily: {
+                        'serif': ['Marcellus', 'serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .section-card {
+            background: #fff;
+            border: 1px solid #e8e4dc;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 2px rgba(20, 18, 16, 0.04);
+        }
+        @media (min-width: 640px) {
+            .section-card { padding: 1.75rem 2rem; }
+        }
+        .section-title {
+            font-family: 'Marcellus', serif;
+            font-size: 1.125rem;
+            font-weight: 400;
+            color: #141210;
+            margin-bottom: 1.25rem;
+        }
+        .step-track {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+        .step-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            min-width: 5.5rem;
+            flex-shrink: 0;
+        }
+        .step-circle {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .step-circle.active {
+            background: #B68C3F;
+            color: #fff;
+        }
+        .step-circle.done {
+            background: #0E3B2E;
+            color: #fff;
+        }
+        .step-circle.pending {
+            background: #e8e4dc;
+            color: #9ca3af;
+        }
+        .step-label {
+            font-size: 0.6875rem;
+            line-height: 1.3;
+            color: #6b7280;
+            max-width: 6.5rem;
+        }
+        .step-label.active { color: #141210; font-weight: 500; }
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: #e8e4dc;
+            min-width: 1.5rem;
+            margin: 0 0.25rem 1.25rem;
+        }
+        .step-line.done { background: #B68C3F; }
+        .pix-code-input {
+            width: 100%;
+            padding: 0.75rem 0.875rem;
+            border: 1px solid #d9d4cb;
+            border-radius: 0.375rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.6875rem;
+            line-height: 1.4;
+            color: #374151;
+            background: #faf9f7;
+            word-break: break-all;
+            resize: none;
+            outline: none;
+        }
+        .btn-copy-pix {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: #B68C3F;
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-copy-pix:hover { background: #8C6B2E; }
+        .btn-outline-gold {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.25rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1.5px solid #B68C3F;
+            color: #B68C3F;
+            background: #fff;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .btn-outline-gold:hover { background: #FAF7F1; }
+        .btn-solid-emerald {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: #0E3B2E;
+            color: #fff;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+        .timer-bar {
+            height: 3px;
+            background: #e8e4dc;
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 0.35rem;
+        }
+        .timer-fill {
+            height: 100%;
+            background: #B68C3F;
+            transition: width 1s linear;
+        }
+        .order-item-row {
+            display: flex;
+            gap: 0.875rem;
+            padding: 0.875rem 0;
+            border-bottom: 1px solid #f0ece4;
+        }
+        .order-item-row:last-child { border-bottom: none; }
+        .item-thumb {
+            width: 64px;
+            height: 64px;
+            border-radius: 0.375rem;
+            background: #E4EBEF;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 0.35rem 0;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .help-banner {
+            background: #0E3B2E;
+            color: #fff;
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+        }
+        .boleto-barcode {
+            background: #faf9f7;
+            border: 1px solid #e8e4dc;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            word-break: break-all;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-luxury-gray font-sans text-luxury-black min-h-screen">
+
+{% macro fmt_brl(value) -%}
+R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",").replace("X", ".") }}
+{%- endmacro %}
+
+{% macro fmt_phone(raw) -%}
+{%- set d = (raw or '') | replace('(', '') | replace(')', '') | replace('-', '') | replace(' ', '') -%}
+{%- if d | length >= 11 -%}
+({{ d[:2] }}) {{ d[2:7] }}-{{ d[7:11] }}
+{%- else -%}
+{{ raw or '—' }}
+{%- endif -%}
+{%- endmacro %}
+
+<!-- Header -->
+<header class="bg-luxury-emerald text-white border-b border-white/10">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+        <div class="flex items-center justify-between gap-4 h-16">
+            <a href="/" class="flex items-center gap-2 flex-shrink-0">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Katsumi Joias" class="h-8 w-auto object-contain">
+                <span class="hidden sm:inline font-serif text-sm tracking-[0.14em]">KATSUMI JOIAS</span>
+            </a>
+            {% if order %}
+            <p class="text-xs sm:text-sm text-white/75 text-right truncate">
+                Pedido <strong class="text-white">#{{ order.id[:8].upper() }}</strong>
+                <span class="hidden sm:inline"> · {{ order.get('customer_email', '') }}</span>
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
+
+    {% if not order %}
+    <div class="section-card text-center py-12">
+        <p class="text-gray-500 mb-4">Pedido não encontrado.</p>
+        <a href="/products" class="btn-solid-emerald">Ver produtos</a>
+    </div>
+
+    {% else %}
+
+    {% set pm = order.get('payment_method', '') %}
+    {% set status = order.get('status', 'pending') %}
+    {% set is_paid = status in ('paid', 'authorized') %}
+    {% set is_pending = status in ('waiting_payment', 'pending', 'processing') %}
+    {% set is_failed = status in ('failed', 'canceled') %}
+    {% set subtotal = (order.get('subtotal_brl') or order.get('amount_brl') or 0) | float %}
+    {% set ship_cost = (order.get('shipping_cost_brl') or 0) | float %}
+    {% set grand_total = (order.get('amount_brl') or subtotal) | float %}
+    {% set addr = order.get('shipping_address', {}) %}
+
+    <!-- Status banner -->
+    <div class="section-card text-center">
+        {% if is_paid %}
+        <div class="w-12 h-12 rounded-full bg-luxury-emerald/10 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-luxury-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        <h1 class="font-serif text-xl sm:text-2xl text-luxury-gold mb-2">Pagamento confirmado!</h1>
+        <p class="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+            Suas gemas entram em preparação para o envio segurado. Você receberá o código de rastreio por e-mail assim que despacharmos.
+        </p>
+        {% elif is_pending %}
+        <div class="w-12 h-12 rounded-full bg-luxury-gold/15 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-luxury-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <h1 class="font-serif text-xl sm:text-2xl text-luxury-gold mb-2">Pedido recebido. Falta só o pagamento.</h1>
+        <p class="text-sm text-gray-600 max-w-lg mx-auto leading-relaxed">
+            Assim que o {% if pm == 'pix' %}PIX{% elif pm == 'boleto' %}boleto{% else %}pagamento{% endif %} for aprovado, sua gema entra em preparação para o envio segurado.
+        </p>
+        {% else %}
+        <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </div>
+        <h1 class="font-serif text-xl sm:text-2xl text-red-700 mb-2">Problema no pagamento</h1>
+        <p class="text-sm text-gray-600">Houve um problema ao processar seu pagamento. Tente novamente ou fale conosco.</p>
+        {% endif %}
+
+        <!-- Stepper -->
+        <div class="step-track mt-8 max-w-lg mx-auto">
+            <div class="step-node">
+                <div class="step-circle {% if is_paid %}done{% elif is_pending %}active{% else %}pending{% endif %}">
+                    {% if is_paid %}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    {% else %}→{% endif %}
+                </div>
+                <span class="step-label {% if is_pending and not is_paid %}active{% endif %}">Pagamento {% if pm == 'pix' %}PIX{% elif pm == 'boleto' %}boleto{% else %}{{ pm }}{% endif %}</span>
+            </div>
+            <div class="step-line {% if is_paid %}done{% endif %}"></div>
+            <div class="step-node">
+                <div class="step-circle {% if is_paid %}active{% else %}pending{% endif %}">2</div>
+                <span class="step-label {% if is_paid %}active{% endif %}">Confirmação automática</span>
+            </div>
+            <div class="step-line {% if is_paid %}done{% endif %}"></div>
+            <div class="step-node">
+                <div class="step-circle pending">3</div>
+                <span class="step-label">Envio segurado</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIX payment -->
+    {% if pm == 'pix' and not is_paid and not is_failed %}
+    <div class="section-card" id="pix-payment-section">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-6">
+            <h2 class="section-title mb-0">Pague com PIX</h2>
+            <div class="sm:text-right sm:min-w-[10rem]">
+                <p class="text-xs text-gray-500">Código válido por <strong id="pix-timer-text" class="text-luxury-black">—</strong></p>
+                <div class="timer-bar"><div class="timer-fill" id="pix-timer-bar" style="width:100%;"></div></div>
+            </div>
+        </div>
+
+        <div id="pix-active-block">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- QR + valor -->
+                <div class="text-center lg:text-left">
+                    {% if order.get('pix_qr_code_url') %}
+                    <div class="inline-block p-3 bg-white border border-pp-border rounded-lg mb-4">
+                        <img src="{{ order.pix_qr_code_url }}" alt="QR Code PIX" id="pix-qr-image"
+                             class="w-44 h-44 sm:w-48 sm:h-48 mx-auto" style="image-rendering:pixelated;">
+                    </div>
+                    {% endif %}
+                    <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase mb-1">Valor a pagar</p>
+                    <p class="text-2xl font-semibold text-luxury-emerald mb-3">{{ fmt_brl(grand_total) }}</p>
+                    <p class="text-xs text-gray-500 leading-relaxed">
+                        Beneficiário: <strong class="text-gray-700">Katsumi Joias</strong><br>
+                        O nome pode aparecer como <em>Katsumi Joias Ltda</em> no app do banco.
+                    </p>
+                </div>
+
+                <!-- Instruções + copia e cola -->
+                <div>
+                    <p class="text-[0.6875rem] font-semibold tracking-widest text-gray-400 uppercase mb-3">Como pagar</p>
+                    <ol class="text-sm text-gray-600 space-y-2.5 mb-5 list-none">
+                        <li><span class="font-semibold text-luxury-black">1.</span> Abra o app do seu banco e escolha <strong>pagar com PIX</strong>.</li>
+                        <li><span class="font-semibold text-luxury-black">2.</span> Escaneie o QR Code ou use o código copia e cola abaixo.</li>
+                        <li><span class="font-semibold text-luxury-black">3.</span> Confira o valor de <strong>{{ fmt_brl(grand_total) }}</strong> e confirme.</li>
+                    </ol>
+
+                    {% if order.get('pix_qr_code') %}
+                    <p class="text-[0.6875rem] font-semibold tracking-widest text-gray-400 uppercase mb-2">Copia e cola</p>
+                    <textarea readonly class="pix-code-input mb-3" rows="3" id="pix-code">{{ order.pix_qr_code }}</textarea>
+                    <button type="button" onclick="copyPIX()" class="btn-copy-pix">
+                        <span id="copy-pix-label">Copiar código PIX</span>
+                    </button>
+                    {% endif %}
+
+                    <p class="text-xs text-gray-500 mt-4 leading-relaxed">
+                        A confirmação costuma levar até 2 minutos. Se passou desse prazo,
+                        <a href="https://wa.me/5531911500029" target="_blank" rel="noopener" class="text-luxury-gold hover:underline">fale com a gente no WhatsApp</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="pix-expired-block" class="hidden text-center py-6">
+            <p class="text-sm text-red-600 font-medium mb-1">QR Code expirado</p>
+            <p class="text-sm text-gray-500 mb-4">Gere um novo PIX para concluir o pagamento deste pedido.</p>
+            <button type="button" onclick="regeneratePix()" id="regenerate-pix-btn" class="btn-solid-emerald">
+                Gerar PIX novamente
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Boleto -->
+    {% if pm == 'boleto' and not is_paid and not is_failed %}
+    <div class="section-card">
+        <h2 class="section-title">Boleto bancário</h2>
+        <p class="text-sm text-gray-600 mb-4">Pague em qualquer banco, lotérica ou app bancário.</p>
+        {% if order.get('boleto_barcode') %}
+        <div class="boleto-barcode mb-3" id="boleto-barcode">{{ order.boleto_barcode }}</div>
+        <button type="button" onclick="copyBoleto()" class="btn-copy-pix mb-4">
+            <span id="copy-boleto-label">Copiar código de barras</span>
+        </button>
+        {% endif %}
+        {% if order.get('boleto_url') %}
+        <a href="{{ order.boleto_url }}" target="_blank" rel="noopener" class="btn-solid-emerald inline-flex">Visualizar boleto</a>
+        {% endif %}
+        {% if order.get('boleto_due_at') %}
+        <p class="text-xs text-gray-500 mt-4">Vencimento: {{ order.boleto_due_at[:10] | replace('-', '/') }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Cartão -->
+    {% if pm == 'credit_card' %}
+    <div class="section-card">
+        <h2 class="section-title">Pagamento no cartão</h2>
+        {% if is_paid %}
+        <div class="flex items-start gap-3 p-4 bg-[#f3f7f4] border border-[#d9e6dd] rounded-lg">
+            <svg class="w-5 h-5 text-luxury-emerald flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <div class="text-sm">
+                <p class="font-medium text-luxury-emerald">Pagamento aprovado</p>
+                {% if order.get('card_brand') %}
+                <p class="text-gray-600">{{ order.card_brand }} •••• {{ order.get('card_last_four','') }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% elif not is_failed %}
+        <p class="text-sm text-gray-600">Aguardando confirmação da operadora do cartão.</p>
+        {% else %}
+        <p class="text-sm text-red-600">Pagamento não aprovado. Tente novamente ou entre contato com a gente por <a href="https://wa.me/5531911500029" target="_blank" rel="noopener" class="underline hover:text-red-800">aqui</a>.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Detalhes do pedido -->
+    <div class="section-card">
+        <h2 class="section-title">Detalhes do pedido</h2>
+
+        {% if order.get('items') %}
+        {% for item in order.get('items', []) %}
+        <div class="order-item-row">
+            <div class="item-thumb">
+                {% if item.get('image') %}
+                <img src="{{ item.image }}" alt="{{ item.get('name', 'Produto') }}">
+                {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-luxury-black leading-snug">{{ item.get('name', 'Produto') }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">
+                    Qtd: {{ item.get('quantity', 1) }}
+                    {% if item.get('carat_weight') %} · {{ item.carat_weight }}{% endif %}
+                    · peça única
+                </p>
+                {% if item.get('wants_certificate') %}
+                        <p class="text-xs text-luxury-gold mt-0.5">+ Laudo gemológico emitido em seu nome</p>
+                {% endif %}
+            </div>
+            <span class="text-sm font-semibold text-luxury-black flex-shrink-0">{{ fmt_brl(item.get('amount_brl') or 0) }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="border-t border-pp-border mt-3 pt-3 space-y-1">
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span class="text-luxury-black">{{ fmt_brl(subtotal) }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Frete <span class="text-xs">(envio segurado com rastreio)</span></span>
+                {% if ship_cost == 0 %}
+                <span class="font-semibold text-luxury-emerald">Grátis</span>
+                {% else %}
+                <span class="text-luxury-black">{{ fmt_brl(ship_cost) }}</span>
+                {% endif %}
+            </div>
+            <div class="flex justify-between items-baseline pt-2 border-t border-pp-border mt-2">
+                <span class="font-serif text-base text-luxury-black">Total</span>
+                <span class="text-xl font-semibold text-luxury-emerald">{{ fmt_brl(grand_total) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entrega -->
+    <div class="section-card">
+        <h2 class="section-title">Informações de entrega</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <p class="text-[0.6875rem] font-semibold tracking-widest text-gray-400 uppercase mb-2">Contato</p>
+                <p class="text-sm font-medium text-luxury-black">{{ order.get('customer_name','') }}</p>
+                <p class="text-sm text-gray-600">{{ order.get('customer_email','') }}</p>
+                <p class="text-sm text-gray-600">{{ fmt_phone(order.get('customer_phone','')) }}</p>
+            </div>
+            {% if addr %}
+            <div>
+                <p class="text-[0.6875rem] font-semibold tracking-widest text-gray-400 uppercase mb-2">Endereço</p>
+                <p class="text-sm text-luxury-black">{{ addr.get('street','') }}, {{ addr.get('number','') }}{% if addr.get('complement') %}, {{ addr.complement }}{% endif %}</p>
+                <p class="text-sm text-gray-600">{{ addr.get('neighborhood','') }}</p>
+                <p class="text-sm text-gray-600">{{ addr.get('city','') }}, {{ addr.get('state','') }}, {{ addr.get('cep','') }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-4">
+        <a href="/products" class="btn-outline-gold flex-1">Continuar comprando</a>
+        <a href="/account" class="btn-outline-gold flex-1">Minha conta</a>
+    </div>
+
+    <!-- Ajuda -->
+    <div id="whatsapp-help" class="help-banner flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <p class="text-sm text-white/85 leading-relaxed max-w-md">
+            Precisa de ajuda com o pagamento? Um especialista responde em minutos, todos os dias.
+        </p>
+        <a href="https://wa.me/5531911500029" target="_blank" rel="noopener"
+           class="text-sm font-semibold text-white whitespace-nowrap hover:text-luxury-gold-light transition-colors">
+            Chamar no WhatsApp →
+        </a>
+    </div>
+
+    {% endif %}
+</main>
+
+<script>
+    const ORDER_ID = {{ (order.get('id', '') if order else '') | tojson }};
+    const PIX_EXPIRES_AT = {{ (order.get('pix_expires_at', '') if order else '') | tojson }};
+    const ORDER_CREATED_AT = {{ (order.get('created_at', '') if order else '') | tojson }};
+
+    function showPixExpiredUI() {
+        const active = document.getElementById('pix-active-block');
+        const expired = document.getElementById('pix-expired-block');
+        const bar = document.getElementById('pix-timer-bar');
+        const text = document.getElementById('pix-timer-text');
+        if (active) active.classList.add('hidden');
+        if (expired) expired.classList.remove('hidden');
+        if (bar) bar.style.width = '0%';
+        if (text) text.textContent = 'expirado';
+    }
+
+    function parseOrderCreatedAt(value) {
+        if (!value) return null;
+        const brMatch = String(value).match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/);
+        if (brMatch) {
+            return new Date(`${brMatch[3]}-${brMatch[2]}-${brMatch[1]}T${brMatch[4]}:${brMatch[5]}:00`);
+        }
+        const parsed = new Date(value);
+        return isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function getPixRemainingSeconds() {
+        if (PIX_EXPIRES_AT) {
+            const expiresMs = new Date(PIX_EXPIRES_AT).getTime();
+            if (!isNaN(expiresMs)) {
+                return Math.max(0, Math.floor((expiresMs - Date.now()) / 1000));
+            }
+        }
+        const created = parseOrderCreatedAt(ORDER_CREATED_AT);
+        if (created) {
+            const expiresMs = created.getTime() + (3600 * 1000);
+            return Math.max(0, Math.floor((expiresMs - Date.now()) / 1000));
+        }
+        return 3600;
+    }
+
+    (function () {
+        const bar  = document.getElementById('pix-timer-bar');
+        const text = document.getElementById('pix-timer-text');
+        if (!bar) return;
+
+        let remaining = getPixRemainingSeconds();
+        const total = Math.max(remaining, 1);
+
+        if (remaining <= 0) {
+            showPixExpiredUI();
+            return;
+        }
+
+        function tick() {
+            remaining--;
+            if (remaining <= 0) {
+                showPixExpiredUI();
+                return;
+            }
+            bar.style.width = ((remaining / total) * 100) + '%';
+            const m = Math.floor(remaining / 60);
+            const s = remaining % 60;
+            if (text) text.textContent = `${m}:${String(s).padStart(2, '0')}`;
+            setTimeout(tick, 1000);
+        }
+        const m0 = Math.floor(remaining / 60);
+        const s0 = remaining % 60;
+        if (text) text.textContent = `${m0}:${String(s0).padStart(2, '0')}`;
+        setTimeout(tick, 1000);
+    })();
+
+    async function regeneratePix() {
+        const btn = document.getElementById('regenerate-pix-btn');
+        if (!ORDER_ID || !btn) return;
+        btn.disabled = true;
+        btn.textContent = 'Gerando PIX…';
+        try {
+            const res = await fetch(`/api/orders/${ORDER_ID}/regenerate-pix`, { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok || data.error) {
+                alert(data.error || 'Não foi possível gerar um novo PIX. Tente novamente.');
+                btn.disabled = false;
+                btn.textContent = 'Gerar PIX novamente';
+                return;
+            }
+            window.location.reload();
+        } catch (e) {
+            alert('Erro de conexão. Tente novamente.');
+            btn.disabled = false;
+            btn.textContent = 'Gerar PIX novamente';
+        }
+    }
+
+    function copyPIX() {
+        const el = document.getElementById('pix-code');
+        const code = el ? el.value.trim() : '';
+        if (!code) return;
+        navigator.clipboard.writeText(code).then(() => {
+            const lbl = document.getElementById('copy-pix-label');
+            if (lbl) { lbl.textContent = 'Copiado!'; setTimeout(() => lbl.textContent = 'Copiar código PIX', 2500); }
+        });
+    }
+
+    (function autoCopyPixFromEmailLink() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('copy') !== 'pix') return;
+        copyPIX();
+        document.getElementById('pix-payment-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    })();
+
+    function copyBoleto() {
+        const code = document.getElementById('boleto-barcode')?.textContent.trim();
+        if (!code) return;
+        navigator.clipboard.writeText(code).then(() => {
+            const lbl = document.getElementById('copy-boleto-label');
+            if (lbl) { lbl.textContent = 'Copiado!'; setTimeout(() => lbl.textContent = 'Copiar código de barras', 2500); }
+        });
+    }
+
+    (function () {
+        const INIT_STATUS = {{ (status if order else '') | tojson }};
+        const PENDING_STATUSES = ['pending', 'waiting_payment', 'processing'];
+        if (!ORDER_ID || !PENDING_STATUSES.includes(INIT_STATUS)) return;
+
+        let pollCount = 0;
+        const MAX_POLLS = 72;
+
+        async function checkStatus() {
+            if (pollCount >= MAX_POLLS) return;
+            pollCount++;
+            try {
+                const res = await fetch(`/api/orders/${ORDER_ID}/refresh-status`, { method: 'POST' });
+                const data = await res.json();
+                if (data.status && !PENDING_STATUSES.includes(data.status)) {
+                    window.location.reload();
+                }
+            } catch (e) {}
+            setTimeout(checkStatus, 5000);
+        }
+        setTimeout(checkStatus, 5000);
+    })();
+</script>
+</body>
+</html>

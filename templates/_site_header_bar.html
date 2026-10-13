@@ -1,0 +1,113 @@
+{# Site header bar — included for main (id=main-header) and floating (id=floating-header) #}
+{% set px = header_prefix|default('main') %}
+{% set is_float = px == 'float' %}
+{% set header_id = 'floating-header' if is_float else 'main-header' %}
+{% set header_extra = 'navbar-float' if is_float else '' %}
+{% set logo_fallback = logo_fallback|default(url_for('static', filename='images/logo.jpg')) %}
+
+<header class="site-header bg-luxury-emerald text-white {{ header_extra }} z-30" id="{{ header_id }}">
+    {# ── Desktop: top brand row ── #}
+    <div class="hidden lg:block border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
+            <a href="/" class="flex items-center gap-3 group">
+                <img src="{{ url_for('static', filename='images/logo.png') }}"
+                     alt=""
+                     aria-hidden="true"
+                     class="h-9 w-auto object-contain flex-shrink-0"
+                     onerror="this.onerror=null;this.src='{{ logo_fallback }}';">
+                <div>
+                    <span class="block font-serif text-[15px] tracking-[0.18em] text-white leading-tight">KATSUMI JOIAS</span>
+                    <span class="block text-[9px] tracking-[0.25em] text-luxury-gold-light uppercase mt-0.5">Gemas brasileiras · Lapidadas com paixão</span>
+                </div>
+            </a>
+
+            <div class="flex items-center gap-1">
+                <div class="relative">
+                    <button id="currency-button-{{ px }}" type="button" class="flex items-center gap-1.5 text-white/90 hover:text-white px-2 py-2 transition-colors duration-200">
+                        <span id="currency-code-{{ px }}" class="text-sm font-medium tracking-wide">BRL</span>
+                        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="currency-dropdown-{{ px }}" class="hidden absolute right-0 mt-1 w-36 bg-white rounded-md shadow-xl z-50 border border-gray-100 overflow-hidden">
+                        <button type="button" onclick="setCurrency('USD')" class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream">
+                            <img src="https://flagcdn.com/w20/us.png" alt="USD" class="w-5 h-auto"><span>USD ($)</span>
+                        </button>
+                        <button type="button" onclick="setCurrency('BRL')" class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream">
+                            <img src="https://flagcdn.com/w20/br.png" alt="BRL" class="w-5 h-auto"><span>BRL (R$)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" onclick="toggleSearch()" class="text-white/90 hover:text-white p-2 transition-colors" title="Buscar produtos">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </button>
+
+                <a href="/account" id="user-button-{{ px }}" class="text-white/90 hover:text-white p-2 transition-colors">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </a>
+
+                <button type="button" onclick="toggleCart()" id="cart-button-{{ px }}" class="relative text-white/90 hover:text-white p-2 transition-colors">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                    <span id="cart-count-{{ px }}" class="absolute -top-0.5 -right-0.5 bg-luxury-gold text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# ── Desktop: nav row ── #}
+    <div class="hidden lg:block">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-8 py-3">
+                <div class="relative group">
+                    <button type="button" class="site-nav-link flex items-center gap-1.5 text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent group-hover:border-white/60">
+                        Catálogo
+                        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div class="absolute left-0 top-full pt-2 w-52 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <div class="bg-white rounded-md shadow-xl border border-gray-100 py-2">
+                            <a href="/products" class="block px-4 py-2 text-sm text-gray-800 hover:bg-luxury-cream hover:text-luxury-gold font-medium border-b border-gray-100 mb-1">Ver Todo o Catálogo</a>
+                            <a href="{{ 'Kunzita'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Kunzita</a>
+                            <a href="{{ 'Esmeralda'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Esmeralda</a>
+                            <a href="{{ 'Turmalina'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Turmalina</a>
+                            <a href="{{ 'Tanzanita'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Tanzanita</a>
+                            <a href="{{ 'Topázio'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Topázio</a>
+                            <a href="{{ 'Morganita'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Morganita</a>
+                            <a href="/products?numero_pedras_min=2" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Conjuntos</a>
+                        </div>
+                    </div>
+                </div>
+                <a href="/historia" class="site-nav-link text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/60">Nossa História</a>
+                <a href="/guias/certificacao-gemologica" class="site-nav-link text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/60">Certificação</a>
+                <a href="/feiras" class="site-nav-link text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/60">Feiras</a>
+                <a href="/guias" class="site-nav-link text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/60">Guias</a>
+            </div>
+        </nav>
+    </div>
+
+    {# ── Mobile: compact bar ── #}
+    <div class="lg:hidden px-4 py-3">
+        <div class="flex items-center justify-between gap-3">
+            <button type="button" id="{{ 'floating-' if is_float else '' }}mobile-menu-button" class="flex-shrink-0 text-white p-1 -ml-1" aria-label="Abrir menu">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+
+            <a href="/" class="flex items-center gap-2 min-w-0 flex-1 justify-center">
+                <img src="{{ url_for('static', filename='images/logo.png') }}"
+                     alt=""
+                     aria-hidden="true"
+                     class="h-7 w-auto object-contain flex-shrink-0"
+                     onerror="this.onerror=null;this.src='{{ logo_fallback }}';">
+                <span class="font-serif text-sm tracking-[0.14em] text-white truncate">KATSUMI JOIAS</span>
+            </a>
+
+            <div class="flex items-center gap-0.5 flex-shrink-0">
+                <button type="button" onclick="toggleSearch()" class="text-white p-2" title="Buscar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </button>
+                <button type="button" onclick="toggleCart()" class="relative text-white p-2">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                    <span id="cart-count-mobile{{ '-float' if is_float else '' }}" class="absolute top-0.5 right-0.5 bg-luxury-gold text-white text-[9px] font-bold rounded-full h-3.5 w-3.5 flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>

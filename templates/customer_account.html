@@ -1,0 +1,752 @@
+{% extends "base.html" %}
+
+{% block title %}Minha Conta - Katsumi Joias{% endblock %}
+
+{% block content %}
+<style>
+    .account-card {
+        background: #fff;
+        border: 1px solid #e8e4dc;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 2px rgba(20, 18, 16, 0.04);
+    }
+    .account-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9ca3af;
+        margin-bottom: 0.25rem;
+    }
+    .account-value { font-size: 0.875rem; color: #141210; }
+    .btn-outline-gold {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 0.625rem 1rem;
+        border: 1.5px solid #B68C3F;
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #B68C3F;
+        background: #fff;
+        transition: background 0.15s;
+        cursor: pointer;
+    }
+    .btn-outline-gold:hover { background: #FAF7F1; }
+    .order-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.875rem 1rem;
+        padding: 1.25rem 0;
+        border-bottom: 1px solid #f0ece4;
+    }
+    .order-row:last-child { border-bottom: none; }
+    @media (min-width: 640px) {
+        .order-row { grid-template-columns: auto 1fr auto auto; align-items: start; }
+    }
+    .order-gem {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.375rem;
+        background: #E4EBEF;
+        flex-shrink: 0;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .order-gem img { width: 100%; height: 100%; object-fit: cover; }
+    .status-pill {
+        display: inline-flex;
+        padding: 0.2rem 0.65rem;
+        border-radius: 9999px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .status-awaiting { background: #FAF0E4; color: #8C6B2E; }
+    .status-preparing { background: #E8F0F8; color: #1e4a6e; }
+    .status-delivered { background: #E8F5EE; color: #0E3B2E; }
+    .status-failed { background: #FEE2E2; color: #b91c1c; }
+    .btn-pay-pix {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: #B68C3F;
+        color: #fff;
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.15s;
+    }
+    .btn-pay-pix:hover { background: #8C6B2E; }
+    .page-num {
+        width: 2rem;
+        height: 2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        border: 1px solid #e8e4dc;
+        color: #6b7280;
+        cursor: pointer;
+        background: #fff;
+    }
+    .page-num.active { background: #0E3B2E; color: #fff; border-color: #0E3B2E; }
+    .specialist-box {
+        background: #0E3B2E;
+        color: #fff;
+        border-radius: 0.75rem;
+        padding: 1.25rem 1.375rem;
+    }
+</style>
+
+<div class="bg-luxury-gray min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+
+        <!-- Page header -->
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl lg:text-4xl font-serif text-luxury-black" id="greeting-title">Olá</h1>
+                <p class="mt-2 text-sm text-gray-600" id="account-summary">Carregando…</p>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+                <a href="/crm" id="crm-button" class="hidden px-4 py-2 bg-luxury-gold text-white rounded-md text-sm font-medium hover:bg-luxury-gold-dark transition-colors">
+                    Acessar CRM
+                </a>
+                <button id="logout-btn" type="button" class="text-sm text-gray-500 hover:text-luxury-black transition-colors underline-offset-2 hover:underline">
+                    Sair da conta
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+
+            <!-- Left sidebar -->
+            <div class="lg:col-span-4 space-y-4">
+                <div class="account-card">
+                    <h2 class="font-serif text-lg text-luxury-black mb-4">Perfil</h2>
+                    <div class="space-y-3 mb-5">
+                        <div>
+                            <p class="account-label">Nome</p>
+                            <p class="account-value" id="profile-name">—</p>
+                        </div>
+                        <div>
+                            <p class="account-label">E-mail</p>
+                            <p class="account-value break-all" id="profile-email">—</p>
+                        </div>
+                        <div>
+                            <p class="account-label">Telefone</p>
+                            <p class="account-value" id="profile-phone">—</p>
+                        </div>
+                        <div>
+                            <p class="account-label">CPF</p>
+                            <p class="account-value" id="profile-cpf">—</p>
+                        </div>
+                    </div>
+                    <button type="button" id="edit-profile-btn" class="btn-outline-gold">Editar dados</button>
+                </div>
+
+                <div class="account-card">
+                    <h2 class="font-serif text-lg text-luxury-black mb-4">Endereço de entrega</h2>
+                    <div id="profile-address" class="text-sm text-gray-600 leading-relaxed mb-5 min-h-[3rem]">
+                        Nenhum endereço cadastrado.
+                    </div>
+                    <button type="button" id="edit-address-btn" class="btn-outline-gold">Alterar endereço</button>
+                </div>
+
+                <div class="specialist-box">
+                    <h3 class="font-serif text-base text-luxury-gold-light mb-2">Seu especialista de gemas</h3>
+                    <p class="text-sm text-white/75 leading-relaxed mb-3">Atendimento dedicado para clientes do acervo.</p>
+                    <a href="https://wa.me/5531911500029" target="_blank" rel="noopener" class="text-sm font-medium text-luxury-gold-light hover:text-white transition-colors">
+                        Chamar no WhatsApp →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right column -->
+            <div class="lg:col-span-8 space-y-4">
+
+                <!-- Orders -->
+                <div class="account-card">
+                    <h2 class="font-serif text-xl text-luxury-black mb-1">Meus pedidos</h2>
+                    <div id="orders-container">
+                        <div id="orders-loader" class="py-8 text-center text-sm text-gray-400">Carregando pedidos…</div>
+                        <div id="orders-empty" class="hidden text-center py-10">
+                            <p class="text-sm text-gray-500 mb-4">Você ainda não fez nenhum pedido.</p>
+                            <a href="/products" class="btn-outline-gold inline-flex w-auto px-6">Explorar catálogo</a>
+                        </div>
+                    </div>
+                    <div id="orders-pagination" class="hidden flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 pt-4 border-t border-[#f0ece4]">
+                        <p id="orders-page-info" class="text-xs text-gray-500 order-2 sm:order-1"></p>
+                        <div id="orders-page-nums" class="flex items-center gap-1.5 order-1 sm:order-2"></div>
+                        <button type="button" id="orders-next" class="text-sm text-luxury-gold hover:underline order-3 disabled:opacity-40 disabled:no-underline">
+                            Próxima página →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Special requests -->
+                <div class="account-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div>
+                            <h2 class="font-serif text-xl text-luxury-black">Pedidos especiais</h2>
+                            <p class="text-sm text-gray-500 mt-0.5">Gemas sob encomenda — nosso gemólogo busca para você.</p>
+                        </div>
+                        <a href="/o-que-procura" class="btn-outline-gold w-full sm:w-auto whitespace-nowrap px-5">+ Nova solicitação</a>
+                    </div>
+                    <div id="solicitacoes-container">
+                        <div id="solicitacoes-loader" class="py-6 text-center text-sm text-gray-400">Carregando…</div>
+                        <div id="solicitacoes-empty" class="hidden text-center py-8">
+                            <p class="text-sm text-gray-500">Nenhuma solicitação ainda. Conte o que procura e garimpamos para você.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal (unchanged logic) -->
+<div id="edit-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-screen overflow-y-auto">
+        <h3 class="text-lg font-serif font-semibold text-luxury-black mb-4">Editar Dados</h3>
+        <form id="edit-form" class="space-y-4">
+            <div class="pb-3 border-b border-gray-100">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Dados Pessoais</p>
+                <div class="space-y-3">
+                    <div>
+                        <label for="edit-name" class="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
+                        <input type="text" id="edit-name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="edit-email-display" disabled class="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-100 text-gray-500 cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label for="edit-phone" class="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp</label>
+                        <input type="tel" id="edit-phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold" placeholder="(31) 99999-9999">
+                    </div>
+                    <div>
+                        <label for="edit-cpf" class="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+                        <input type="text" id="edit-cpf" maxlength="14" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold" placeholder="000.000.000-00">
+                    </div>
+                </div>
+            </div>
+            <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Endereço de Entrega</p>
+                <div class="space-y-3">
+                    <div class="relative">
+                        <label for="edit-cep" class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="edit-cep" maxlength="9" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold" placeholder="00000-000">
+                            <div id="edit-cep-spinner" class="hidden items-center px-3">
+                                <svg class="animate-spin h-4 w-4 text-luxury-gold" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="edit-street" class="block text-sm font-medium text-gray-700 mb-1">Rua / Avenida</label>
+                        <input type="text" id="edit-street" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="edit-number" class="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                            <input type="text" id="edit-number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold">
+                        </div>
+                        <div>
+                            <label for="edit-complement" class="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                            <input type="text" id="edit-complement" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="edit-neighborhood" class="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                        <input type="text" id="edit-neighborhood" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="edit-city" class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                            <input type="text" id="edit-city" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold">
+                        </div>
+                        <div>
+                            <label for="edit-state" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                            <select id="edit-state" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold bg-white">
+                                <option value="">UF</option>
+                                <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+                                <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+                                <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+                                <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                                <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+                                <option>SE</option><option>TO</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="edit-save-msg" class="hidden text-sm text-center py-2 rounded-md"></div>
+            <div class="flex space-x-3 mt-6">
+                <button type="button" id="cancel-edit-btn" class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+                <button type="submit" id="save-edit-btn" class="flex-1 px-4 py-2 bg-luxury-gold text-white rounded-md hover:bg-luxury-gold-dark text-sm font-medium">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    const firebaseConfig = {
+        apiKey: "{{ firebase_config.apiKey }}",
+        authDomain: "{{ firebase_config.authDomain }}",
+        projectId: "{{ firebase_config.projectId }}",
+        storageBucket: "{{ firebase_config.storageBucket }}",
+        messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+        appId: "{{ firebase_config.appId }}"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    let _currentUser = null;
+    let allOrders = [];
+    let ordersPage = 0;
+    const ORDERS_PER_PAGE = 3;
+
+    const PM_MAP = { pix: 'PIX', credit_card: 'Cartão', boleto: 'Boleto' };
+    const PAID_STATUSES = new Set(['paid', 'authorized']);
+    const PENDING_STATUSES = new Set(['waiting_payment', 'pending']);
+    const PREPARING_STATUSES = new Set(['processing']);
+
+    function fmtBRL(val) {
+        const n = parseFloat(val);
+        if (isNaN(n)) return '—';
+        return 'R$ ' + n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function fmtCPF(raw) {
+        const d = String(raw || '').replace(/\D/g, '').slice(0, 11);
+        if (d.length !== 11) return raw || '—';
+        return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+    }
+
+    function fmtPhone(raw) {
+        const d = String(raw || '').replace(/\D/g, '');
+        if (d.length >= 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7,11)}`;
+        if (d.length >= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6,10)}`;
+        return raw || '—';
+    }
+
+    function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+
+    function orderStatusMeta(status) {
+        if (PENDING_STATUSES.has(status)) return { label: 'Aguardando pagamento', cls: 'status-awaiting' };
+        if (PAID_STATUSES.has(status) || PREPARING_STATUSES.has(status)) return { label: 'Em preparação', cls: 'status-preparing' };
+        if (status === 'failed' || status === 'canceled') return { label: 'Cancelado', cls: 'status-failed' };
+        return { label: status || 'Pendente', cls: 'status-awaiting' };
+    }
+
+    function pixMinutesLeft(expiresAt) {
+        if (!expiresAt) return null;
+        const ms = new Date(expiresAt).getTime() - Date.now();
+        if (isNaN(ms) || ms <= 0) return 0;
+        return Math.ceil(ms / 60000);
+    }
+
+    function orderTitle(order) {
+        const items = order.items || [];
+        if (!items.length) return 'Pedido';
+        const first = items[0].name || 'Produto';
+        if (items.length === 1) return first;
+        return `${first} + ${items.length - 1} item${items.length > 2 ? 's' : ''}`;
+    }
+
+    function orderGemHTML(order) {
+        const img = order.items && order.items[0] && order.items[0].image;
+        if (img) return `<img src="${escapeHTML(img)}" alt="">`;
+        return `<svg class="w-6 h-6 text-luxury-emerald/40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 9l10 13L22 9 12 2z"/></svg>`;
+    }
+
+    function orderActionHTML(order) {
+        const pending = PENDING_STATUSES.has(order.status);
+        if (pending && order.payment_method === 'pix') {
+            const mins = pixMinutesLeft(order.pix_expires_at);
+            let timerTxt = '';
+            if (mins === 0) {
+                timerTxt = 'código expirado';
+            } else if (mins != null && mins > 0) {
+                timerTxt = `código expira em ${mins} min`;
+            }
+            return `
+                <div class="col-span-full sm:col-span-1 flex flex-wrap items-center gap-3 mt-1">
+                    <a href="/checkout/success/${order.id}" class="btn-pay-pix">Pagar agora com PIX</a>
+                    ${timerTxt ? `<span class="text-xs text-gray-400">${timerTxt}</span>` : ''}
+                </div>`;
+        }
+        if (PAID_STATUSES.has(order.status) || PREPARING_STATUSES.has(order.status)) {
+            const items = order.items || [];
+            const productId = items[0] && items[0].product_id;
+            const productLink = productId
+                ? `<a href="/product/${escapeHTML(productId)}" class="text-xs text-luxury-gold hover:underline mt-1 inline-block">Ver gema →</a>`
+                : '';
+            return `<p class="col-span-full text-xs text-gray-500 mt-1 leading-relaxed">Envio segurado com rastreio — você receberá o código por e-mail assim que despacharmos.</p>${productLink}`;
+        }
+        return '';
+    }
+
+    function orderCardHTML(order) {
+        const meta = orderStatusMeta(order.status);
+        const pmLabel = PM_MAP[order.payment_method] || '';
+        const items = order.items || [];
+        const itemCount = items.length || 1;
+        const shortId = (order.id || '').slice(0, 8).toUpperCase();
+
+        return `
+            <div class="order-row" id="order-card-${order.id}">
+                <div class="order-gem">${orderGemHTML(order)}</div>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-start justify-between gap-2 mb-1">
+                        <p class="font-semibold text-sm text-luxury-black leading-snug">${escapeHTML(orderTitle(order))}</p>
+                        <span class="status-pill ${meta.cls}">${meta.label}</span>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                        ${itemCount} ${itemCount === 1 ? 'item' : 'itens'}${pmLabel ? ' · ' + pmLabel : ''} · ${escapeHTML(order.created_at || '—')} · #${shortId}
+                    </p>
+                    ${orderActionHTML(order)}
+                </div>
+                <p class="text-sm font-semibold text-luxury-black sm:text-right">${fmtBRL(order.amount_brl)}</p>
+                <a href="/checkout/success/${order.id}" class="text-xs text-luxury-gold hover:underline whitespace-nowrap self-start hidden sm:inline">Ver detalhes →</a>
+            </div>
+            <div class="order-mobile-link sm:hidden pb-3 -mt-2">
+                <a href="/checkout/success/${order.id}" class="text-xs text-luxury-gold hover:underline">Ver detalhes →</a>
+            </div>`;
+    }
+
+    function updateAccountSummary(orders, data, user) {
+        const count = orders.length;
+        const acervo = orders.filter(o => PAID_STATUSES.has(o.status)).reduce((n, o) => n + (o.items || []).length, 0);
+        let since = data.member_since || '';
+        if (!since && user && user.metadata && user.metadata.creationTime) {
+            const d = new Date(user.metadata.creationTime);
+            const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+            since = `${months[d.getMonth()]} de ${d.getFullYear()}`;
+        }
+        const parts = [];
+        if (since) parts.push(`Cliente desde ${since}`);
+        parts.push(`${count} pedido${count !== 1 ? 's' : ''}`);
+        document.getElementById('account-summary').innerHTML = parts.join(' · ');
+    }
+
+    function fillProfile(data, user) {
+        const name = (data.name && data.name.trim()) || user.displayName || 'Cliente';
+        document.getElementById('greeting-title').textContent = `Olá, ${name.split(' ')[0]}`;
+        document.getElementById('profile-name').textContent = name;
+        document.getElementById('profile-email').textContent = user.email || '—';
+        document.getElementById('profile-phone').textContent = data.phone ? fmtPhone(data.phone) : '—';
+        document.getElementById('profile-cpf').textContent = data.cpf ? fmtCPF(data.cpf) : '—';
+
+        const addr = data.address_structured || {};
+        const addrEl = document.getElementById('profile-address');
+        if (addr.street || addr.city || data.address) {
+            const lines = [];
+            if (addr.street) lines.push(`${addr.street}, ${addr.number || ''}${addr.complement ? ' — ' + addr.complement : ''}`.trim());
+            if (addr.neighborhood) lines.push(addr.neighborhood);
+            const cityLine = [addr.city, addr.state, addr.cep].filter(Boolean).join(' — ');
+            if (cityLine) lines.push(cityLine);
+            addrEl.innerHTML = lines.map(l => escapeHTML(l)).join('<br>');
+        } else if (data.address) {
+            addrEl.textContent = data.address;
+        } else {
+            addrEl.textContent = 'Nenhum endereço cadastrado.';
+        }
+    }
+
+    function displayOrders(orders) {
+        const loader = document.getElementById('orders-loader');
+        if (loader) loader.remove();
+        allOrders = orders || [];
+        ordersPage = 0;
+        renderOrdersPage();
+    }
+
+    function renderOrdersPage() {
+        const container = document.getElementById('orders-container');
+        const empty = document.getElementById('orders-empty');
+        const pagination = document.getElementById('orders-pagination');
+        const pageNums = document.getElementById('orders-page-nums');
+        const pageInfo = document.getElementById('orders-page-info');
+        const nextBtn = document.getElementById('orders-next');
+
+        container.querySelectorAll('[id^="order-card-"]').forEach(el => el.remove());
+        container.querySelectorAll('.order-mobile-link').forEach(el => el.remove());
+
+        if (!allOrders.length) {
+            empty.classList.remove('hidden');
+            pagination.classList.add('hidden');
+            return;
+        }
+        empty.classList.add('hidden');
+
+        const totalPages = Math.ceil(allOrders.length / ORDERS_PER_PAGE);
+        const start = ordersPage * ORDERS_PER_PAGE;
+        const pageOrders = allOrders.slice(start, start + ORDERS_PER_PAGE);
+        container.insertAdjacentHTML('beforeend', pageOrders.map(orderCardHTML).join(''));
+
+        if (totalPages <= 1) {
+            pagination.classList.add('hidden');
+            return;
+        }
+        pagination.classList.remove('hidden');
+        if (pageInfo) pageInfo.textContent = `Mostrando ${start + 1}–${start + pageOrders.length} de ${allOrders.length}`;
+        if (pageNums) {
+            pageNums.innerHTML = '';
+            for (let i = 0; i < totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'page-num' + (i === ordersPage ? ' active' : '');
+                btn.textContent = String(i + 1);
+                btn.addEventListener('click', () => { ordersPage = i; renderOrdersPage(); });
+                pageNums.appendChild(btn);
+            }
+        }
+        if (nextBtn) {
+            nextBtn.disabled = ordersPage >= totalPages - 1;
+            nextBtn.onclick = () => {
+                if (ordersPage < totalPages - 1) { ordersPage++; renderOrdersPage(); }
+            };
+        }
+    }
+
+    function solicitacaoRepliesHTML(replies) {
+        if (!replies || !replies.length) return '';
+        return replies.map(r => {
+            const imgs = (r.images || []).map(url =>
+                `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer" class="block">
+                    <img src="${escapeHTML(url)}" alt="Foto da resposta" class="w-20 h-20 object-cover rounded-md border border-[#f0ece4] hover:opacity-90 transition-opacity">
+                </a>`
+            ).join('');
+            return `
+                <div class="mt-4 pt-4 border-t border-[#f0ece4]">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <span class="text-xs font-semibold text-[#0E3B2E] uppercase tracking-wide">Resposta da equipe</span>
+                        <span class="text-xs text-gray-400">${escapeHTML(r.created_at || '')}</span>
+                    </div>
+                    ${r.message ? `<p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${escapeHTML(r.message)}</p>` : ''}
+                    ${imgs ? `<div class="flex flex-wrap gap-2 mt-3">${imgs}</div>` : ''}
+                </div>`;
+        }).join('');
+    }
+
+    function solicitacaoCardHTML(s) {
+        const answered = s.status === 'answered' || (s.replies && s.replies.length);
+        const badge = answered
+            ? { label: 'Respondida', cls: 'status-delivered' }
+            : { label: 'Em aberto', cls: 'status-awaiting' };
+        return `
+            <div class="border border-[#f0ece4] rounded-lg p-4 mb-3 last:mb-0">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <span class="status-pill ${badge.cls}">${badge.label}</span>
+                    <span class="text-xs text-gray-400">Enviada em ${escapeHTML((s.created_at || '').split(' ')[0])}</span>
+                </div>
+                <p class="text-sm text-gray-700 italic leading-relaxed">"${escapeHTML(s.description)}"</p>
+                ${solicitacaoRepliesHTML(s.replies)}
+            </div>`;
+    }
+
+    function displaySolicitacoes(list) {
+        document.getElementById('solicitacoes-loader')?.remove();
+        const empty = document.getElementById('solicitacoes-empty');
+        if (!list || !list.length) {
+            empty.classList.remove('hidden');
+            return;
+        }
+        document.getElementById('solicitacoes-container').insertAdjacentHTML('beforeend', list.map(solicitacaoCardHTML).join(''));
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = '/login';
+            return;
+        }
+        _currentUser = user;
+
+        try {
+            const idToken = await user.getIdToken();
+            await fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken })
+            });
+        } catch (e) {}
+
+        try {
+            const idToken = await user.getIdToken();
+            const adminRes = await fetch('/api/auth/check-admin', { headers: { Authorization: 'Bearer ' + idToken } });
+            if (adminRes.ok) {
+                const d = await adminRes.json();
+                if (d.is_admin) document.getElementById('crm-button').classList.remove('hidden');
+            }
+        } catch (e) {}
+
+        let data = {};
+        try {
+            const idToken = await user.getIdToken();
+            const res = await fetch('/api/account/data', { headers: { Authorization: 'Bearer ' + idToken } });
+            if (res.ok) {
+                data = await res.json();
+                window._accountData = data;
+            }
+        } catch (e) {}
+
+        fillProfile(data, user);
+
+        try {
+            const idToken = await user.getIdToken();
+            const res = await fetch('/api/account/orders', { headers: { Authorization: 'Bearer ' + idToken } });
+            if (res.ok) {
+                const orders = await res.json();
+                displayOrders(orders);
+                updateAccountSummary(orders, data, user);
+            }
+        } catch (e) {
+            document.getElementById('orders-loader').textContent = 'Erro ao carregar pedidos.';
+        }
+
+        loadSolicitacoes(user);
+    });
+
+    async function loadSolicitacoes(user) {
+        try {
+            const idToken = await user.getIdToken();
+            const res = await fetch('/api/account/solicitacoes', { headers: { Authorization: 'Bearer ' + idToken } });
+            displaySolicitacoes(res.ok ? await res.json() : []);
+        } catch (e) {
+            displaySolicitacoes([]);
+        }
+    }
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+        try {
+            await signOut(auth);
+            await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        } catch (e) {}
+        window.location.href = '/';
+    });
+
+    function openEditModal() {
+        const user = _currentUser || auth.currentUser;
+        const data = window._accountData || {};
+        const addr = data.address_structured || {};
+        document.getElementById('edit-name').value = (data.name || user?.displayName || '').trim();
+        document.getElementById('edit-email-display').value = user?.email || '';
+        document.getElementById('edit-phone').value = data.phone ? fmtPhone(data.phone) : '';
+        document.getElementById('edit-cpf').value = fmtCPF(data.cpf || '');
+        document.getElementById('edit-cep').value = addr.cep ? (addr.cep.length === 8 ? addr.cep.slice(0,5)+'-'+addr.cep.slice(5) : addr.cep) : '';
+        document.getElementById('edit-street').value = addr.street || '';
+        document.getElementById('edit-number').value = addr.number || '';
+        document.getElementById('edit-complement').value = addr.complement || '';
+        document.getElementById('edit-neighborhood').value = addr.neighborhood || '';
+        document.getElementById('edit-city').value = addr.city || '';
+        document.getElementById('edit-state').value = addr.state || '';
+        document.getElementById('edit-save-msg').classList.add('hidden');
+        document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    document.getElementById('edit-profile-btn').addEventListener('click', openEditModal);
+    document.getElementById('edit-address-btn').addEventListener('click', openEditModal);
+    document.getElementById('cancel-edit-btn').addEventListener('click', () => document.getElementById('edit-modal').classList.add('hidden'));
+
+    document.getElementById('edit-phone').addEventListener('input', function() {
+        let v = this.value.replace(/\D/g,'').slice(0,11);
+        if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+        else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4,5})(\d{0,4})$/, '($1) $2-$3');
+        else if (v.length > 2) v = v.replace(/^(\d{2})(\d+)$/, '($1) $2');
+        this.value = v;
+    });
+
+    document.getElementById('edit-cpf').addEventListener('input', function() {
+        let d = this.value.replace(/\D/g,'').slice(0,11);
+        if (d.length > 9) this.value = `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+        else if (d.length > 6) this.value = `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+        else if (d.length > 3) this.value = `${d.slice(0,3)}.${d.slice(3)}`;
+        else this.value = d;
+    });
+
+    document.getElementById('edit-cep').addEventListener('input', async function() {
+        let v = this.value.replace(/\D/g,'').slice(0,8);
+        if (v.length > 5) v = v.slice(0,5) + '-' + v.slice(5);
+        this.value = v;
+        if (v.replace('-','').length === 8) {
+            const spinner = document.getElementById('edit-cep-spinner');
+            spinner.classList.remove('hidden'); spinner.classList.add('flex');
+            try {
+                const res = await fetch(`https://viacep.com.br/ws/${v.replace('-','')}/json/`);
+                const data = await res.json();
+                if (!data.erro) {
+                    document.getElementById('edit-street').value = data.logradouro || '';
+                    document.getElementById('edit-neighborhood').value = data.bairro || '';
+                    document.getElementById('edit-city').value = data.localidade || '';
+                    document.getElementById('edit-state').value = data.uf || '';
+                }
+            } catch (e) {} finally {
+                spinner.classList.add('hidden'); spinner.classList.remove('flex');
+            }
+        }
+    });
+
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('save-edit-btn');
+        btn.disabled = true;
+        btn.textContent = 'Salvando…';
+        const msg = document.getElementById('edit-save-msg');
+        try {
+            const user = auth.currentUser;
+            const idToken = await user.getIdToken();
+            const res = await fetch('/api/account/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + idToken },
+                body: JSON.stringify({
+                    name: document.getElementById('edit-name').value.trim(),
+                    phone: document.getElementById('edit-phone').value.trim(),
+                    cpf: document.getElementById('edit-cpf').value.replace(/\D/g,''),
+                    address_structured: {
+                        cep: document.getElementById('edit-cep').value.replace(/\D/g,''),
+                        street: document.getElementById('edit-street').value.trim(),
+                        number: document.getElementById('edit-number').value.trim(),
+                        complement: document.getElementById('edit-complement').value.trim(),
+                        neighborhood: document.getElementById('edit-neighborhood').value.trim(),
+                        city: document.getElementById('edit-city').value.trim(),
+                        state: document.getElementById('edit-state').value,
+                    }
+                })
+            });
+            if (res.ok) {
+                msg.textContent = 'Dados salvos com sucesso!';
+                msg.className = 'text-sm text-center py-2 rounded-md text-green-700 bg-green-50';
+                msg.classList.remove('hidden');
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                msg.textContent = 'Erro ao salvar. Tente novamente.';
+                msg.className = 'text-sm text-center py-2 rounded-md text-red-700 bg-red-50';
+                msg.classList.remove('hidden');
+            }
+        } catch (e) {
+            msg.textContent = 'Erro de conexão.';
+            msg.className = 'text-sm text-center py-2 rounded-md text-red-700 bg-red-50';
+            msg.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Salvar';
+        }
+    });
+</script>
+{% endblock %}

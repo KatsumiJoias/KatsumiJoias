@@ -1,0 +1,798 @@
+{% extends "crm_base.html" %}
+
+{% macro brl(value) -%}
+R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X','.') }}
+{%- endmacro %}
+
+{% macro usd(value) -%}
+US$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X','.') }}
+{%- endmacro %}
+
+{% block crm_content %}
+{% set status = order.get('status', 'pending') %}
+{% set pm = order.get('payment_method', '') %}
+{% set is_internal = order.source == 'Internal' %}
+{% set balance = order.balance_brl %}
+
+<div class="max-w-6xl mx-auto px-0 sm:px-4">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+        <a href="{{ url_for('crm_pedidos') }}" class="hover:text-gray-700 font-medium">Pedidos</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+        <span class="text-gray-900 font-semibold font-mono">#{{ order.id[:8].upper() }}</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="flex items-start justify-between mb-6 flex-wrap gap-3">
+        <div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <h1 class="text-2xl font-bold text-gray-900 font-mono">Pedido #{{ order.id[:8].upper() }}</h1>
+                <span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full
+                    {% if is_internal %}bg-indigo-50 text-indigo-700 border border-indigo-200{% else %}bg-sky-50 text-sky-700 border border-sky-200{% endif %}">
+                    Origem: {{ order.source_label }}
+                </span>
+            </div>
+            <p class="text-sm text-gray-500 mt-1">
+                {{ order.get('created_at', '—') }}
+                {% if order.get('created_by') %} · criado por {{ order.created_by }}{% endif %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full
+                {% if status in ('paid','authorized') %}bg-green-100 text-green-700
+                {% elif status in ('pending','waiting_payment') %}bg-yellow-100 text-yellow-700
+                {% elif status == 'processing' %}bg-blue-100 text-blue-700
+                {% elif status in ('failed','canceled') %}bg-red-100 text-red-700
+                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                <span class="w-2 h-2 rounded-full
+                    {% if status in ('paid','authorized') %}bg-green-500
+                    {% elif status in ('pending','waiting_payment') %}bg-yellow-500
+                    {% elif status == 'processing' %}bg-blue-500
+                    {% elif status in ('failed','canceled') %}bg-red-500
+                    {% else %}bg-gray-400{% endif %}"></span>
+                {% if status in ('paid','authorized') %}Pago
+                {% elif status == 'waiting_payment' %}Aguardando Pagamento
+                {% elif status == 'pending' %}Pendente
+                {% elif status == 'processing' %}Processando
+                {% elif status == 'failed' %}Falhou
+                {% elif status == 'canceled' %}Cancelado
+                {% else %}{{ status | title }}{% endif %}
+            </span>
+            {% if not is_internal and status not in ('paid', 'authorized') %}
+            <button onclick="refreshStatus()" id="refresh-btn"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 bg-white text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors shadow-sm">
+                <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Atualizar status
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── Painel financeiro ── -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor total</p>
+            <p class="mt-1.5 text-2xl font-bold text-gray-900">{{ brl(order.get('amount_brl')) }}</p>
+            {% if order.get('amount_usd') %}
+            <p class="text-xs text-gray-400 mt-0.5">{{ usd(order.amount_usd) }} · cotação {{ brl(order.get('exchange_rate_used')) }}</p>
+            {% endif %}
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total pago</p>
+            <p class="mt-1.5 text-2xl font-bold text-emerald-600">{{ brl(order.paid_total_brl) }}</p>
+            {% set pct = (order.paid_total_brl / (order.get('amount_brl') | float) * 100) if (order.get('amount_brl') | float) else 0 %}
+            <div class="mt-3 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 rounded-full" style="width: {{ [pct, 100] | min }}%"></div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border {{ 'border-amber-300 bg-amber-50/40' if balance > 0.009 else 'border-gray-200' }} p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Saldo devedor</p>
+            <p class="mt-1.5 text-2xl font-bold {{ 'text-amber-700' if balance > 0.009 else 'text-emerald-600' }}">
+                {{ brl(balance) if balance > 0.009 else 'Quitado' }}
+            </p>
+            {% if balance > 0.009 %}
+            <p class="text-xs mt-0.5 {{ 'text-red-600 font-semibold' if next_charge_overdue else 'text-gray-500' }}">
+                {% if order.get('next_charge_date') %}
+                    Próxima cobrança: {{ order.next_charge_date | date_br }}{% if next_charge_overdue %} (vencida){% endif %}
+                {% else %}
+                    Sem data de cobrança definida
+                {% endif %}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- ── Coluna principal ── -->
+        <div class="lg:col-span-2 space-y-5">
+
+            <!-- Itens -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Itens do Pedido</h3>
+                </div>
+                {% set items = order.get('items', []) %}
+                {% if items %}
+                    {% if is_internal %}
+                    <!-- Tabela detalhada de venda interna -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-100 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Lote</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">SKU</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Pedra</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Formato</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Calibre</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">CT</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">US$/ct</th>
+                                    <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                {% for item in items %}
+                                <tr>
+                                    <td class="px-4 py-3 text-gray-700">{{ item.get('lote') or '—' }}</td>
+                                    <td class="px-3 py-3">
+                                        {% if item.get('product_id') %}
+                                        <a href="{{ url_for('edit_product', product_id=item.product_id) }}"
+                                           class="font-mono text-indigo-600 hover:text-indigo-800 hover:underline">{{ item.get('sku') or '—' }}</a>
+                                        {% else %}
+                                        <span class="font-mono text-gray-700">{{ item.get('sku') or '—' }}</span>
+                                        {% endif %}
+                                        {% if item.get('sale_mode') == 'partial' %}
+                                        <span class="block mt-0.5 text-[10px] font-semibold text-amber-700">venda parcial</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-3 py-3 text-gray-700">{{ item.get('pedra') or '—' }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ item.get('formato') or '—' }}</td>
+                                    <td class="px-3 py-3 text-gray-700 whitespace-nowrap">{{ item.get('calibre') or '—' }}</td>
+                                    <td class="px-3 py-3 text-right text-gray-900 font-medium">
+                                        {{ item.get('ct') }}
+                                        {% if item.get('numero_pedras') %}
+                                        <span class="block text-[10px] text-gray-400">{{ item.numero_pedras }} pedra(s)</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-3 py-3 text-right text-gray-700">{{ usd(item.get('price_per_carat_usd')) }}</td>
+                                    <td class="px-4 py-3 text-right font-bold text-gray-900">{{ usd(item.get('total_usd')) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-5 py-4 bg-gray-50 border-t border-gray-100 space-y-2">
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Subtotal</span>
+                            <span>{{ usd(order.get('subtotal_usd')) }}</span>
+                        </div>
+                        {% if (order.get('discount_usd') or 0) | float > 0 %}
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Desconto</span>
+                            <span class="text-red-600">− {{ usd(order.discount_usd) }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex justify-between items-baseline text-base font-bold text-gray-900 border-t border-gray-200 pt-2 mt-2">
+                            <span>Valor total líquido</span>
+                            <span class="text-right">
+                                {{ usd(order.get('amount_usd')) }}
+                                <span class="block text-xs font-medium text-gray-500">{{ brl(order.get('amount_brl')) }}</span>
+                            </span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Pedido do site -->
+                    <div class="divide-y divide-gray-50">
+                        {% for item in items %}
+                        <div class="px-5 py-4 flex items-center gap-4">
+                            {% if item.get('image') %}
+                            <img src="{{ item.image }}" alt="{{ item.get('name','') }}"
+                                 class="w-14 h-14 object-cover rounded-lg border border-gray-100 flex-shrink-0">
+                            {% else %}
+                            <div class="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                            {% endif %}
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-900">{{ item.get('name', 'Produto') }}</p>
+                                {% if item.get('product_id') %}
+                                <a href="{{ url_for('edit_product', product_id=item.product_id) }}"
+                                   class="text-xs text-indigo-500 hover:text-indigo-700 font-mono mt-0.5 inline-block">{{ item.product_id }}</a>
+                                {% endif %}
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-gray-900">
+                                    {{ brl(item.get('amount_brl') or item.get('price_brl')) }}
+                                </p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="px-5 py-4 bg-gray-50 border-t border-gray-100 space-y-2">
+                        {% if order.get('subtotal_brl') is not none %}
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Subtotal</span>
+                            <span>{{ brl(order.get('subtotal_brl')) }}</span>
+                        </div>
+                        {% endif %}
+                        {% if order.get('shipping_cost_brl') is not none %}
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Frete</span>
+                            {% if (order.get('shipping_cost_brl') or 0) | float == 0 %}
+                            <span class="text-green-600 font-medium">Grátis</span>
+                            {% else %}
+                            <span>{{ brl(order.shipping_cost_brl) }}</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        <div class="flex justify-between text-base font-bold text-gray-900 border-t border-gray-200 pt-2 mt-2">
+                            <span>Total</span>
+                            <span>{{ brl(order.get('amount_brl')) }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="px-5 py-8 text-center text-sm text-gray-400">Nenhum item registrado.</div>
+                {% endif %}
+            </div>
+
+            <!-- ── Captação de pagamentos ── -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        <h3 class="text-sm font-semibold text-gray-800">Pagamentos recebidos</h3>
+                        <span class="text-xs text-gray-400">({{ payments | length }})</span>
+                    </div>
+                    {% if balance > 0.009 %}
+                    <button type="button" onclick="openPaymentModal()"
+                            class="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Inserir pagamento
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if payments %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Data</th>
+                                <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Forma</th>
+                                <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Observação</th>
+                                <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Valor</th>
+                                <th class="px-5 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">&nbsp;</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            {% for payment in payments %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-5 py-3 text-gray-700 whitespace-nowrap">{{ payment.get('paid_at') | date_br }}</td>
+                                <td class="px-3 py-3">
+                                    <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                                        {{ payment.get('method') | payment_method_label }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-3 text-gray-500 text-xs">
+                                    {{ payment.get('note') or '—' }}
+                                    {% if payment.get('registered_by') %}
+                                    <span class="block text-[10px] text-gray-400 mt-0.5">por {{ payment.registered_by }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-3 text-right font-bold text-emerald-700 whitespace-nowrap">
+                                    {{ brl(payment.get('amount_brl')) }}
+                                </td>
+                                <td class="px-5 py-3 text-right">
+                                    <form method="POST"
+                                          action="{{ url_for('crm_order_delete_payment', order_id=order.id, payment_id=payment.get('id')) }}"
+                                          onsubmit="return confirm('Remover este pagamento? O saldo devedor será recalculado.');">
+                                        <button type="submit" class="text-xs text-red-500 hover:text-red-700 hover:underline">Remover</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="bg-gray-50 border-t border-gray-200">
+                            <tr>
+                                <td colspan="3" class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Total recebido</td>
+                                <td class="px-3 py-3 text-right font-bold text-gray-900">{{ brl(order.paid_total_brl) }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="px-5 py-10 text-center">
+                    <svg class="mx-auto h-9 w-9 text-gray-200 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm text-gray-500">
+                        {% if is_internal %}Nenhum pagamento lançado neste pedido.{% else %}Pedido do site — liquidação feita pelo gateway.{% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if not is_internal %}
+            <!-- Dados de pagamento do gateway -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Pagamento no gateway</h3>
+                    <span class="ml-auto inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full
+                        {% if pm == 'pix' %}bg-green-50 text-green-700
+                        {% elif pm == 'credit_card' %}bg-blue-50 text-blue-700
+                        {% elif pm == 'boleto' %}bg-yellow-50 text-yellow-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {% if pm == 'pix' %}PIX
+                        {% elif pm == 'credit_card' %}Cartão de Crédito
+                        {% elif pm == 'boleto' %}Boleto
+                        {% else %}{{ pm | upper }}{% endif %}
+                    </span>
+                </div>
+                <div class="px-5 py-4 space-y-3">
+                    {% if pm == 'pix' %}
+                        {% if order.get('pix_qr_code_url') %}
+                        <div class="flex flex-col sm:flex-row gap-4 items-start">
+                            <img src="{{ order.pix_qr_code_url }}" alt="QR Code PIX"
+                                 class="w-32 h-32 rounded-lg border border-gray-200 flex-shrink-0">
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-500 mb-1 font-medium">Código PIX (copia e cola)</p>
+                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs font-mono text-gray-700 break-all leading-relaxed">
+                                    {{ order.get('pix_copy_paste') or order.get('pix_qr_code', '—') }}
+                                </div>
+                            </div>
+                        </div>
+                        {% elif order.get('pix_copy_paste') or order.get('pix_qr_code') %}
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1 font-medium">Código PIX (copia e cola)</p>
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs font-mono text-gray-700 break-all leading-relaxed">
+                                {{ order.get('pix_copy_paste') or order.get('pix_qr_code') }}
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-gray-500">Dados do PIX não disponíveis.</p>
+                        {% endif %}
+
+                    {% elif pm == 'credit_card' %}
+                        {% if order.get('card_brand') %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500">Bandeira:</span>
+                            <span class="text-sm font-semibold text-gray-900">{{ order.card_brand | upper }}</span>
+                        </div>
+                        {% endif %}
+                        {% if order.get('card_last_four') or order.get('card_last_digits') %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500">Final:</span>
+                            <span class="text-sm font-semibold text-gray-900 font-mono">•••• {{ order.get('card_last_four') or order.get('card_last_digits') }}</span>
+                        </div>
+                        {% endif %}
+                        {% if order.get('installments') and order.installments | int > 1 %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500">Parcelamento:</span>
+                            <span class="text-sm font-semibold text-gray-900">{{ order.installments }}x</span>
+                        </div>
+                        {% endif %}
+
+                    {% elif pm == 'boleto' %}
+                        {% if order.get('boleto_url') %}
+                        <a href="{{ order.boleto_url }}" target="_blank"
+                           class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-sm font-medium hover:bg-yellow-100 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Abrir boleto
+                        </a>
+                        {% endif %}
+                        {% if order.get('boleto_barcode') %}
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Código de barras</p>
+                            <p class="text-xs font-mono text-gray-700 break-all">{{ order.boleto_barcode }}</p>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if order.get('pagarme_order_id') %}
+                    <div class="pt-2 border-t border-gray-100">
+                        <p class="text-xs text-gray-400">ID Pagar.me: <span class="font-mono text-gray-600">{{ order.pagarme_order_id }}</span></p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- ── Coluna lateral ── -->
+        <div class="space-y-5">
+
+            <!-- Cliente -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Cliente</h3>
+                </div>
+                <div class="px-5 py-4 space-y-2">
+                    <p class="text-sm font-semibold text-gray-900">{{ order.get('customer_name', '—') }}</p>
+                    {% if order.get('customer_email') %}<p class="text-sm text-gray-500 break-all">{{ order.customer_email }}</p>{% endif %}
+                    {% if order.get('customer_phone') %}<p class="text-sm text-gray-500">{{ order.customer_phone }}</p>{% endif %}
+                    {% if order.get('customer_cpf') %}<p class="text-xs text-gray-400 font-mono">CPF: {{ order.customer_cpf }}</p>{% endif %}
+                    {% if order.get('customer_cnpj') %}<p class="text-xs text-gray-400 font-mono">CNPJ: {{ order.customer_cnpj }}</p>{% endif %}
+                </div>
+                <div class="px-5 pb-4">
+                    {% if order.get('firestore_customer_id') %}
+                    <a href="{{ url_for('crm_customer_detail', customer_id=order.firestore_customer_id) }}"
+                       class="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline">Ver ficha do cliente →</a>
+                    {% elif order.get('customer_email') %}
+                    <a href="{{ url_for('crm_clientes') }}?q={{ order.get('customer_email', '') | urlencode }}"
+                       class="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline">Ver perfil do cliente →</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Vendedor / comissão -->
+            {% if order.get('seller_name') %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Vendedor</h3>
+                </div>
+                <div class="px-5 py-4 space-y-2 text-sm">
+                    <p class="font-semibold text-gray-900">{{ order.seller_name }}</p>
+                    <div class="flex justify-between text-gray-600">
+                        <span>Comissão</span>
+                        <span class="font-medium text-gray-900">{{ order.get('seller_commission_pct') }}%</span>
+                    </div>
+                    <div class="flex justify-between text-gray-600">
+                        <span>Valor da comissão</span>
+                        <span class="font-semibold text-purple-700">{{ brl(order.get('commission_amount_brl')) }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Próxima cobrança -->
+            {% if balance > 0.009 %}
+            <div class="bg-white rounded-xl shadow-sm border {{ 'border-red-200' if next_charge_overdue else 'border-gray-200' }} overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Próxima cobrança</h3>
+                </div>
+                <form method="POST" action="{{ url_for('crm_order_set_next_charge', order_id=order.id) }}" class="px-5 py-4 space-y-3">
+                    <input type="date" name="next_charge_date" value="{{ order.get('next_charge_date', '') }}"
+                           class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <p class="text-xs text-gray-500">Usada para alertar a equipe interna sobre a cobrança do saldo devedor.</p>
+                    <button type="submit"
+                            class="w-full px-4 py-2 rounded-lg text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 transition-colors">
+                        Salvar data
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Endereço -->
+            {% set addr = order.get('shipping_address') %}
+            {% if addr %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Endereço</h3>
+                </div>
+                <div class="px-5 py-4 text-sm text-gray-700 space-y-1">
+                    {% if addr is mapping %}
+                        {% if addr.get('street') %}
+                        <p>{{ addr.street }}{% if addr.get('number') %}, {{ addr.number }}{% endif %}{% if addr.get('complement') %} — {{ addr.complement }}{% endif %}</p>
+                        {% endif %}
+                        {% if addr.get('neighborhood') %}<p class="text-gray-500">{{ addr.neighborhood }}</p>{% endif %}
+                        {% if addr.get('city') %}
+                        <p>{{ addr.city }}{% if addr.get('state') %} — {{ addr.state }}{% endif %}</p>
+                        {% endif %}
+                        {% if addr.get('zip_code') or addr.get('cep') %}
+                        <p class="text-gray-500 font-mono text-xs">CEP: {{ addr.get('zip_code') or addr.get('cep') }}</p>
+                        {% endif %}
+                    {% else %}
+                        <p>{{ addr }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Rastreio -->
+            {% if status in ('paid', 'authorized') or is_internal %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Rastreio</h3>
+                </div>
+                <div class="px-5 py-4">
+                    <form method="POST" action="{{ url_for('crm_set_order_tracking', order_id=order.id) }}" class="space-y-3">
+                        <input type="hidden" name="return_to" value="{{ url_for('crm_order_detail', order_id=order.id) }}">
+                        <input type="text" name="tracking_code" value="{{ order.get('tracking_code', '') }}"
+                               placeholder="Código dos Correios" required
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm uppercase">
+                        <button type="submit"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+                            Salvar e notificar cliente
+                        </button>
+                    </form>
+                    {% if order.get('tracking_code') %}
+                    <div class="mt-3 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+                        <p class="text-xs font-semibold text-emerald-800">Rastreio registrado</p>
+                        <p class="text-sm font-mono text-emerald-900 mt-0.5">{{ order.tracking_code }}</p>
+                        {% if order.get('tracking_set_at') %}
+                        <p class="text-xs text-emerald-700 mt-1">
+                            Enviado ao cliente em {{ order.tracking_set_at[8:10] }}/{{ order.tracking_set_at[5:7] }}/{{ order.tracking_set_at[0:4] }}
+                            às {{ order.tracking_set_at[11:16] }}
+                        </p>
+                        {% endif %}
+                        <a href="https://rastreamento.correios.com.br/app/index.php" target="_blank"
+                           class="inline-block text-xs text-emerald-800 underline mt-1">Acompanhar nos Correios</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Observações -->
+            {% if order.get('notes') %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h3 class="text-sm font-semibold text-gray-800">Observações</h3>
+                </div>
+                <p class="px-5 py-4 text-sm text-gray-700 whitespace-pre-line">{{ order.notes }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Histórico -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Histórico</h3>
+                </div>
+                <div class="px-5 py-4 space-y-2 text-sm">
+                    <div class="flex justify-between text-gray-600">
+                        <span>Criado em</span>
+                        <span class="font-medium text-gray-900">{{ order.get('created_at', '—') }}</span>
+                    </div>
+                    {% if order.get('updated_at') %}
+                    <div class="flex justify-between text-gray-600">
+                        <span>Atualizado em</span>
+                        <span class="font-medium text-gray-900">{{ order.updated_at }}</span>
+                    </div>
+                    {% endif %}
+                    {% if order.get('webhook_event') %}
+                    <div class="flex justify-between text-gray-600">
+                        <span>Último evento</span>
+                        <span class="font-mono text-xs text-gray-500">{{ order.webhook_event }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="pt-2 border-t border-gray-100">
+                        <a href="{{ url_for('crm_logs') }}?search={{ order.id[:8].upper() }}"
+                           class="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline">Ver logs deste pedido →</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal: inserir pagamento ── -->
+{% if balance > 0.009 %}
+<div id="payment-modal" class="fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4" style="display:none">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+            <div>
+                <h3 class="font-semibold text-gray-900 text-lg">Inserir pagamento</h3>
+                <p class="text-xs text-gray-500 mt-0.5">
+                    Pedido #{{ order.id[:8].upper() }} · saldo devedor {{ brl(balance) }}
+                </p>
+            </div>
+            <button type="button" onclick="closePaymentModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('crm_order_add_payment', order_id=order.id) }}" class="p-5 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="pay-amount" class="block text-sm font-semibold text-gray-700 mb-1.5">Valor recebido (R$) *</label>
+                    <input type="text" inputmode="decimal" id="pay-amount" name="amount_brl" required
+                           data-balance="{{ '%.2f' | format(balance) }}"
+                           oninput="updatePaymentHint()"
+                           placeholder="{{ '%.2f' | format(balance) | replace('.', ',') }}"
+                           class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                    <button type="button" onclick="fillFullBalance()"
+                            class="mt-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline">
+                        Usar valor integral ({{ brl(balance) }})
+                    </button>
+                </div>
+                <div>
+                    <label for="pay-method" class="block text-sm font-semibold text-gray-700 mb-1.5">Forma de pagamento *</label>
+                    <select id="pay-method" name="method" required
+                            class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                        <option value="">Selecione…</option>
+                        {% for value, label in payment_methods %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="pay-date" class="block text-sm font-semibold text-gray-700 mb-1.5">Data do pagamento</label>
+                    <input type="date" id="pay-date" name="paid_at" value="{{ today_iso }}"
+                           class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                </div>
+                <div id="next-charge-wrapper" class="hidden">
+                    <label for="pay-next" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        Data da próxima cobrança <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="pay-next" name="next_charge_date" value="{{ order.get('next_charge_date', '') }}"
+                           class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-amber-500 focus:ring-amber-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="pay-note" class="block text-sm font-semibold text-gray-700 mb-1.5">Observação</label>
+                <input type="text" id="pay-note" name="note" maxlength="200"
+                       placeholder="Ex.: cheque nº 4512, 2ª parcela, PIX do sócio…"
+                       class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500">
+            </div>
+
+            <div id="payment-hint" class="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-600">
+                Informe o valor para ver o saldo restante.
+            </div>
+
+            <div class="flex justify-end gap-3 pt-1">
+                <button type="button" onclick="closePaymentModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                    Registrar pagamento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function openPaymentModal() {
+        const modal = document.getElementById('payment-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => document.getElementById('pay-amount').focus(), 50);
+    }
+
+    function closePaymentModal() {
+        const modal = document.getElementById('payment-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function parseAmount(raw) {
+        if (!raw) return 0;
+        let text = String(raw).replace(/[^\d.,-]/g, '');
+        if (text.includes(',') && text.includes('.')) {
+            text = text.replace(/\./g, '').replace(',', '.');
+        } else if (text.includes(',')) {
+            text = text.replace(',', '.');
+        }
+        const value = parseFloat(text);
+        return isNaN(value) ? 0 : value;
+    }
+
+    function formatBRL(value) {
+        return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fillFullBalance() {
+        const input = document.getElementById('pay-amount');
+        input.value = parseFloat(input.dataset.balance).toFixed(2).replace('.', ',');
+        updatePaymentHint();
+    }
+
+    function updatePaymentHint() {
+        const input   = document.getElementById('pay-amount');
+        const hint    = document.getElementById('payment-hint');
+        const wrapper = document.getElementById('next-charge-wrapper');
+        const nextInput = document.getElementById('pay-next');
+        if (!input || !hint) return;
+
+        const balance = parseFloat(input.dataset.balance);
+        const amount  = parseAmount(input.value);
+
+        if (!amount) {
+            hint.className = 'rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-600';
+            hint.textContent = 'Informe o valor para ver o saldo restante.';
+            wrapper.classList.add('hidden');
+            nextInput.required = false;
+            return;
+        }
+
+        if (amount > balance + 0.009) {
+            hint.className = 'rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700';
+            hint.textContent = 'Valor acima do saldo devedor de ' + formatBRL(balance) + '.';
+            wrapper.classList.add('hidden');
+            nextInput.required = false;
+            return;
+        }
+
+        const remaining = Math.max(0, balance - amount);
+        if (remaining < 0.01) {
+            hint.className = 'rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800';
+            hint.textContent = 'Pagamento integral — o pedido será quitado.';
+            wrapper.classList.add('hidden');
+            nextInput.required = false;
+        } else {
+            hint.className = 'rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800';
+            hint.textContent = 'Pagamento parcial — restará ' + formatBRL(remaining) + '. Informe a data da próxima cobrança.';
+            wrapper.classList.remove('hidden');
+            nextInput.required = true;
+        }
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePaymentModal();
+    });
+
+    document.getElementById('payment-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'payment-modal') closePaymentModal();
+    });
+
+    async function refreshStatus() {
+        const btn  = document.getElementById('refresh-btn');
+        const icon = document.getElementById('refresh-icon');
+        btn.disabled = true;
+        icon.classList.add('animate-spin');
+        try {
+            const res  = await fetch('/api/orders/{{ order.id }}/refresh-status', { method: 'POST' });
+            const data = await res.json();
+            if (data.status && data.status !== '{{ status }}') {
+                window.location.reload();
+            } else {
+                btn.disabled = false;
+                icon.classList.remove('animate-spin');
+            }
+        } catch (e) {
+            btn.disabled = false;
+            icon.classList.remove('animate-spin');
+        }
+    }
+</script>
+{% endblock %}

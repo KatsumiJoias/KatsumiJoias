@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copiar código PIX — Katsumi Joias</title>
+    <meta name="theme-color" content="#0E3B2E">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-serif { font-family: 'Marcellus', serif; }
+    </style>
+</head>
+<body class="bg-[#F4EFE6] min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white border border-[#e8e4dc] rounded-xl p-8 text-center shadow-sm">
+        <div id="state-loading">
+            <div class="w-10 h-10 border-2 border-[#B68C3F] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-sm text-gray-600">Copiando código PIX…</p>
+        </div>
+        <div id="state-success" class="hidden">
+            <div class="w-12 h-12 rounded-full bg-[#f3f7f4] flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-[#0E3B2E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+            </div>
+            <h1 class="font-serif text-xl text-[#141210] mb-2">Código copiado!</h1>
+            <p class="text-sm text-gray-600 mb-6 leading-relaxed">
+                Cole na área PIX do seu banco para concluir o pagamento.
+            </p>
+            <a href="{{ success_url }}" class="inline-block w-full py-3 px-4 bg-[#B68C3F] text-white text-sm font-semibold rounded-lg hover:bg-[#8C6B2E] transition-colors">
+                Ver QR Code e detalhes
+            </a>
+        </div>
+        <div id="state-manual" class="hidden">
+            <h1 class="font-serif text-xl text-[#141210] mb-2">Copiar código PIX</h1>
+            <p class="text-sm text-gray-600 mb-4">Toque no botão abaixo para copiar o código.</p>
+            <textarea id="pix-code-field" readonly rows="4" class="w-full text-xs font-mono p-3 border border-[#e8e4dc] rounded-lg bg-[#faf9f7] mb-4 text-gray-700">{{ pix_code }}</textarea>
+            <button type="button" id="manual-copy-btn" class="w-full py-3 px-4 bg-[#B68C3F] text-white text-sm font-semibold rounded-lg hover:bg-[#8C6B2E] transition-colors mb-3">
+                Copiar código PIX
+            </button>
+            <a href="{{ success_url }}" class="text-sm text-[#B68C3F] hover:underline">Ver QR Code e pagar →</a>
+        </div>
+    </div>
+    <script>
+        const PIX_CODE = {{ pix_code | tojson }};
+
+        function showSuccess() {
+            document.getElementById('state-loading').classList.add('hidden');
+            document.getElementById('state-manual').classList.add('hidden');
+            document.getElementById('state-success').classList.remove('hidden');
+        }
+
+        function showManual() {
+            document.getElementById('state-loading').classList.add('hidden');
+            document.getElementById('state-success').classList.add('hidden');
+            document.getElementById('state-manual').classList.remove('hidden');
+        }
+
+        async function copyCode() {
+            if (!PIX_CODE) {
+                showManual();
+                return;
+            }
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(PIX_CODE);
+                    showSuccess();
+                    return;
+                }
+            } catch (e) {}
+
+            const field = document.getElementById('pix-code-field');
+            if (field) {
+                field.focus();
+                field.select();
+                try {
+                    if (document.execCommand('copy')) {
+                        showSuccess();
+                        return;
+                    }
+                } catch (e) {}
+            }
+            showManual();
+        }
+
+        document.getElementById('manual-copy-btn')?.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(PIX_CODE);
+                showSuccess();
+            } catch (e) {
+                const field = document.getElementById('pix-code-field');
+                field.select();
+                document.execCommand('copy');
+                showSuccess();
+            }
+        });
+
+        copyCode();
+    </script>
+</body>
+</html>

@@ -1,0 +1,767 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Page Header -->
+<section class="bg-luxury-cream border-b border-gray-200/60 lg:border-none">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+        <div class="lg:flex lg:items-end lg:justify-between lg:gap-8">
+            <div>
+                <h1 class="text-[1.65rem] lg:text-4xl font-serif font-medium text-luxury-black leading-tight">{{ category_h1|default('Catálogo de Gemas') }}</h1>
+                <p class="mt-2 text-sm text-gray-500">
+                    <span class="lg:hidden"><span class="font-medium text-luxury-black">{{ pagination.total_count }}</span> produto(s) encontrado(s)</span>
+                    <span class="hidden lg:inline"><span class="font-medium text-luxury-black">{{ pagination.total_count }}</span> gemas encontradas · cada peça é única</span>
+                </p>
+            </div>
+            <div class="hidden lg:block flex-shrink-0">
+                <select onchange="applyProductSort(this.value)"
+                        class="catalog-sort-select text-sm border border-gray-300 rounded-md px-4 py-2.5 bg-white text-luxury-black font-medium focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/30 shadow-sm min-w-[14rem]">
+                    <option value="" {% if not filters.sort_by %}selected{% endif %}>Ordenar por: Destaques</option>
+                    <option value="price_asc"  {% if filters.sort_by == 'price_asc'  %}selected{% endif %}>Menor preço</option>
+                    <option value="price_desc" {% if filters.sort_by == 'price_desc' %}selected{% endif %}>Maior preço</option>
+                    <option value="peso_asc"   {% if filters.sort_by == 'peso_asc'   %}selected{% endif %}>Menor peso</option>
+                    <option value="peso_desc"  {% if filters.sort_by == 'peso_desc'  %}selected{% endif %}>Maior peso</option>
+                    <option value="recentes"   {% if filters.sort_by == 'recentes'   %}selected{% endif %}>Recentes</option>
+                </select>
+            </div>
+        </div>
+
+        {% set active_filters_count = [filters.search, filters.category, filters.min_altura, filters.max_altura, filters.min_comprimento, filters.max_comprimento, filters.min_largura, filters.max_largura, filters.min_peso, filters.max_peso, filters.min_preco_ct, filters.max_preco_ct, filters.min_preco_total, filters.max_preco_total, filters.cut, filters.numero_pedras, filters.riviera] | select | list | length %}
+        <div class="lg:hidden flex gap-3 mt-5">
+            <button type="button" onclick="openMobileFilters()"
+                    class="catalog-mobile-pill catalog-mobile-pill--filters">
+                Filtros
+                {% if active_filters_count > 0 %}
+                <span class="inline-flex items-center justify-center h-5 w-5 rounded-full bg-luxury-gold text-white text-[10px] font-bold">{{ active_filters_count }}</span>
+                {% endif %}
+            </button>
+            <div class="relative flex-1">
+                <button type="button" onclick="toggleMobileSort()" class="catalog-mobile-pill catalog-mobile-pill--sort w-full">
+                    Ordenar
+                    <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="mobile-sort-menu" class="hidden absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                    <button type="button" onclick="applyProductSort('')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-luxury-cream">Destaques</button>
+                    <button type="button" onclick="applyProductSort('price_asc')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-luxury-cream border-t border-gray-100">Menor preço</button>
+                    <button type="button" onclick="applyProductSort('price_desc')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-luxury-cream border-t border-gray-100">Maior preço</button>
+                    <button type="button" onclick="applyProductSort('peso_asc')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-luxury-cream border-t border-gray-100">Menor peso</button>
+                    <button type="button" onclick="applyProductSort('peso_desc')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-luxury-cream border-t border-gray-100">Maior peso</button>
+                    <button type="button" onclick="applyProductSort('recentes')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-luxury-cream border-t border-gray-100">Recentes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Filters and Products Section -->
+<section class="py-6 lg:py-8 bg-luxury-cream lg:bg-luxury-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div id="mobile-filters-backdrop" class="hidden fixed inset-0 bg-black/40 z-50 lg:hidden" onclick="closeMobileFilters()"></div>
+        <div class="lg:grid lg:grid-cols-4 lg:gap-8">
+            <!-- Filters Sidebar -->
+            <div class="lg:col-span-1">
+                <div id="filters-container" class="bg-white rounded-xl lg:rounded-lg shadow-sm lg:shadow-md p-6 lg:sticky lg:top-28 hidden lg:block">
+                    <div class="flex items-center justify-between mb-6 lg:mb-8">
+                        <h2 class="text-lg lg:text-xl font-semibold text-luxury-black">Filtros</h2>
+                        <div class="flex items-center gap-3">
+                            <button type="button" onclick="clearFilters()" class="text-sm text-luxury-gold hover:text-luxury-gold-dark transition-colors font-medium">
+                                Limpar
+                            </button>
+                            <button type="button" onclick="closeMobileFilters()" class="lg:hidden text-gray-400 hover:text-gray-600 p-1" aria-label="Fechar filtros">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <form id="filter-form" method="GET" action="{% if category_slug %}{{ url_for('category_page', category_slug=category_slug) }}{% else %}/products{% endif %}" class="space-y-6">
+                        <!-- Search Query (hidden field to preserve search) -->
+                        {% if filters.search %}
+                        <input type="hidden" name="search" value="{{ filters.search }}">
+                        <div class="pb-4 border-b border-gray-200">
+                            <div class="flex items-center justify-between text-sm text-gray-700">
+                                <span class="font-medium">Buscando por:</span>
+                                <span class="text-luxury-gold font-semibold">{{ filters.search }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if filters.sort_by %}
+                        <input type="hidden" name="sort_by" value="{{ filters.sort_by }}">
+                        {% endif %}
+                        
+                        <!-- Categoria -->
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-gray-700 mb-2 lg:mb-3">
+                                <span class="lg:uppercase lg:tracking-[0.12em] lg:text-[0.6875rem] lg:font-semibold lg:text-gray-500">Categoria</span>
+                            </label>
+                            <select name="category" id="category" onchange="handleFilterChangeImmediate()" class="w-full rounded-md border border-gray-300 bg-gray-50 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold px-3 py-2">
+                                <option value="">Todas</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Altura (hidden — most products don't have this field populated) -->
+                        <div class="hidden">
+                            <div class="drs-wrap" id="altura-slider"><div class="drs-track-bg"></div><div class="drs-track-fill" id="altura-fill"></div><input type="range" id="altura-r-min" step="0.1"><input type="range" id="altura-r-max" step="0.1"></div>
+                            <input type="number" id="altura-i-min" name="min_altura" value="{{ filters.min_altura or '' }}" step="0.1">
+                            <input type="number" id="altura-i-max" name="max_altura" value="{{ filters.max_altura or '' }}" step="0.1">
+                        </div>
+
+                        <!-- Comprimento -->
+                        <div>
+                            <label for="comprimento-range-select" class="block text-sm font-medium text-gray-700 mb-2">Comprimento (mm)</label>
+                            <select id="comprimento-range-select" class="w-full rounded-md border border-gray-300 bg-gray-50 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold px-3 py-2 text-sm">
+                                <option value="">Todos</option>
+                            </select>
+                            <input type="hidden" id="comprimento-i-min" name="min_comprimento" value="{{ filters.min_comprimento or '' }}">
+                            <input type="hidden" id="comprimento-i-max" name="max_comprimento" value="{{ filters.max_comprimento or '' }}">
+                        </div>
+
+                        <!-- Largura -->
+                        <div>
+                            <label for="largura-range-select" class="block text-sm font-medium text-gray-700 mb-2">Largura (mm)</label>
+                            <select id="largura-range-select" class="w-full rounded-md border border-gray-300 bg-gray-50 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold px-3 py-2 text-sm">
+                                <option value="">Todos</option>
+                            </select>
+                            <input type="hidden" id="largura-i-min" name="min_largura" value="{{ filters.min_largura or '' }}">
+                            <input type="hidden" id="largura-i-max" name="max_largura" value="{{ filters.max_largura or '' }}">
+                        </div>
+
+                        <!-- Peso em Quilates -->
+                        <div>
+                            <label for="peso-range-select" class="block text-sm font-medium text-gray-700 mb-2 lg:mb-3">
+                                <span class="lg:uppercase lg:tracking-[0.12em] lg:text-[0.6875rem] lg:font-semibold lg:text-gray-500">Peso (quilates)</span>
+                            </label>
+                            <select id="peso-range-select" class="w-full rounded-md border border-gray-300 bg-gray-50 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold px-3 py-2 text-sm">
+                                <option value="">Todos</option>
+                            </select>
+                            <input type="hidden" id="peso-i-min" name="min_peso" value="{{ filters.min_peso or '' }}">
+                            <input type="hidden" id="peso-i-max" name="max_peso" value="{{ filters.max_peso or '' }}">
+                        </div>
+
+                        <!-- Preço por quilate -->
+                        <div>
+                            <label for="preco-ct-range-select" class="block text-sm font-medium text-gray-700 mb-2">Preço por quilate (R$)</label>
+                            <select id="preco-ct-range-select" class="w-full rounded-md border border-gray-300 bg-gray-50 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold px-3 py-2 text-sm">
+                                <option value="">Todos</option>
+                            </select>
+                            <input type="hidden" id="preco-ct-i-min" name="min_preco_ct" value="{{ filters.min_preco_ct or '' }}">
+                            <input type="hidden" id="preco-ct-i-max" name="max_preco_ct" value="{{ filters.max_preco_ct or '' }}">
+                        </div>
+
+                        <!-- Preço total -->
+                        <div>
+                            <label for="preco-total-range-select" class="block text-sm font-medium text-gray-700 mb-2">Preço total (R$)</label>
+                            <select id="preco-total-range-select" class="w-full rounded-md border border-gray-300 bg-gray-50 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold px-3 py-2 text-sm">
+                                <option value="">Todos</option>
+                            </select>
+                            <input type="hidden" id="preco-total-i-min" name="min_preco_total" value="{{ filters.min_preco_total or '' }}">
+                            <input type="hidden" id="preco-total-i-max" name="max_preco_total" value="{{ filters.max_preco_total or '' }}">
+                        </div>
+
+                        <!-- Lapidação -->
+                        <div>
+                            <label for="cut" class="block text-sm font-medium text-gray-700 mb-2 lg:mb-3">
+                                <span class="lg:uppercase lg:tracking-[0.12em] lg:text-[0.6875rem] lg:font-semibold lg:text-gray-500">Lapidação</span>
+                            </label>
+                            <select name="cut" id="cut" onchange="handleFilterChangeImmediate()" class="w-full rounded-md border border-gray-300 bg-gray-50 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold px-3 py-2">
+                                <option value="">Todas</option>
+                                {% for cut_option in cuts %}
+                                <option value="{{ cut_option }}" {% if filters.cut == cut_option %}selected{% endif %}>{{ cut_option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Número de Pedras -->
+                        <div>
+                            <label for="numero_pedras" class="block text-sm font-medium text-gray-700 mb-2">Número de Pedras</label>
+                            <select name="numero_pedras" id="numero_pedras" onchange="handleFilterChangeImmediate()" class="w-full rounded-md border border-gray-300 bg-gray-50 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold px-3 py-2 text-sm">
+                                <option value="">Todos</option>
+                                <option value="unico"   {% if filters.numero_pedras == 'unico'   %}selected{% endif %}>Único (1 pedra)</option>
+                                <option value="par"     {% if filters.numero_pedras == 'par'     %}selected{% endif %}>Par (2 pedras)</option>
+                                <option value="trio"    {% if filters.numero_pedras == 'trio'    %}selected{% endif %}>Trio (3 pedras)</option>
+                                <option value="conjunto"{% if filters.numero_pedras == 'conjunto'%}selected{% endif %}>Conjunto (4+ pedras)</option>
+                            </select>
+                        </div>
+
+                        <!-- Riviera -->
+                        {% if has_riviera_products %}
+                        <div>
+                            <div class="flex items-start gap-2">
+                                <input type="checkbox" name="riviera" id="riviera" value="true" {% if filters.riviera %}checked{% endif %} onchange="handleFilterChangeImmediate()" class="h-4 w-4 mt-0.5 text-luxury-gold focus:ring-luxury-gold border-gray-300 rounded flex-shrink-0">
+                                <div>
+                                    <label for="riviera" class="block text-sm font-medium text-gray-700">
+                                        Apenas Riviera
+                                        <span class="relative inline-flex ml-1 align-middle group/tip">
+                                            <button type="button" class="w-4 h-4 rounded-full border border-gray-300 text-[10px] font-bold text-gray-500 hover:border-luxury-gold hover:text-luxury-gold leading-none" aria-label="O que é Riviera?">?</button>
+                                            <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 px-3 py-2 text-xs font-normal text-white bg-luxury-black rounded-md opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible group-focus-within/tip:opacity-100 group-focus-within/tip:visible transition-opacity z-20 shadow-lg">
+                                                Conjuntos de pedras calibradas no mesmo tamanho e cor, ideais para montar colares Riviera.
+                                            </span>
+                                        </span>
+                                    </label>
+                                    <p class="text-xs text-gray-500 mt-1 leading-snug">Pedras calibradas para colares Riviera.</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="lg:col-span-3 mt-2 lg:mt-0">
+                {% if products %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 items-stretch">
+                    {% for product in products %}
+                    {% with show_description=false, card_extra_class='luxury-border' %}
+                    {% include '_product_card.html' %}
+                    {% endwith %}
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                {% if pagination.total_pages > 1 %}
+                <div class="mt-10 pt-8 border-t border-gray-200">
+                    <p class="text-center text-sm font-semibold text-luxury-black mb-4">
+                        Página <span class="text-luxury-gold">{{ pagination.page }}</span> de {{ pagination.total_pages }}
+                        <span class="text-gray-500 font-normal">· {{ pagination.total_count }} produtos</span>
+                    </p>
+                <nav class="flex items-center justify-center gap-2 flex-wrap" aria-label="Paginação">
+                    {% if pagination.has_prev %}
+                    <a href="{{ pagination.prev_url }}" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Anterior
+                    </a>
+                    {% endif %}
+
+                    {% set page_start = [1, pagination.page - 2] | max %}
+                    {% set page_end = [pagination.total_pages, pagination.page + 2] | min %}
+
+                    {% if page_start > 1 %}
+                    <a href="{{ pagination.prev_url.replace('page=' ~ (pagination.page - 1)|string, 'page=1') if pagination.prev_url else '?page=1' }}" class="inline-flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">1</a>
+                    {% if page_start > 2 %}
+                    <span class="text-gray-400 px-1">...</span>
+                    {% endif %}
+                    {% endif %}
+
+                    {% for p in range(page_start, page_end + 1) %}
+                    {% if p == pagination.page %}
+                    <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-bold catalog-pagination-active rounded-md">{{ p }}</span>
+                    {% else %}
+                    <a href="?{% for k, v in request.args.items() if k != 'page' %}{{ k }}={{ v }}&{% endfor %}page={{ p }}" class="inline-flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">{{ p }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_end < pagination.total_pages %}
+                    {% if page_end < pagination.total_pages - 1 %}
+                    <span class="text-gray-400 px-1">...</span>
+                    {% endif %}
+                    <a href="?{% for k, v in request.args.items() if k != 'page' %}{{ k }}={{ v }}&{% endfor %}page={{ pagination.total_pages }}" class="inline-flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">{{ pagination.total_pages }}</a>
+                    {% endif %}
+
+                    {% if pagination.has_next %}
+                    <a href="{{ pagination.next_url }}" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                        Próxima
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </a>
+                    {% endif %}
+                </nav>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-16 bg-white rounded-lg shadow-sm">
+                    <div class="flex justify-center mb-4">
+                        <svg class="h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-900 mb-2">Nenhum produto encontrado</h3>
+                    <p class="text-gray-600 mb-1">Não foram encontradas pedras com base nos filtros aplicados.</p>
+                    
+                    <!-- Active Filters List -->
+                    {% set has_filters = filters.search or filters.category or filters.min_altura or filters.max_altura or filters.min_comprimento or filters.max_comprimento or filters.min_largura or filters.max_largura or filters.min_peso or filters.max_peso or filters.min_preco_ct or filters.max_preco_ct or filters.min_preco_total or filters.max_preco_total or filters.cut or filters.numero_pedras or filters.riviera %}
+                    {% if has_filters %}
+                    <div class="max-w-md mx-auto mt-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <p class="text-sm font-medium text-gray-700 mb-2">Filtros ativos:</p>
+                        <ul class="text-sm text-gray-600 space-y-1 text-left">
+                            {% if filters.search %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Busca:</strong> "{{ filters.search }}"</span>
+                            </li>
+                            {% endif %}
+                            {% if filters.category %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Categoria:</strong> {{ filters.category }}</span>
+                            </li>
+                            {% endif %}
+                            {% if filters.min_altura or filters.max_altura %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Altura:</strong> 
+                                    {% if filters.min_altura and filters.max_altura %}
+                                        {{ filters.min_altura }} mm - {{ filters.max_altura }} mm
+                                    {% elif filters.min_altura %}
+                                        a partir de {{ filters.min_altura }} mm
+                                    {% else %}
+                                        até {{ filters.max_altura }} mm
+                                    {% endif %}
+                                </span>
+                            </li>
+                            {% endif %}
+                            {% if filters.min_comprimento or filters.max_comprimento %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Comprimento:</strong> 
+                                    {% if filters.min_comprimento and filters.max_comprimento %}
+                                        {{ filters.min_comprimento }} mm - {{ filters.max_comprimento }} mm
+                                    {% elif filters.min_comprimento %}
+                                        a partir de {{ filters.min_comprimento }} mm
+                                    {% else %}
+                                        até {{ filters.max_comprimento }} mm
+                                    {% endif %}
+                                </span>
+                            </li>
+                            {% endif %}
+                            {% if filters.min_largura or filters.max_largura %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Largura:</strong> 
+                                    {% if filters.min_largura and filters.max_largura %}
+                                        {{ filters.min_largura }} mm - {{ filters.max_largura }} mm
+                                    {% elif filters.min_largura %}
+                                        a partir de {{ filters.min_largura }} mm
+                                    {% else %}
+                                        até {{ filters.max_largura }} mm
+                                    {% endif %}
+                                </span>
+                            </li>
+                            {% endif %}
+                            {% if filters.min_peso or filters.max_peso %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Peso:</strong> 
+                                    {% if filters.min_peso and filters.max_peso %}
+                                        {{ filters.min_peso }} ct - {{ filters.max_peso }} ct
+                                    {% elif filters.min_peso %}
+                                        a partir de {{ filters.min_peso }} ct
+                                    {% else %}
+                                        até {{ filters.max_peso }} ct
+                                    {% endif %}
+                                </span>
+                            </li>
+                            {% endif %}
+                            {% if filters.min_preco_ct or filters.max_preco_ct %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Preço/ct:</strong>
+                                    {% if filters.min_preco_ct and filters.max_preco_ct %}
+                                        R$ {{ filters.min_preco_ct }} - R$ {{ filters.max_preco_ct }}
+                                    {% elif filters.min_preco_ct %}
+                                        a partir de R$ {{ filters.min_preco_ct }}
+                                    {% else %}
+                                        até R$ {{ filters.max_preco_ct }}
+                                    {% endif %}
+                                </span>
+                            </li>
+                            {% endif %}
+                            {% if filters.min_preco_total or filters.max_preco_total %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Preço total:</strong>
+                                    {% if filters.min_preco_total and filters.max_preco_total %}
+                                        R$ {{ filters.min_preco_total }} - R$ {{ filters.max_preco_total }}
+                                    {% elif filters.min_preco_total %}
+                                        a partir de R$ {{ filters.min_preco_total }}
+                                    {% else %}
+                                        até R$ {{ filters.max_preco_total }}
+                                    {% endif %}
+                                </span>
+                            </li>
+                            {% endif %}
+                            {% if filters.cut %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Lapidação:</strong> {{ filters.cut }}</span>
+                            </li>
+                            {% endif %}
+                            {% if filters.numero_pedras %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Número de Pedras:</strong> {{ filters.numero_pedras }}</span>
+                            </li>
+                            {% endif %}
+                            {% if filters.riviera %}
+                            <li class="flex items-start">
+                                <span class="text-luxury-gold mr-2">•</span>
+                                <span><strong>Riviera:</strong> Sim</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-gray-500 mb-6">Tente ajustar ou limpar os filtros para ver mais produtos.</p>
+                    {% endif %}
+                    
+                    <div class="flex justify-center gap-3">
+                        <button onclick="clearFilters()" class="inline-flex items-center px-5 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-luxury-gold hover:bg-luxury-gold-dark transition-colors">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Limpar Filtros
+                        </button>
+                        <a href="/" class="inline-flex items-center px-5 py-2.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                            Voltar ao Início
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% include '_especialista_section.html' %}
+
+<style>
+.drs-wrap{position:relative;height:28px;display:flex;align-items:center;padding:0 2px}
+.drs-track-bg{position:absolute;width:100%;height:4px;background:#e5e7eb;border-radius:2px}
+.drs-track-fill{position:absolute;height:4px;border-radius:2px;background:#B8860B}
+.drs-wrap input[type=range]{position:absolute;width:100%;pointer-events:none;-webkit-appearance:none;appearance:none;background:transparent;height:28px;margin:0;padding:0}
+.drs-wrap input[type=range]::-webkit-slider-thumb{pointer-events:all;-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:white;border:2.5px solid #B8860B;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.drs-wrap input[type=range]::-moz-range-thumb{pointer-events:all;width:14px;height:14px;border-radius:50%;background:white;border:2.5px solid #B8860B;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+</style>
+<script type="application/json" id="jinja-data">
+{
+    "categoryOptions": {{ category_options | tojson }},
+    "bounds": {
+        "altura":      {"min": {{ bounds.altura.min }},      "max": {{ bounds.altura.max }}},
+        "comprimento": {"min": {{ bounds.comprimento.min }}, "max": {{ bounds.comprimento.max }}},
+        "largura":     {"min": {{ bounds.largura.min }},     "max": {{ bounds.largura.max }}},
+        "peso":        {"min": {{ bounds.peso.min }},        "max": {{ bounds.peso.max }}}
+    },
+    "filters": {
+        "category":         "{{ filters.category or '' }}",
+        "min_altura":       "{{ filters.min_altura or '' }}",
+        "max_altura":       "{{ filters.max_altura or '' }}",
+        "min_comprimento":  "{{ filters.min_comprimento or '' }}",
+        "max_comprimento":  "{{ filters.max_comprimento or '' }}",
+        "min_largura":      "{{ filters.min_largura or '' }}",
+        "max_largura":      "{{ filters.max_largura or '' }}",
+        "min_peso":         "{{ filters.min_peso or '' }}",
+        "max_peso":         "{{ filters.max_peso or '' }}",
+        "min_preco_ct":     "{{ filters.min_preco_ct or '' }}",
+        "max_preco_ct":     "{{ filters.max_preco_ct or '' }}",
+        "min_preco_total":  "{{ filters.min_preco_total or '' }}",
+        "max_preco_total":  "{{ filters.max_preco_total or '' }}"
+    }
+}
+</script>
+<script>
+// ---- Range bucket dropdowns (Comprimento, Largura, Peso) ----
+function _fmtRangeNum(n, decimals) {
+    return Number(n).toFixed(decimals).replace('.', ',');
+}
+
+function _buildRangeBuckets(maxVal, unit, step, decimals) {
+    const buckets = [];
+    if (!maxVal || maxVal <= 0) return buckets;
+    let lo = 0;
+    while (lo < maxVal - 0.0001) {
+        const hi = Math.min(lo + step, maxVal);
+        const minVal = lo === 0 ? 0 : +(lo + 0.01).toFixed(decimals);
+        const maxRounded = +hi.toFixed(decimals);
+        let label;
+        if (lo === 0) {
+            label = 'de 0 ' + unit + ' a ' + _fmtRangeNum(hi, decimals) + ' ' + unit;
+        } else {
+            label = 'de ' + _fmtRangeNum(minVal, decimals) + ' ' + unit + ' a ' + _fmtRangeNum(maxRounded, decimals) + ' ' + unit;
+        }
+        buckets.push({ min: minVal, max: maxRounded, label: label });
+        lo = hi;
+    }
+    return buckets;
+}
+
+const _rangeDropdownRebuilders = {};
+
+function _rangeDropdownSetup(field, buckets, unit, step, decimals) {
+    const sel = document.getElementById(field + '-range-select');
+    const iMin = document.getElementById(field + '-i-min');
+    const iMax = document.getElementById(field + '-i-max');
+    if (!sel || !iMin || !iMax) return;
+
+    function rebuild(nextBuckets) {
+        const resolvedBuckets = Array.isArray(nextBuckets) && nextBuckets.length
+            ? nextBuckets
+            : (Array.isArray(buckets) ? buckets : _buildRangeBuckets(nextBuckets, unit, step, decimals));
+        const curMin = iMin.value !== '' ? parseFloat(iMin.value) : null;
+        const curMax = iMax.value !== '' ? parseFloat(iMax.value) : null;
+        sel.innerHTML = '';
+        const allOpt = document.createElement('option');
+        allOpt.value = '';
+        allOpt.textContent = 'Todos';
+        sel.appendChild(allOpt);
+        let matched = false;
+        resolvedBuckets.forEach(function(b) {
+            const opt = document.createElement('option');
+            opt.value = b.min + '|' + b.max;
+            opt.textContent = b.label;
+            if (curMin !== null && curMax !== null &&
+                Math.abs(curMin - b.min) < 0.001 && Math.abs(curMax - b.max) < 0.001) {
+                opt.selected = true;
+                matched = true;
+            }
+            sel.appendChild(opt);
+        });
+        if (!matched && (curMin !== null || curMax !== null)) {
+            iMin.value = '';
+            iMax.value = '';
+        }
+    }
+
+    if (!sel.dataset.bound) {
+        sel.dataset.bound = '1';
+        sel.addEventListener('change', function() {
+            if (!this.value) {
+                iMin.value = '';
+                iMax.value = '';
+            } else {
+                const parts = this.value.split('|');
+                iMin.value = parts[0];
+                iMax.value = parts[1];
+            }
+            handleFilterChangeImmediate();
+        });
+    }
+
+    rebuild(buckets);
+    _rangeDropdownRebuilders[field] = rebuild;
+}
+
+function _updateRangeDropdownBounds(field, buckets, unit, step, decimals) {
+    if (_rangeDropdownRebuilders[field]) {
+        _rangeDropdownRebuilders[field](buckets);
+    } else {
+        _rangeDropdownSetup(field, buckets, unit, step, decimals);
+    }
+}
+
+// ---- Dual Range Slider (altura only) ----
+function _drsFill(field, bMin, bMax) {
+    const rMin = document.getElementById(field+'-r-min');
+    const rMax = document.getElementById(field+'-r-max');
+    const fill = document.getElementById(field+'-fill');
+    if (!rMin || !rMax || !fill) return;
+    const range = bMax - bMin;
+    if (range <= 0) { fill.style.left='0%'; fill.style.width='100%'; return; }
+    const lo = ((parseFloat(rMin.value) - bMin) / range) * 100;
+    const hi = ((parseFloat(rMax.value) - bMin) / range) * 100;
+    fill.style.left = lo + '%';
+    fill.style.width = Math.max(0, hi - lo) + '%';
+}
+function _drsSetup(field, bMin, bMax, curMin, curMax, step) {
+    const rMin = document.getElementById(field+'-r-min');
+    const rMax = document.getElementById(field+'-r-max');
+    const iMin = document.getElementById(field+'-i-min');
+    const iMax = document.getElementById(field+'-i-max');
+    if (!rMin || !rMax) return;
+    step = step || 0.1;
+    rMin.min = bMin; rMin.max = bMax; rMin.step = step;
+    rMax.min = bMin; rMax.max = bMax; rMax.step = step;
+    rMin.value = (curMin !== '') ? parseFloat(curMin) : bMin;
+    rMax.value = (curMax !== '') ? parseFloat(curMax) : bMax;
+    _drsFill(field, bMin, bMax);
+    rMin.addEventListener('input', function() {
+        let v = parseFloat(this.value), maxV = parseFloat(rMax.value);
+        if (v >= maxV) { v = maxV - step; this.value = v; }
+        iMin.value = (Math.abs(v - bMin) < step * 0.5) ? '' : +v.toFixed(2);
+        _drsFill(field, bMin, bMax);
+        handleFilterChange();
+    });
+    rMax.addEventListener('input', function() {
+        let v = parseFloat(this.value), minV = parseFloat(rMin.value);
+        if (v <= minV) { v = minV + step; this.value = v; }
+        iMax.value = (Math.abs(v - bMax) < step * 0.5) ? '' : +v.toFixed(2);
+        _drsFill(field, bMin, bMax);
+        handleFilterChange();
+    });
+    iMin.addEventListener('change', function() {
+        const v = parseFloat(this.value);
+        if (!isNaN(v) && v >= bMin && v < parseFloat(rMax.value)) { rMin.value = v; _drsFill(field, bMin, bMax); }
+        handleFilterChange();
+    });
+    iMax.addEventListener('change', function() {
+        const v = parseFloat(this.value);
+        if (!isNaN(v) && v <= bMax && v > parseFloat(rMin.value)) { rMax.value = v; _drsFill(field, bMin, bMax); }
+        handleFilterChange();
+    });
+}
+
+// Mobile filters drawer
+function openMobileFilters() {
+    const filtersContainer = document.getElementById('filters-container');
+    const backdrop = document.getElementById('mobile-filters-backdrop');
+    if (!filtersContainer) return;
+    filtersContainer.classList.remove('hidden');
+    filtersContainer.classList.add('mobile-filters-open');
+    backdrop?.classList.add('mobile-filters-open');
+    backdrop?.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeMobileFilters() {
+    const filtersContainer = document.getElementById('filters-container');
+    const backdrop = document.getElementById('mobile-filters-backdrop');
+    if (!filtersContainer) return;
+    if (window.innerWidth >= 1024) return;
+    filtersContainer.classList.add('hidden');
+    filtersContainer.classList.remove('mobile-filters-open');
+    backdrop?.classList.remove('mobile-filters-open');
+    backdrop?.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function toggleMobileSort() {
+    const menu = document.getElementById('mobile-sort-menu');
+    if (menu) menu.classList.toggle('hidden');
+}
+
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('mobile-sort-menu');
+    if (!menu || menu.classList.contains('hidden')) return;
+    if (!e.target.closest('#mobile-sort-menu') && !e.target.closest('[onclick="toggleMobileSort()"]')) {
+        menu.classList.add('hidden');
+    }
+});
+
+// Legacy alias
+function toggleFilters() {
+    openMobileFilters();
+}
+
+let _filterDebounce;
+function _submitFilters() {
+    var form = document.getElementById('filter-form');
+    var pageInput = form.querySelector('input[name="page"]');
+    if (pageInput) pageInput.remove();
+    form.submit();
+}
+function handleFilterChange() {
+    clearTimeout(_filterDebounce);
+    _filterDebounce = setTimeout(_submitFilters, 600);
+}
+function handleFilterChangeImmediate() {
+    clearTimeout(_filterDebounce);
+    var catSel = document.getElementById('category');
+    var pageCategory = (_jinjaData.filters && _jinjaData.filters.category) || '';
+    if (catSel && catSel.value !== pageCategory) {
+        var val = catSel.value;
+        window.location.href = val ? ('/products?category=' + encodeURIComponent(val)) : '/products';
+        return;
+    }
+    _submitFilters();
+}
+
+function clearFilters() {
+    window.location.href = '/products';
+}
+
+// ---- Category-aware dropdown filtering ----
+var _jinjaData = JSON.parse(document.getElementById('jinja-data').textContent);
+const _catOptions = _jinjaData.categoryOptions;
+const _pedrasLabels = {unico: 'Único (1 pedra)', par: 'Par (2 pedras)', trio: 'Trio (3 pedras)', conjunto: 'Conjunto (4+ pedras)'};
+
+function _rebuildSelect(sel, items, labelFn, allLabel) {
+    const current = sel.value;
+    sel.innerHTML = '';
+    const allOpt = document.createElement('option');
+    allOpt.value = ''; allOpt.textContent = allLabel;
+    sel.appendChild(allOpt);
+    items.forEach(function(v) {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = labelFn(v);
+        sel.appendChild(opt);
+    });
+    if (Array.from(sel.options).some(function(o){ return o.value === current; })) {
+        sel.value = current;
+    }
+}
+
+function _updateSliderBounds(field, newMin, newMax, step) {
+    var rMin = document.getElementById(field+'-r-min');
+    var rMax = document.getElementById(field+'-r-max');
+    var iMin = document.getElementById(field+'-i-min');
+    var iMax = document.getElementById(field+'-i-max');
+    if (!rMin || !rMax) return;
+    rMin.min = newMin; rMin.max = newMax; rMin.step = step;
+    rMax.min = newMin; rMax.max = newMax; rMax.step = step;
+    var curMinV = parseFloat(iMin.value);
+    var curMaxV = parseFloat(iMax.value);
+    if (isNaN(curMinV) || curMinV < newMin) { rMin.value = newMin; iMin.value = ''; }
+    else { rMin.value = curMinV; }
+    if (isNaN(curMaxV) || curMaxV > newMax) { rMax.value = newMax; iMax.value = ''; }
+    else { rMax.value = curMaxV; }
+    _drsFill(field, newMin, newMax);
+}
+
+function _updateCategoryDropdowns(category) {
+    var cutSel    = document.getElementById('cut');
+    var pedrasSel = document.getElementById('numero_pedras');
+    if (!cutSel || !pedrasSel) return;
+
+    var opts = (category && _catOptions[category]) || _catOptions['__all__'];
+    if (!opts) return;
+
+    _rebuildSelect(cutSel,    opts.cuts,   function(v){ return v; },  'Todas');
+    _rebuildSelect(pedrasSel, opts.pedras, function(v){ return _pedrasLabels[v]; }, 'Todos');
+
+    if (opts.bounds) {
+        var b = opts.bounds;
+        var rb = opts.range_buckets || {};
+        _updateSliderBounds('altura', b.altura.min, b.altura.max, 0.1);
+        _updateRangeDropdownBounds('comprimento', rb.comprimento || [], 'mm', 1, 2);
+        _updateRangeDropdownBounds('largura',     rb.largura || [],     'mm', 1, 2);
+        _updateRangeDropdownBounds('peso',        rb.peso || [],        'ct', 1, 2);
+        _updateRangeDropdownBounds('preco-ct',    rb.preco_ct || [],    '',   1, 0);
+        _updateRangeDropdownBounds('preco-total', rb.preco_total || [], '',   1, 0);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var b = _jinjaData.bounds, f = _jinjaData.filters;
+    var allBuckets = (_jinjaData.categoryOptions && _jinjaData.categoryOptions['__all__'] && _jinjaData.categoryOptions['__all__'].range_buckets) || {};
+    _drsSetup('altura', b.altura.min, b.altura.max, f.min_altura, f.max_altura, 0.1);
+    _rangeDropdownSetup('comprimento', allBuckets.comprimento || [], 'mm', 1, 2);
+    _rangeDropdownSetup('largura',     allBuckets.largura || [],     'mm', 1, 2);
+    _rangeDropdownSetup('peso',        allBuckets.peso || [],        'ct', 1, 2);
+    _rangeDropdownSetup('preco-ct',    allBuckets.preco_ct || [],    '',   1, 0);
+    _rangeDropdownSetup('preco-total', allBuckets.preco_total || [], '',   1, 0);
+
+    var catSel = document.getElementById('category');
+    if (catSel) {
+        _updateCategoryDropdowns(catSel.value);
+        catSel.addEventListener('change', function() {
+            _updateCategoryDropdowns(this.value);
+        });
+    }
+});
+</script>
+<script>
+function applyProductSort(value) {
+    const url = new URL(window.location.href);
+    if (value) {
+        url.searchParams.set('sort_by', value);
+    } else {
+        url.searchParams.delete('sort_by');
+    }
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

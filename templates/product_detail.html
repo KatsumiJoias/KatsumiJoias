@@ -1,0 +1,1106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<section class="bg-white py-4 border-b luxury-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li>
+                    <a href="/" class="text-gray-500 hover:text-luxury-gold transition-colors duration-200">
+                        Início
+                    </a>
+                </li>
+                <li>
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </li>
+                <li>
+                    <a href="{{ product.category|category_path }}" class="text-gray-500 hover:text-luxury-gold transition-colors duration-200">
+                        {{ product.category }}
+                    </a>
+                </li>
+                <li>
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </li>
+                <li class="text-luxury-black font-medium">
+                    {{ product.name }}
+                </li>
+            </ol>
+        </nav>
+    </div>
+</section>
+
+<!-- Product Detail Section -->
+<section class="py-12 bg-luxury-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Product Images -->
+            <div>
+                {# Extract YouTube video ID once — used by both mobile carousel and desktop gallery #}
+                {% if product.youtube_url %}
+                {% set yt_raw = product.youtube_url %}
+                {% if 'youtu.be/' in yt_raw %}
+                    {% set yt_id = yt_raw.split('youtu.be/')[1].split('?')[0].split('&')[0] %}
+                {% elif '/shorts/' in yt_raw %}
+                    {% set yt_id = yt_raw.split('/shorts/')[1].split('?')[0].split('&')[0] %}
+                {% elif 'v=' in yt_raw %}
+                    {% set yt_id = yt_raw.split('v=')[1].split('&')[0] %}
+                {% else %}
+                    {% set yt_id = '' %}
+                {% endif %}
+                {% else %}
+                    {% set yt_id = '' %}
+                {% endif %}
+
+                <!-- ===== MOBILE CAROUSEL (hidden on lg+) ===== -->
+                <div class="block lg:hidden">
+                    <div id="mc-container" class="relative aspect-square bg-white rounded-lg overflow-hidden select-none">
+                        <!-- Counter badge top-left -->
+                        <div id="mc-counter" class="absolute top-3 left-3 z-10 bg-black/50 text-white text-xs font-semibold px-2.5 py-1 rounded-full">1 / 1</div>
+                        <!-- Current photo -->
+                        {% if product.main_image_url %}
+                        <img id="mc-image" src="{{ product.main_image_url }}" alt="{{ product|product_image_alt }}" class="w-full h-full object-cover">
+                        {% else %}
+                        <img id="mc-image" src="" alt="{{ product|product_image_alt }}" class="w-full h-full object-cover hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="w-24 h-24 bg-luxury-gold rounded-full mx-auto mb-4 flex items-center justify-center">
+                                    <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                </div>
+                                <p class="text-gray-500">{{ product.category }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if yt_id %}
+                        <!-- YouTube slide (shown when video is the active slide) -->
+                        <div id="mc-video-slide" class="absolute inset-0 hidden cursor-pointer bg-black">
+                            <img src="https://img.youtube.com/vi/{{ yt_id }}/mqdefault.jpg" alt="{{ product.name }} - Vídeo" class="w-full h-full object-cover opacity-80">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
+                                    <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <!-- Prev arrow -->
+                        <button id="mc-prev" class="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-md active:scale-95 transition-transform hidden" aria-label="Foto anterior">
+                            <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <!-- Next arrow -->
+                        <button id="mc-next" class="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-md active:scale-95 transition-transform hidden" aria-label="Próxima foto">
+                            <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                    <!-- Dot indicators -->
+                    <div id="mc-dots" class="flex justify-center items-center gap-2 pt-3 pb-1"></div>
+                </div>
+
+                <!-- ===== DESKTOP GALLERY (hidden on mobile) ===== -->
+                <div class="hidden lg:block space-y-4">
+                <!-- Main viewer: image or YouTube player -->
+
+                <div class="aspect-square rounded-lg overflow-hidden cursor-zoom-in bg-white relative" id="mainImageContainer">
+                    {% if product.main_image_url %}
+                    <img id="mainImage" src="{{ product.main_image_url }}" 
+                         alt="{{ product|product_image_alt }}"
+                         class="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    {% endif %}
+                    <!-- Fallback placeholder if no image -->
+                    <div class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center" {% if product.main_image_url %}style="display: none;"{% endif %} id="imagePlaceholder">
+                        <div class="text-center">
+                            <div class="w-24 h-24 bg-luxury-gold rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </div>
+                            <p class="text-gray-500">{{ product.category }}</p>
+                        </div>
+                    </div>
+                    <!-- YouTube iframe (hidden by default, shown when video thumb is clicked) -->
+                    {% if yt_id %}
+                    <div id="youtubePlayer" class="absolute inset-0 w-full h-full hidden bg-black">
+                        <div id="mainYoutubePlayer" class="w-full h-full"></div>
+                        <div class="absolute bottom-14 left-0 right-0 z-20 px-4 pointer-events-none flex justify-center">
+                            <p class="text-[11px] text-white/90 bg-black/55 backdrop-blur-sm rounded-full px-4 py-1.5 border border-white/10 shadow-sm text-center max-w-[90%]">
+                                Para máxima nitidez, selecione <span class="font-semibold text-white">Full HD</span> no ícone ⚙️ do player
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Gallery Thumbnails (only shown when there are multiple images/video) -->
+                {% set thumb_count = 1 + (1 if product.image_2_url else 0) + (1 if product.image_3_url else 0) + (1 if yt_id else 0) %}
+                {% if thumb_count > 1 %}
+                <div class="flex gap-2 w-full">
+                    <!-- Main image thumbnail -->
+                    <div class="flex-1 aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity gallery-thumb border-2 border-luxury-gold bg-white"
+                         data-image="{{ product.main_image_url }}"
+                         data-index="0">
+                        <img src="{{ product.main_image_url }}" 
+                             alt="{{ product|product_image_alt }}"
+                             class="w-full h-full object-cover"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center" style="display: none;">
+                            <svg class="w-6 h-6 text-luxury-gold" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- Image 2 thumbnail -->
+                    {% if product.image_2_url %}
+                    <div class="flex-1 aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity gallery-thumb border-2 border-transparent hover:border-luxury-gold bg-white"
+                         data-image="{{ product.image_2_url }}"
+                         data-index="1">
+                        <img src="{{ product.image_2_url }}" 
+                             alt="{{ product|product_image_alt }}"
+                             class="w-full h-full object-cover"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center" style="display: none;">
+                            <svg class="w-6 h-6 text-luxury-gold" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Image 3 thumbnail -->
+                    {% if product.image_3_url %}
+                    <div class="flex-1 aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity gallery-thumb border-2 border-transparent hover:border-luxury-gold bg-white"
+                         data-image="{{ product.image_3_url }}"
+                         data-index="2">
+                        <img src="{{ product.image_3_url }}" 
+                             alt="{{ product|product_image_alt }}"
+                             class="w-full h-full object-cover"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center" style="display: none;">
+                            <svg class="w-6 h-6 text-luxury-gold" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- YouTube video thumbnail with muted autoplay preview (YT IFrame API — no playlist UI) -->
+                    {% if yt_id %}
+                    <div class="flex-1 aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity gallery-thumb-video border-2 border-transparent hover:border-red-500 bg-black relative"
+                         id="videoThumb">
+                        <div class="absolute inset-0 overflow-hidden">
+                            <div id="videoThumbPlayer"
+                                 class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] pointer-events-none">
+                            </div>
+                        </div>
+                        <img id="videoThumbPoster"
+                             src="https://img.youtube.com/vi/{{ yt_id }}/hqdefault.jpg"
+                             alt=""
+                             class="absolute inset-0 w-full h-full object-cover z-20 transition-opacity duration-700 pointer-events-none">
+                        <div class="absolute inset-x-0 top-0 h-9 bg-black pointer-events-none z-30"></div>
+                        <div class="absolute inset-x-0 bottom-0 h-11 bg-black pointer-events-none z-30"></div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                </div><!-- /desktop gallery -->
+            </div><!-- /product images outer -->
+
+            <!-- Product Information -->
+            <div class="space-y-4">
+                <div class="bg-white p-6 rounded-lg">
+                    <h1 class="text-3xl font-serif font-medium text-luxury-black mb-4">{{ product.name }}</h1>
+                    {% if product.variant %}
+                    <p class="text-sm text-luxury-gold font-medium mb-2">{{ product.variant }}</p>
+                    {% endif %}
+                    {% if product.display_description %}
+                    <div class="prose prose-base max-w-none">
+                        {{ product.display_description }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Gemstone Information -->
+                {% if product.category or product.color or product.carat_weight or product.clarity or product.cut or product.dimensions %}
+                <div class="bg-white p-6 rounded-lg">
+                    <h2 class="text-xl font-medium text-luxury-black mb-4">Informações da Gema</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        {% if product.category %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Categoria</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ product.category }}</dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.color %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Cor</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ product.color }}</dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.carat_weight %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Peso em Quilates</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ product.carat_weight }}</dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.cut %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Lapidação</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ product.cut }}</dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.altura %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Altura</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ product.altura }} mm</dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.comprimento %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Comprimento</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ product.comprimento }} mm</dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.largura %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Largura</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ product.largura }} mm</dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.numero_pedras and product.numero_pedras > 1 %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Número de Pedras</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ product.numero_pedras }}</dd>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.riviera %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">Tipo</dt>
+                            <dd class="text-base font-medium text-luxury-black">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-luxury-gold text-white">
+                                    Riviera
+                                </span>
+                            </dd>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Additional Specifications -->
+                {% if product.specifications %}
+                <div class="bg-white p-6 rounded-lg">
+                    <h2 class="text-xl font-medium text-luxury-black mb-4">Especificações Adicionais</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        {% for key, value in product.specifications.items() %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">{{ key }}</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ value }}</dd>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="bg-white p-6 rounded-lg">
+                    <div class="mb-6" data-price-usd="{{ product.price }}"
+                         data-discount="{{ product.discount if product.discount else 0 }}"
+                         {% if product.carat_weight %}
+                             {% set carat_weight_str = product.carat_weight.split()[0] if ' ' in product.carat_weight else product.carat_weight %}
+                             {% set carat_weight = carat_weight_str.replace(',', '.') | float %}
+                             data-carat-weight="{{ carat_weight }}"
+                         {% endif %}>
+                        {% if product.carat_weight %}
+                            {% set carat_weight_str = product.carat_weight.split()[0] if ' ' in product.carat_weight else product.carat_weight %}
+                            {% set carat_weight = carat_weight_str.replace(',', '.') | float %}
+                            {% set price_per_carat = product.price %}
+                            {% set discount = product.discount if product.discount else 0 %}
+                            {% set discounted_price_per_carat = price_per_carat * (1 - discount / 100) %}
+                            {% set total_price = price_per_carat * carat_weight %}
+                            {% set discounted_total_price = discounted_price_per_carat * carat_weight %}
+                            
+                            {% if discount > 0 %}
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="text-lg text-gray-400 line-through original-total-price">
+                                        $ {{ "{:,.2f}".format(total_price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                    </p>
+                                    <span class="inline-block bg-luxury-gold text-white px-3 py-1 rounded-full text-sm font-medium">
+                                        -{{ discount }}% OFF
+                                    </span>
+                                </div>
+                                <p class="text-3xl font-semibold text-luxury-black total-price">
+                                    $ {{ "{:,.2f}".format(discounted_total_price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                </p>
+                                <p class="text-base text-gray-500 per-carat-price">
+                                    $ {{ "{:,.0f}".format(discounted_price_per_carat).replace(',', '.') }} <span class="carat-unit">per carat</span>
+                                </p>
+                            {% else %}
+                                <p class="text-3xl font-semibold text-luxury-black total-price">
+                                    $ {{ "{:,.2f}".format(total_price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                </p>
+                                <p class="text-base text-gray-500 per-carat-price">
+                                    $ {{ "{:,.0f}".format(price_per_carat).replace(',', '.') }} <span class="carat-unit">per carat</span>
+                                </p>
+                            {% endif %}
+                        {% else %}
+                            {% set discount = product.discount if product.discount else 0 %}
+                            {% set discounted_price = product.price * (1 - discount / 100) %}
+                            
+                            {% if discount > 0 %}
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="text-lg text-gray-400 line-through original-total-price">
+                                        $ {{ "{:,.2f}".format(product.price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                    </p>
+                                    <span class="inline-block bg-luxury-gold text-white px-3 py-1 rounded-full text-sm font-medium">
+                                        -{{ discount }}% OFF
+                                    </span>
+                                </div>
+                                <p class="text-3xl font-semibold text-luxury-black total-price">
+                                    $ {{ "{:,.2f}".format(discounted_price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                </p>
+                            {% else %}
+                                <p class="text-3xl font-semibold text-luxury-black total-price">
+                                    $ {{ "{:,.2f}".format(product.price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                </p>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Trust micro-commitments -->
+                    <div class="space-y-3 mb-5 pt-4 border-t border-gray-100">
+                        <div class="flex items-start gap-3 text-sm text-gray-700">
+                            <svg class="w-5 h-5 text-luxury-gold flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span><strong class="text-luxury-black">Produto único</strong>, somente 1 disponível</span>
+                        </div>
+                        <div class="flex items-start gap-3 text-sm text-gray-700">
+                            <svg class="w-5 h-5 text-luxury-gold flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            <span>Envio segurado e rastreável para todo o Brasil</span>
+                        </div>
+                    </div>
+
+                    <!-- gemological certificate add-on -->
+                    <div class="bg-luxury-cream rounded-lg p-4 border border-luxury-gold/25 mb-5">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-full bg-luxury-emerald flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-luxury-gold-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-luxury-black mb-1">Certificação gemológica independente</p>
+                                <p class="text-xs text-gray-600 leading-relaxed">
+                                    Contrate um laudo técnico completo sobre autenticidade, origem e características desta pedra.
+                                    <a href="/guias/certificacao-gemologica" target="_blank" rel="noopener noreferrer" class="text-luxury-gold hover:underline font-medium">Saiba mais</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Add to Cart Button -->
+                    {% if view_only %}
+                    <div class="w-full bg-gray-100 text-gray-600 py-4 rounded-lg font-medium mb-4 text-center text-sm">
+                        Esta peça já foi vendida
+                    </div>
+                    {% else %}
+                    <button data-product-id="{{ product.id }}"
+                            data-product-name="{{ product.name }}"
+                            data-product-price="{{ product.price }}"
+                            data-product-discount="{{ product.discount if product.discount else 0 }}"
+                            {% if product.carat_weight %}
+                            data-product-carat-weight-raw="{{ product.carat_weight }}"
+                            {% else %}
+                            data-product-carat-weight-raw="1"
+                            {% endif %}
+                            data-product-image="{{ product.main_image_url }}"
+                            onclick="
+                                const caratWeightRaw = this.dataset.productCaratWeightRaw;
+                                const caratWeightStr = caratWeightRaw.replace(' ct', '').replace('ct', '').replace(',', '.').trim();
+                                const caratWeight = parseFloat(caratWeightStr) || 1;
+                                addToCart({
+                                    id: this.dataset.productId,
+                                    name: this.dataset.productName,
+                                    price: parseFloat(this.dataset.productPrice),
+                                    discount: parseFloat(this.dataset.productDiscount) || 0,
+                                    caratWeight: caratWeight,
+                                    image: this.dataset.productImage
+                                });
+                                toggleCart();
+                            "
+                            class="w-full bg-luxury-gold text-white py-4 rounded-lg hover:bg-luxury-gold-dark transition-colors duration-200 font-medium mb-4 flex items-center justify-center space-x-2">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                        </svg>
+                        <span>Adicionar ao carrinho</span>
+                    </button>
+                    {% endif %}
+                    
+                    <a href="/" 
+                       class="w-full inline-flex items-center justify-center px-6 py-3 border-2 border-luxury-gold text-base font-medium rounded-lg text-luxury-gold hover:bg-luxury-gold hover:text-white transition-colors duration-200">
+                        <svg class="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        <span>Voltar ao catálogo</span>
+                    </a>
+                    
+                    <!-- Exchange Rate Info (shown for BRL only) -->
+                    <div id="exchange-rate-info" class="hidden mt-4 text-xs text-gray-600">
+                        <p>Cotação atual: <span id="rate-display" class="font-medium text-gray-900">-</span> | Atualizado em: <span id="rate-date" class="font-medium text-gray-900">-</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Vistos recentemente -->
+<section id="recently-viewed-pdp" class="py-10 bg-luxury-gray hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl lg:text-2xl font-serif font-medium text-luxury-black mb-4">Vistos recentemente</h2>
+        <div class="relative lg:px-11 min-w-0">
+            <button type="button" id="rv-pdp-scroll-prev" aria-label="Anterior"
+                    class="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 items-center justify-center rounded-full bg-white border border-luxury-gold/40 text-luxury-gold shadow-sm hover:bg-luxury-gold hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <div id="recently-viewed-pdp-grid" class="rv-pdp-scroll-track flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory -mx-4 px-4 lg:mx-0 lg:px-0 lg:gap-4 cursor-grab active:cursor-grabbing"></div>
+            <button type="button" id="rv-pdp-scroll-next" aria-label="Próximo"
+                    class="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 items-center justify-center rounded-full bg-white border border-luxury-gold/40 text-luxury-gold shadow-sm hover:bg-luxury-gold hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</section>
+
+{% with pdp_context=true, product_category=product.category or 'gema' %}
+{% include '_especialista_section.html' %}
+{% endwith %}
+
+<!-- Fullscreen Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden">
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <!-- Close button -->
+        <button id="closeImageModal" class="absolute top-4 right-4 text-white hover:text-luxury-gold transition-colors duration-200 z-10">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        
+        <!-- Navigation buttons -->
+        <button id="prevImage" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-luxury-gold transition-colors duration-200 hidden z-10">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        
+        <button id="nextImage" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-luxury-gold transition-colors duration-200 hidden z-10">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+
+        <!-- Image container -->
+        <div class="w-full h-full flex items-center justify-center">
+            <img id="modalImage" class="max-h-full max-w-full object-contain" src="" alt="{{ product|product_image_alt }}">
+        </div>
+
+        <!-- YouTube container inside modal (hidden by default) -->
+        {% if yt_id %}
+        <div id="modalYoutubeContainer" class="absolute inset-0 flex flex-col items-center justify-center hidden p-8 md:p-16">
+            <div id="modalYoutubeHost" class="w-full max-w-4xl aspect-video">
+                <div id="modalYoutubePlayer" class="w-full h-full"></div>
+            </div>
+            <p class="mt-4 text-xs text-white/75 text-center max-w-md pointer-events-none">
+                Selecione <span class="font-semibold text-white">Full HD</span> no ícone ⚙️ do player para máxima nitidez
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script type="application/json" id="pdp-page-data">{{ {
+    'ytId': yt_id or none,
+    'productId': product.id,
+    'productName': product.name,
+    'productPrice': product.price,
+    'productDiscount': product.discount or 0,
+    'productImage': product.main_image_url or '',
+    'productCategory': product.category or ''
+} | tojson }}</script>
+<script>
+(function() {
+    const PDP_DATA = JSON.parse(document.getElementById('pdp-page-data').textContent);
+    const YT_VIDEO_ID = PDP_DATA.ytId;
+    const YT_QUALITY_ORDER = ['highres', 'hd2160', 'hd1440', 'hd1080', 'hd720', 'large', 'medium', 'small', 'tiny'];
+    const YT_QUALITY_VARS = { vq: 'hd1080', suggestedQuality: 'hd1080' };
+    const ytApiQueue = [];
+
+    function setYtMaxQuality(player) {
+        if (!player || typeof player.getAvailableQualityLevels !== 'function') return;
+        try {
+            const levels = player.getAvailableQualityLevels();
+            if (!levels || !levels.length) return;
+            for (const q of YT_QUALITY_ORDER) {
+                if (levels.includes(q)) {
+                    player.setPlaybackQuality(q);
+                    return;
+                }
+            }
+            player.setPlaybackQuality(levels[0]);
+        } catch (_) {}
+    }
+
+    function forceYtMaxQuality(player, attempts = 20) {
+        setYtMaxQuality(player);
+        if (attempts > 1) {
+            setTimeout(() => {
+                try {
+                    const q = player.getPlaybackQuality ? player.getPlaybackQuality() : null;
+                    const goodLevels = new Set(['highres', 'hd2160', 'hd1440', 'hd1080', 'hd720']);
+                    if (q && goodLevels.has(q)) return;
+                } catch (_) {}
+                forceYtMaxQuality(player, attempts - 1);
+            }, 500);
+        }
+    }
+
+    function ytQualityEvents(baseEvents) {
+        baseEvents = baseEvents || {};
+        return {
+            onReady: (e) => {
+                if (typeof baseEvents.onReady === 'function') baseEvents.onReady(e);
+                forceYtMaxQuality(e.target);
+            },
+            onStateChange: (e) => {
+                if (e.data === YT.PlayerState.PLAYING) forceYtMaxQuality(e.target);
+                if (typeof baseEvents.onStateChange === 'function') baseEvents.onStateChange(e);
+            },
+            onPlaybackQualityChange: (e) => {
+                setYtMaxQuality(e.target);
+                if (typeof baseEvents.onPlaybackQualityChange === 'function') baseEvents.onPlaybackQualityChange(e);
+            },
+        };
+    }
+
+    function ensureYtApi(fn) {
+        if (!YT_VIDEO_ID) return;
+        if (window.YT && window.YT.Player) {
+            fn();
+            return;
+        }
+        ytApiQueue.push(fn);
+        if (!document.getElementById('yt-iframe-api')) {
+            const prev = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = function() {
+                if (typeof prev === 'function') prev();
+                ytApiQueue.splice(0).forEach(cb => cb());
+            };
+            const tag = document.createElement('script');
+            tag.id = 'yt-iframe-api';
+            tag.src = 'https://www.youtube.com/iframe_api';
+            document.head.appendChild(tag);
+        }
+    }
+
+    function resetYtHost(parentEl, hostId, className) {
+        const existing = document.getElementById(hostId);
+        if (existing) existing.remove();
+        const host = document.createElement('div');
+        host.id = hostId;
+        host.className = className || 'w-full h-full';
+        parentEl.appendChild(host);
+        return host;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const mainImageContainer = document.getElementById('mainImageContainer');
+        const mainImage = document.getElementById('mainImage');
+        const imagePlaceholder = document.getElementById('imagePlaceholder');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalYoutubeContainer = document.getElementById('modalYoutubeContainer');
+        const modalYoutubeHost = document.getElementById('modalYoutubeHost');
+        const closeImageModal = document.getElementById('closeImageModal');
+        const prevImage = document.getElementById('prevImage');
+        const nextImage = document.getElementById('nextImage');
+        const galleryThumbs = document.querySelectorAll('.gallery-thumb');
+        const videoThumb = document.getElementById('videoThumb');
+        const youtubePlayer = document.getElementById('youtubePlayer');
+        const hasVideo = !!videoThumb;
+
+        let mainYtPlayer = null;
+        let modalYtPlayer = null;
+
+        let currentImageIndex = 0;
+        let videoActive = false;
+        // modalIndex goes from 0..images.length-1 for photos, then images.length for video (if exists)
+        let modalIndex = 0;
+        const images = Array.from(galleryThumbs)
+            .map(thumb => thumb.getAttribute('data-image'))
+            .filter(img => img);
+        // When only 1 photo the thumbnails row is hidden; fall back to the main image src
+        if (images.length === 0 && mainImage && mainImage.src) {
+            images.push(mainImage.src);
+        }
+        const totalModalSlides = images.length + (hasVideo ? 1 : 0);
+
+        function destroyMainYtPlayer() {
+            if (mainYtPlayer) {
+                try { mainYtPlayer.destroy(); } catch (_) {}
+                mainYtPlayer = null;
+            }
+        }
+
+        function destroyModalYtPlayer() {
+            if (modalYtPlayer) {
+                try { modalYtPlayer.destroy(); } catch (_) {}
+                modalYtPlayer = null;
+            }
+        }
+
+        function hideVideo() {
+            if (youtubePlayer) {
+                youtubePlayer.classList.add('hidden');
+                destroyMainYtPlayer();
+            }
+            if (mainImage) mainImage.style.removeProperty('display');
+            videoActive = false;
+        }
+
+        function showVideo(muted = false) {
+            if (!youtubePlayer || !YT_VIDEO_ID) return;
+            if (mainImage) mainImage.style.display = 'none';
+            if (imagePlaceholder) imagePlaceholder.style.display = 'none';
+            destroyMainYtPlayer();
+            resetYtHost(youtubePlayer, 'mainYoutubePlayer', 'w-full h-full');
+            youtubePlayer.classList.remove('hidden');
+            videoActive = true;
+            galleryThumbs.forEach(t => {
+                t.classList.remove('border-luxury-gold');
+                t.classList.add('border-transparent');
+            });
+            if (videoThumb) {
+                videoThumb.classList.add('border-red-500');
+                videoThumb.classList.remove('border-transparent');
+            }
+            ensureYtApi(() => {
+                mainYtPlayer = new YT.Player('mainYoutubePlayer', {
+                    videoId: YT_VIDEO_ID,
+                    width: '100%',
+                    height: '100%',
+                    playerVars: {
+                        autoplay: 1,
+                        rel: 0,
+                        playsinline: 1,
+                        modestbranding: 1,
+                        iv_load_policy: 3,
+                        controls: 1,
+                        ...YT_QUALITY_VARS,
+                    },
+                    events: ytQualityEvents({
+                        onReady: (e) => {
+                            if (muted) e.target.mute();
+                            else e.target.unMute();
+                            e.target.playVideo();
+                        },
+                    }),
+                });
+            });
+        }
+
+        // ---- Modal helpers ----
+        function closeModal() {
+            imageModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            destroyModalYtPlayer();
+            if (modalYoutubeContainer) modalYoutubeContainer.classList.add('hidden');
+            modalImage.classList.remove('hidden');
+        }
+
+        function openModalAtSlide(index) {
+            modalIndex = ((index % totalModalSlides) + totalModalSlides) % totalModalSlides;
+            imageModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            renderModalSlide();
+        }
+
+        function renderModalSlide() {
+            const isVideoSlide = hasVideo && modalIndex === images.length;
+            // Update nav visibility
+            if (totalModalSlides > 1) {
+                prevImage.classList.remove('hidden');
+                nextImage.classList.remove('hidden');
+            } else {
+                prevImage.classList.add('hidden');
+                nextImage.classList.add('hidden');
+            }
+
+            if (isVideoSlide) {
+                modalImage.classList.add('hidden');
+                if (modalYoutubeContainer && modalYoutubeHost && YT_VIDEO_ID) {
+                    destroyModalYtPlayer();
+                    resetYtHost(modalYoutubeHost, 'modalYoutubePlayer', 'w-full h-full');
+                    modalYoutubeContainer.classList.remove('hidden');
+                    ensureYtApi(() => {
+                        modalYtPlayer = new YT.Player('modalYoutubePlayer', {
+                            videoId: YT_VIDEO_ID,
+                            width: '100%',
+                            height: '100%',
+                            playerVars: {
+                                autoplay: 1,
+                                rel: 0,
+                                playsinline: 1,
+                                modestbranding: 1,
+                                iv_load_policy: 3,
+                                controls: 1,
+                                ...YT_QUALITY_VARS,
+                            },
+                            events: ytQualityEvents({
+                                onReady: (e) => e.target.playVideo(),
+                            }),
+                        });
+                    });
+                }
+            } else {
+                if (modalYoutubeContainer) {
+                    modalYoutubeContainer.classList.add('hidden');
+                    destroyModalYtPlayer();
+                }
+                modalImage.classList.remove('hidden');
+                modalImage.src = images[modalIndex] || '';
+            }
+        }
+
+        function updateNavigationButtons() {
+            if (images.length > 1) {
+                prevImage.classList.remove('hidden');
+                nextImage.classList.remove('hidden');
+            } else {
+                prevImage.classList.add('hidden');
+                nextImage.classList.add('hidden');
+            }
+        }
+
+        function showImage(index) {
+            if (images.length === 0) return;
+            hideVideo();
+            if (index < 0) {
+                currentImageIndex = images.length - 1;
+            } else if (index >= images.length) {
+                currentImageIndex = 0;
+            } else {
+                currentImageIndex = index;
+            }
+            mainImage.src = images[currentImageIndex];
+            galleryThumbs.forEach((thumb, i) => {
+                if (i === currentImageIndex) {
+                    thumb.classList.add('border-luxury-gold');
+                    thumb.classList.remove('border-transparent');
+                } else {
+                    thumb.classList.remove('border-luxury-gold');
+                    thumb.classList.add('border-transparent');
+                }
+            });
+            if (videoThumb) {
+                videoThumb.classList.remove('border-red-500');
+                videoThumb.classList.add('border-transparent');
+            }
+            updateNavigationButtons();
+        }
+
+        // Open modal on main image click (not when inline video is active)
+        mainImageContainer.addEventListener('click', function() {
+            if (!videoActive && mainImage && mainImage.style.display !== 'none') {
+                openModalAtSlide(currentImageIndex);
+            }
+        });
+
+        // Handle image thumbnail clicks
+        galleryThumbs.forEach((thumb, index) => {
+            thumb.addEventListener('click', function() {
+                const imageUrl = this.getAttribute('data-image');
+                if (imageUrl) {
+                    showImage(index);
+                }
+            });
+        });
+
+        // Handle video thumbnail click: show video in main viewer
+        if (videoThumb) {
+            videoThumb.addEventListener('click', function() {
+                showVideo(false);
+            });
+        }
+
+        if (YT_VIDEO_ID) {
+        // Video thumb: YT IFrame API (loop via seek, max quality)
+        (function initVideoThumbPreview() {
+            const thumbPoster = document.getElementById('videoThumbPoster');
+            const playerHost = document.getElementById('videoThumbPlayer');
+            if (!playerHost) return;
+
+            const revealPreview = () => { if (thumbPoster) thumbPoster.classList.add('opacity-0'); };
+
+            function createPlayer() {
+                new YT.Player('videoThumbPlayer', {
+                    videoId: YT_VIDEO_ID,
+                    width: '100%',
+                    height: '100%',
+                    playerVars: {
+                        autoplay: 1,
+                        mute: 1,
+                        controls: 0,
+                        modestbranding: 1,
+                        rel: 0,
+                        playsinline: 1,
+                        disablekb: 1,
+                        fs: 0,
+                        iv_load_policy: 3,
+                        cc_load_policy: 0,
+                        ...YT_QUALITY_VARS,
+                    },
+                    events: ytQualityEvents({
+                        onReady: (e) => {
+                            e.target.mute();
+                            e.target.playVideo();
+                            setTimeout(revealPreview, 1800);
+                        },
+                        onStateChange: (e) => {
+                            if (e.data === YT.PlayerState.ENDED) {
+                                e.target.seekTo(0);
+                                e.target.playVideo();
+                            }
+                        },
+                    }),
+                });
+            }
+
+            ensureYtApi(createPlayer);
+            setTimeout(revealPreview, 5000);
+        })();
+        }
+
+        // Close modal
+        closeImageModal.addEventListener('click', closeModal);
+
+        // Navigation buttons in modal
+        prevImage.addEventListener('click', function() {
+            modalIndex = ((modalIndex - 1) + totalModalSlides) % totalModalSlides;
+            renderModalSlide();
+        });
+
+        nextImage.addEventListener('click', function() {
+            modalIndex = (modalIndex + 1) % totalModalSlides;
+            renderModalSlide();
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (!imageModal.classList.contains('hidden')) {
+                if (e.key === 'ArrowLeft') {
+                    modalIndex = ((modalIndex - 1) + totalModalSlides) % totalModalSlides;
+                    renderModalSlide();
+                } else if (e.key === 'ArrowRight') {
+                    modalIndex = (modalIndex + 1) % totalModalSlides;
+                    renderModalSlide();
+                } else if (e.key === 'Escape') {
+                    closeModal();
+                }
+            }
+        });
+        
+        // ---- Mobile Carousel ----
+        const mcImage      = document.getElementById('mc-image');
+        const mcVideoSlide = document.getElementById('mc-video-slide');
+        const mcPrev       = document.getElementById('mc-prev');
+        const mcNext       = document.getElementById('mc-next');
+        const mcCounter    = document.getElementById('mc-counter');
+        const mcDots       = document.getElementById('mc-dots');
+        const mcContainer  = document.getElementById('mc-container');
+
+        // Slides: same photo URLs as desktop, plus video sentinel if applicable
+        const mcSlides = images.slice();
+        if (hasVideo) mcSlides.push('__video__');
+        const mcTotal = mcSlides.length;
+        let mcIndex = 0;
+
+        function mcRenderDots() {
+            if (!mcDots) return;
+            Array.from(mcDots.children).forEach(function(dot, i) {
+                if (i === mcIndex) {
+                    dot.className = 'rounded-full transition-all duration-200 bg-gray-800 w-2.5 h-2.5';
+                } else {
+                    dot.className = 'rounded-full transition-all duration-200 bg-gray-300 w-2 h-2';
+                }
+            });
+        }
+
+        function mcGoTo(index) {
+            mcIndex = ((index % mcTotal) + mcTotal) % mcTotal;
+            const isVideo = mcSlides[mcIndex] === '__video__';
+            if (mcImage) {
+                if (isVideo) { mcImage.classList.add('hidden'); }
+                else { mcImage.src = mcSlides[mcIndex]; mcImage.classList.remove('hidden'); }
+            }
+            if (mcVideoSlide) {
+                if (isVideo) mcVideoSlide.classList.remove('hidden');
+                else mcVideoSlide.classList.add('hidden');
+            }
+            if (mcCounter) mcCounter.textContent = (mcIndex + 1) + ' / ' + mcTotal;
+            mcRenderDots();
+        }
+
+        // Build dots
+        if (mcDots && mcTotal > 0) {
+            mcSlides.forEach(function(_, i) {
+                const dot = document.createElement('div');
+                dot.className = 'rounded-full transition-all duration-200 cursor-pointer ' + (i === 0 ? 'bg-gray-800 w-2.5 h-2.5' : 'bg-gray-300 w-2 h-2');
+                dot.addEventListener('click', function() { mcGoTo(i); });
+                mcDots.appendChild(dot);
+            });
+        }
+
+        // Show arrows only when multiple slides
+        if (mcTotal > 1) {
+            if (mcPrev) mcPrev.classList.remove('hidden');
+            if (mcNext) mcNext.classList.remove('hidden');
+        } else {
+            if (mcCounter) mcCounter.classList.add('hidden');
+            if (mcDots) mcDots.classList.add('hidden');
+        }
+        if (mcCounter && mcTotal > 0) mcCounter.textContent = '1 / ' + mcTotal;
+
+        if (mcPrev) mcPrev.addEventListener('click', function(e) { e.stopPropagation(); mcGoTo(mcIndex - 1); });
+        if (mcNext) mcNext.addEventListener('click', function(e) { e.stopPropagation(); mcGoTo(mcIndex + 1); });
+
+        // Tap video slide → open modal to play the video
+        if (mcVideoSlide) {
+            mcVideoSlide.addEventListener('click', function() { openModalAtSlide(images.length); });
+        }
+
+        // Swipe support
+        if (mcContainer && mcTotal > 1) {
+            let mcTouchX = 0;
+            mcContainer.addEventListener('touchstart', function(e) {
+                mcTouchX = e.touches[0].clientX;
+            }, { passive: true });
+            mcContainer.addEventListener('touchend', function(e) {
+                const dx = e.changedTouches[0].clientX - mcTouchX;
+                if (Math.abs(dx) > 40) mcGoTo(dx < 0 ? mcIndex + 1 : mcIndex - 1);
+            }, { passive: true });
+        }
+
+        // Convert prices based on selected currency
+        (async function() {
+            const currency = getCurrency();
+            if (currency === 'BRL') {
+                try {
+                    const response = await fetch('/api/exchange-rate');
+                    if (response.ok) {
+                        const rateData = await response.json();
+                        const rate = rateData.rate;
+                        
+                        // Show exchange rate info
+                        const exchangeInfo = document.getElementById('exchange-rate-info');
+                        const rateDisplay = document.getElementById('rate-display');
+                        const rateDate = document.getElementById('rate-date');
+                        
+                        if (exchangeInfo && rateDisplay && rateDate) {
+                            exchangeInfo.classList.remove('hidden');
+                            rateDisplay.textContent = `R$ ${rate.toLocaleString('pt-BR', {minimumFractionDigits: 4, maximumFractionDigits: 4})}`;
+                            
+                            // Format date as DD/MM/YYYY
+                            if (rateData.updated_at) {
+                                const date = new Date(rateData.updated_at);
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const year = date.getFullYear();
+                                rateDate.textContent = `${day}/${month}/${year}`;
+                            } else {
+                                rateDate.textContent = '-';
+                            }
+                        }
+                        
+                        // Convert prices
+                        const priceContainer = document.querySelector('[data-price-usd]');
+                        if (priceContainer) {
+                            const priceUSD = parseFloat(priceContainer.dataset.priceUsd);
+                            const caratWeight = parseFloat(priceContainer.dataset.caratWeight);
+                            const discount = parseFloat(priceContainer.dataset.discount) || 0;
+                            const discountMultiplier = 1 - (discount / 100);
+                            
+                            const totalPriceEl = priceContainer.querySelector('.total-price');
+                            const originalTotalPriceEl = priceContainer.querySelector('.original-total-price');
+                            const perCaratPriceEl = priceContainer.querySelector('.per-carat-price');
+                            
+                            if (caratWeight) {
+                                // Gemstone with carat weight
+                                const totalPriceBRL = priceUSD * caratWeight * rate;
+                                const discountedTotalPriceBRL = totalPriceBRL * discountMultiplier;
+                                const perCaratPriceBRL = priceUSD * rate;
+                                const discountedPerCaratPriceBRL = perCaratPriceBRL * discountMultiplier;
+                                
+                                if (discount > 0 && originalTotalPriceEl) {
+                                    originalTotalPriceEl.textContent = `R$ ${totalPriceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                                }
+                                
+                                if (totalPriceEl) {
+                                    totalPriceEl.textContent = `R$ ${discountedTotalPriceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                                }
+                                if (perCaratPriceEl) {
+                                    perCaratPriceEl.innerHTML = `R$ ${discountedPerCaratPriceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 0})} <span class="carat-unit">por quilate</span>`;
+                                }
+                            } else {
+                                // Regular product
+                                const priceBRL = priceUSD * rate;
+                                const discountedPriceBRL = priceBRL * discountMultiplier;
+                                
+                                if (discount > 0 && originalTotalPriceEl) {
+                                    originalTotalPriceEl.textContent = `R$ ${priceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                                }
+                                
+                                if (totalPriceEl) {
+                                    totalPriceEl.textContent = `R$ ${discountedPriceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error converting prices:', error);
+                }
+            }
+        })();
+
+        // Track recently viewed + render PDP section
+        window.__pdpExcludeId = PDP_DATA.productId;
+        const _cwRaw = document.querySelector('[data-product-carat-weight-raw]')?.dataset.productCaratWeightRaw || '1';
+        trackRecentlyViewed({
+            id: PDP_DATA.productId,
+            name: PDP_DATA.productName,
+            price: PDP_DATA.productPrice,
+            discount: PDP_DATA.productDiscount,
+            caratWeight: parseFloat(_cwRaw.replace(/ ct/gi, '').replace(',', '.')) || 1,
+            image: PDP_DATA.productImage,
+            category: PDP_DATA.productCategory
+        });
+    });
+})();
+</script>
+{% endblock %} 

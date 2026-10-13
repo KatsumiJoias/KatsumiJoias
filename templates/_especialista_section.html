@@ -1,0 +1,56 @@
+<!-- "O que procura?" / Falar com especialista section (shared) -->
+{% set is_pdp = pdp_context|default(false) %}
+{% set cat = product_category|default('gema') %}
+<section class="relative overflow-hidden bg-luxury-black">
+    {% set _banner_img = 'images/oqueprocura.jpg' if is_pdp else 'images/outra-diferente.jpg' %}
+    <!-- Mobile/base: full-bleed background image (acceptable resolution on narrow screens) -->
+    <div class="absolute inset-0 md:hidden">
+        <img src="{{ url_for('static', filename=_banner_img) }}"
+             alt="Pedras preciosas"
+             class="w-full h-full object-cover object-center opacity-70">
+        <div class="absolute inset-0 bg-gradient-to-r from-luxury-black via-luxury-black/70 to-luxury-black/30"></div>
+    </div>
+
+    <!-- Desktop: image confined to the right half so it renders near native size (sharper) -->
+    <div class="hidden md:block absolute inset-y-0 right-0 w-1/2 lg:w-7/12">
+        <img src="{{ url_for('static', filename=_banner_img) }}"
+             alt="Pedras preciosas"
+             class="w-full h-full object-cover object-center">
+        <div class="absolute inset-0 bg-gradient-to-r from-luxury-black via-luxury-black/35 to-transparent"></div>
+    </div>
+
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+        <div class="max-w-xl">
+            {% if is_pdp %}
+            <p class="text-luxury-gold text-sm font-semibold tracking-widest uppercase mb-3">Busca personalizada</p>
+            <h2 class="text-4xl md:text-5xl font-serif font-bold text-white leading-tight mb-6">
+                Procurando uma {{ cat }} diferente?
+            </h2>
+            <p class="text-gray-200 text-lg leading-relaxed mb-4 drop-shadow">
+                Outro tamanho, cor ou faixa de preço? Nossos especialistas encontram a pedra certa para você.
+            </p>
+            <p class="text-gray-300 text-base leading-relaxed mb-10 drop-shadow">
+                Temos acesso a praticamente qualquer {{ cat }} do mercado. Conte o que busca e receba opções selecionadas exclusivamente para o seu perfil.
+            </p>
+            {% else %}
+            <p class="text-luxury-gold text-sm font-semibold tracking-widest uppercase mb-3">Gemas sob medida</p>
+            <h2 class="text-4xl md:text-5xl font-serif font-bold text-white leading-tight mb-6">
+                Está buscando<br>algo específico?
+            </h2>
+            <p class="text-gray-200 text-lg leading-relaxed mb-4 drop-shadow">
+                Conte o que você tem em mente: tamanho, cor, origem ou faixa de investimento. Temos acesso a praticamente qualquer gema do mercado, incluindo Tanzanitas, Alexandritas, Paraíbas, Safiras e muito mais.
+            </p>
+            <p class="text-gray-300 text-base leading-relaxed mb-10 drop-shadow">
+                Nossos especialistas selecionam opções exclusivamente para o seu perfil e entram em contato com as melhores alternativas disponíveis.
+            </p>
+            {% endif %}
+            <a href="/o-que-procura"
+               class="inline-flex items-center gap-3 px-8 py-4 bg-luxury-gold text-white font-semibold rounded-lg hover:bg-luxury-gold-dark transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform text-base">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                Falar com um especialista
+            </a>
+        </div>
+    </div>
+</section>

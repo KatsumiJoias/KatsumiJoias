@@ -1,0 +1,768 @@
+{% extends "crm_base.html" %}
+
+{% block crm_content %}
+<div class="max-w-7xl mx-auto px-0 sm:px-4">
+    <!-- Header -->
+    <div class="mb-6 md:mb-8">
+        <div class="flex flex-col gap-3 md:flex-row md:justify-between md:items-start">
+            <div class="flex-1">
+                <div class="flex items-center gap-2 md:gap-3 mb-2">
+                    <div class="p-1.5 md:p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg">
+                        <svg class="h-5 w-5 md:h-6 md:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-xl md:text-3xl font-bold text-gray-900">Produtos</h1>
+                </div>
+                <p class="text-sm text-gray-600 ml-9 md:ml-14">Gerencie seu catálogo de produtos</p>
+            </div>
+            <div class="relative">
+                <button type="button" onclick="toggleAddProductMenu(event)"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 text-sm font-semibold w-full md:w-auto">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>Adicionar Produto</span>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="add-product-menu" class="hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-30 overflow-hidden">
+                    <a href="{{ url_for('new_product', sku_mode='new') }}"
+                       class="block px-4 py-3.5 hover:bg-indigo-50 border-b border-gray-100 transition-colors">
+                        <p class="text-sm font-semibold text-gray-900">Produto novo</p>
+                        <p class="text-xs text-gray-500 mt-0.5">SKU gerado automaticamente (maior código + 1)</p>
+                    </a>
+                    <a href="{{ url_for('new_product', sku_mode='existing') }}"
+                       class="block px-4 py-3.5 hover:bg-indigo-50 transition-colors">
+                        <p class="text-sm font-semibold text-gray-900">Produto já existente</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Você digita o SKU já usado internamente</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search bar -->
+    <form method="GET" action="{{ url_for('crm_produtos') }}" class="mb-6">
+        <input type="hidden" name="category" value="{{ filters.category or '' }}">
+        <input type="hidden" name="min_altura" value="{{ filters.min_altura or '' }}">
+        <input type="hidden" name="max_altura" value="{{ filters.max_altura or '' }}">
+        <input type="hidden" name="min_comprimento" value="{{ filters.min_comprimento or '' }}">
+        <input type="hidden" name="max_comprimento" value="{{ filters.max_comprimento or '' }}">
+        <input type="hidden" name="min_largura" value="{{ filters.min_largura or '' }}">
+        <input type="hidden" name="max_largura" value="{{ filters.max_largura or '' }}">
+        <input type="hidden" name="min_peso" value="{{ filters.min_peso or '' }}">
+        <input type="hidden" name="max_peso" value="{{ filters.max_peso or '' }}">
+        <input type="hidden" name="cut" value="{{ filters.cut or '' }}">
+        <input type="hidden" name="numero_pedras" value="{{ filters.numero_pedras or '' }}">
+        {% if filters.riviera %}<input type="hidden" name="riviera" value="true">{% endif %}
+        <input type="hidden" name="status" value="{{ filters.status or '' }}">
+        <input type="hidden" name="sold" value="{{ filters.sold or '' }}">
+        <input type="hidden" name="source" value="{{ filters.source or '' }}">
+        <input type="hidden" name="sort_by" value="{{ filters.sort_by or '' }}">
+        <div class="flex gap-2">
+            <label for="crm-search" class="sr-only">Buscar produtos</label>
+            <input type="search" id="crm-search" name="search" value="{{ filters.search or '' }}" placeholder="Buscar por nome, SKU, tipo, categoria..." 
+                   class="flex-1 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-gray-900 placeholder-gray-500">
+            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all font-medium">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Buscar
+            </button>
+        </div>
+    </form>
+
+    <div class="lg:grid lg:grid-cols-4 lg:gap-8">
+        <!-- Filters Sidebar -->
+        <div class="lg:col-span-1">
+            <button type="button" onclick="toggleCrmFilters()" id="crm-filter-toggle"
+                    class="lg:hidden w-full mb-4 flex items-center justify-between px-4 py-3 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-900 font-medium hover:bg-gray-50">
+                <div class="flex items-center gap-2">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                    <span>Filtros</span>
+                    {% set n = [filters.search, filters.category, filters.status, filters.sold, filters.source, filters.min_altura, filters.max_altura, filters.min_comprimento, filters.max_comprimento, filters.min_largura, filters.max_largura, filters.min_peso, filters.max_peso, filters.cut, filters.numero_pedras, filters.riviera] | select | list | length %}
+                    {% if n > 0 %}<span class="inline-flex items-center justify-center h-5 w-5 rounded-full bg-indigo-600 text-white text-xs font-bold">{{ n }}</span>{% endif %}
+                </div>
+                <svg id="crm-filter-chevron" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div id="crm-filters-container" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:sticky lg:top-24 hidden lg:block">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-medium text-gray-900">Filtros</h2>
+                    <a href="{{ url_for('crm_produtos') }}" class="text-sm text-indigo-600 hover:text-indigo-800">Limpar</a>
+                </div>
+                <form method="GET" action="{{ url_for('crm_produtos') }}" id="crm-filter-form" class="space-y-5">
+                    {% if filters.search %}<input type="hidden" name="search" value="{{ filters.search }}">{% endif %}
+                    <input type="hidden" name="sort_by" value="{{ filters.sort_by or '' }}">
+                    <div>
+                        <label for="crm_status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <select name="status" id="crm_status" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Todos</option>
+                            <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Ativo</option>
+                            <option value="draft" {% if filters.status == 'draft' %}selected{% endif %}>Rascunho</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="crm_sold" class="block text-sm font-medium text-gray-700 mb-2">Vendido</label>
+                        <select name="sold" id="crm_sold" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Todos</option>
+                            <option value="yes" {% if filters.sold == 'yes' %}selected{% endif %}>Vendidos</option>
+                            <option value="no" {% if filters.sold == 'no' %}selected{% endif %}>Não vendidos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="crm_source" class="block text-sm font-medium text-gray-700 mb-2">Origem da venda</label>
+                        <select name="source" id="crm_source" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Todas</option>
+                            {% for value, label in source_options.items() %}
+                            <option value="{{ value }}" {% if filters.source == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="mt-1.5 text-xs text-gray-500">Mostra apenas produtos com venda registrada no canal escolhido.</p>
+                    </div>
+                    <div>
+                        <label for="crm_category" class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+                        <select name="category" id="crm_category" onchange="handleCrmCategoryChange()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Todas</option>
+                            {% for cat in categories %}<option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Altura (mm)</label>
+                        <div class="drs-wrap crm-drs" id="crm-altura-slider"><div class="drs-track-bg"></div><div class="drs-track-fill crm-fill" id="crm-altura-fill"></div><input type="range" id="crm-altura-r-min" step="0.1"><input type="range" id="crm-altura-r-max" step="0.1"></div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <input type="number" id="crm-altura-i-min" name="min_altura" value="{{ filters.min_altura or '' }}" step="0.1" placeholder="Mín" class="w-full text-xs text-center rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1">
+                            <span class="text-gray-400 text-xs flex-shrink-0">–</span>
+                            <input type="number" id="crm-altura-i-max" name="max_altura" value="{{ filters.max_altura or '' }}" step="0.1" placeholder="Máx" class="w-full text-xs text-center rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="crm-comprimento-range-select" class="block text-sm font-medium text-gray-700 mb-2">Comprimento (mm)</label>
+                        <select id="crm-comprimento-range-select" class="w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm">
+                            <option value="">Todos</option>
+                        </select>
+                        <input type="hidden" id="crm-comprimento-i-min" name="min_comprimento" value="{{ filters.min_comprimento or '' }}">
+                        <input type="hidden" id="crm-comprimento-i-max" name="max_comprimento" value="{{ filters.max_comprimento or '' }}">
+                    </div>
+                    <div>
+                        <label for="crm-largura-range-select" class="block text-sm font-medium text-gray-700 mb-2">Largura (mm)</label>
+                        <select id="crm-largura-range-select" class="w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm">
+                            <option value="">Todos</option>
+                        </select>
+                        <input type="hidden" id="crm-largura-i-min" name="min_largura" value="{{ filters.min_largura or '' }}">
+                        <input type="hidden" id="crm-largura-i-max" name="max_largura" value="{{ filters.max_largura or '' }}">
+                    </div>
+                    <div>
+                        <label for="crm-peso-range-select" class="block text-sm font-medium text-gray-700 mb-2">Peso (quilates)</label>
+                        <select id="crm-peso-range-select" class="w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm">
+                            <option value="">Todos</option>
+                        </select>
+                        <input type="hidden" id="crm-peso-i-min" name="min_peso" value="{{ filters.min_peso or '' }}">
+                        <input type="hidden" id="crm-peso-i-max" name="max_peso" value="{{ filters.max_peso or '' }}">
+                    </div>
+                    <div>
+                        <label for="crm_cut" class="block text-sm font-medium text-gray-700 mb-2">Lapidação</label>
+                        <select name="cut" id="crm_cut" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Todas</option>
+                            {% for cut_option in cuts %}<option value="{{ cut_option }}" {% if filters.cut == cut_option %}selected{% endif %}>{{ cut_option }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="crm_numero_pedras" class="block text-sm font-medium text-gray-700 mb-2">Número de Pedras</label>
+                        <select name="numero_pedras" id="crm_numero_pedras" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                            <option value="">Todos</option>
+                            <option value="sem_pedras"{% if filters.numero_pedras == 'sem_pedras'%}selected{% endif %}>Sem pedras (0 / vazio)</option>
+                            <option value="unico"     {% if filters.numero_pedras == 'unico'     %}selected{% endif %}>Único (1 pedra)</option>
+                            <option value="par"       {% if filters.numero_pedras == 'par'       %}selected{% endif %}>Par (2 pedras)</option>
+                            <option value="trio"      {% if filters.numero_pedras == 'trio'      %}selected{% endif %}>Trio (3 pedras)</option>
+                            <option value="conjunto"  {% if filters.numero_pedras == 'conjunto'  %}selected{% endif %}>Conjunto (4+ pedras)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="riviera" id="crm_riviera" value="true" {% if filters.riviera %}checked{% endif %} onchange="handleCrmFilterImmediate()" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="crm_riviera" class="ml-2 text-sm font-medium text-gray-700">Apenas Riviera</label>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Products List -->
+        <div class="lg:col-span-3 mt-6 lg:mt-0">
+            <div class="mb-4 flex items-center justify-between flex-wrap gap-2">
+                <p class="text-gray-600">
+                    {% if pagination and pagination.total_count is defined and pagination.total_count > 0 %}
+                    Mostrando <span class="font-medium text-gray-900">{{ pagination.start_index }}</span>-<span class="font-medium text-gray-900">{{ pagination.end_index }}</span> de <span class="font-medium text-gray-900">{{ pagination.total_count }}</span> produto(s)
+                    {% else %}
+                    <span class="font-medium text-gray-900">{{ products|length }}</span> produto(s) encontrado(s)
+                    {% endif %}
+                </p>
+                <select onchange="applyCrmSort(this.value)"
+                        class="text-sm rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5">
+                    <option value="" {% if not filters.sort_by %}selected{% endif %}>Ordenar por...</option>
+                    <option value="price_asc"  {% if filters.sort_by == 'price_asc'  %}selected{% endif %}>Menor preço</option>
+                    <option value="price_desc" {% if filters.sort_by == 'price_desc' %}selected{% endif %}>Maior preço</option>
+                    <option value="peso_asc"   {% if filters.sort_by == 'peso_asc'   %}selected{% endif %}>Menor peso</option>
+                    <option value="peso_desc"  {% if filters.sort_by == 'peso_desc'  %}selected{% endif %}>Maior peso</option>
+                    <option value="recentes"   {% if filters.sort_by == 'recentes'   %}selected{% endif %}>Recentes</option>
+                </select>
+            </div>
+
+{% if products %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <!-- Card Header -->
+    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+        <div class="flex items-center gap-3">
+            <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+            <h2 class="text-lg font-semibold text-white">Lista de Produtos</h2>
+            <span id="products-count" class="ml-auto text-sm text-white bg-white/20 px-3 py-1 rounded-full">{{ products|length }} produto{{ 's' if products|length != 1 else '' }}</span>
+        </div>
+    </div>
+    
+    <ul class="divide-y divide-gray-100">
+        {% for product in products %}
+        <li data-product-id="{{ product.id }}">
+            <div class="px-3 py-3 md:px-4 md:py-4 lg:px-6 hover:bg-gradient-to-r hover:from-gray-50 hover:to-indigo-50/30 transition-all duration-200">
+                <!-- Mobile Layout -->
+                <div class="lg:hidden">
+                    <div class="flex gap-3 mb-3">
+                        {% if product.main_image_url %}
+                        <img src="{{ product.main_image_url }}" alt="{{ product.name }}" class="h-20 w-20 object-cover rounded-md flex-shrink-0">
+                        {% else %}
+                        <div class="h-20 w-20 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
+                            <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <a href="{{ url_for('edit_product', product_id=product.id) }}" 
+                               class="text-base font-medium text-indigo-600 hover:text-indigo-800 transition-colors line-clamp-2 block mb-1">
+                                {{ product.name }}
+                            </a>
+                            {% if product.sku %}
+                            <p class="text-xs text-gray-500">SKU: {{ product.sku }}</p>
+                            {% endif %}
+                            <div class="mt-1 flex items-center gap-2 flex-wrap">
+                                {% if product.get('sales_history') %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Vendido</span>
+                                {% endif %}
+                                {% if product.get('active', False) %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Ativo</span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">Rascunho</span>
+                                {% endif %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    {{ product.category }}
+                                </span>
+                                {% if product.discount and product.discount > 0 %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-luxury-gold text-white">
+                                    -{{ product.discount }}%
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            {% if product.discount and product.discount > 0 %}
+                            <div class="flex items-center gap-1 mb-0.5">
+                                <span class="text-xs text-gray-400 line-through">
+                                    $ {{ "{:,.2f}".format(product.price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                </span>
+                            </div>
+                            <span class="text-base font-semibold text-gray-900">
+                                $ {{ "{:,.2f}".format(product.price * (1 - product.discount / 100)).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                            </span>
+                            {% else %}
+                            <span class="text-base font-semibold text-gray-900">
+                                $ {{ "{:,.2f}".format(product.price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{{ url_for('edit_product', product_id=product.id) }}" 
+                               class="inline-flex items-center justify-center px-2.5 py-1.5 border border-indigo-200 bg-indigo-50 rounded-lg text-xs font-medium text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-all duration-150 shadow-sm">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </a>
+                            <button type="button"
+                                    onclick="deleteProduct('{{ product.id }}', this)"
+                                    class="inline-flex items-center justify-center px-2.5 py-1.5 border border-red-200 bg-red-50 rounded-lg text-xs font-medium text-red-700 hover:bg-red-100 hover:border-red-300 transition-all duration-150 shadow-sm">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Desktop Layout -->
+                <div class="hidden lg:flex items-center justify-between">
+                    <div class="flex items-center min-w-0 flex-1">
+                        {% if product.main_image_url %}
+                        <img src="{{ product.main_image_url }}" alt="{{ product.name }}" class="h-16 w-16 object-cover rounded-md mr-4 flex-shrink-0">
+                        {% else %}
+                        <div class="h-16 w-16 bg-gray-200 rounded-md mr-4 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        {% endif %}
+                        <div class="flex items-center space-x-6 min-w-0 flex-1">
+                            <div class="flex-1 min-w-0">
+                                <a href="{{ url_for('edit_product', product_id=product.id) }}" 
+                                   class="text-base font-medium text-indigo-600 hover:text-indigo-800 transition-colors duration-200 truncate block">
+                                    {{ product.name }}
+                                </a>
+                                {% if product.sku %}
+                                <p class="text-xs text-gray-500 mt-0.5">SKU: {{ product.sku }}</p>
+                                {% endif %}
+                            </div>
+                            {% if product.get('sales_history') %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Vendido</span>
+                            {% endif %}
+                            {% if product.get('active', False) %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Ativo</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">Rascunho</span>
+                            {% endif %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                {{ product.category }}
+                            </span>
+                            <div class="text-right">
+                                {% if product.discount and product.discount > 0 %}
+                                    <div class="flex items-center justify-end space-x-2">
+                                        <span class="text-sm text-gray-400 line-through">
+                                            $ {{ "{:,.2f}".format(product.price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                        </span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-luxury-gold text-white">
+                                            -{{ product.discount }}%
+                                        </span>
+                                    </div>
+                                    <span class="text-base font-semibold text-gray-900">
+                                        $ {{ "{:,.2f}".format(product.price * (1 - product.discount / 100)).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-base font-semibold text-gray-900">
+                                        $ {{ "{:,.2f}".format(product.price).replace(',', '#').replace('.', ',').replace('#', '.') }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 ml-4 flex-shrink-0">
+                        <a href="{{ url_for('edit_product', product_id=product.id) }}" 
+                           class="inline-flex items-center gap-2 px-4 py-2 border border-indigo-200 bg-indigo-50 rounded-lg text-sm font-medium text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-all duration-150 shadow-sm">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Editar</span>
+                        </a>
+                        <button type="button"
+                                onclick="deleteProduct('{{ product.id }}', this)"
+                                class="inline-flex items-center gap-2 px-4 py-2 border border-red-200 bg-red-50 rounded-lg text-sm font-medium text-red-700 hover:bg-red-100 hover:border-red-300 transition-all duration-150 shadow-sm">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Deletar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if pagination and pagination.total_pages > 1 %}
+    <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex flex-wrap items-center justify-between gap-4">
+        <p class="text-sm text-gray-600">
+            Página {{ pagination.page }} de {{ pagination.total_pages }}
+        </p>
+        <div class="flex gap-2">
+            {% if pagination.has_prev %}
+            <a href="{{ pagination.prev_url }}" class="inline-flex items-center gap-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Anterior
+            </a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a href="{{ pagination.next_url }}" class="inline-flex items-center gap-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                Carregar mais
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="text-center py-16 px-6">
+        {% set has_filters = filters.search or filters.category or filters.min_altura or filters.max_altura or filters.min_comprimento or filters.max_comprimento or filters.min_largura or filters.max_largura or filters.min_peso or filters.max_peso or filters.cut or filters.numero_pedras or filters.riviera %}
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full mb-4">
+            <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">{% if has_filters %}Nenhum produto encontrado{% else %}Nenhum produto cadastrado{% endif %}</h3>
+        <p class="text-sm text-gray-600 mb-6 max-w-sm mx-auto">{% if has_filters %}Nenhum produto corresponde aos filtros ou à busca. Tente alterar os critérios ou limpar os filtros.{% else %}Comece a construir seu catálogo adicionando o primeiro produto.{% endif %}</p>
+        <div class="flex flex-wrap justify-center gap-3">
+            {% if has_filters %}
+            <a href="{{ url_for('crm_produtos') }}" class="inline-flex items-center gap-2 px-5 py-2.5 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 font-medium transition-colors">
+                Limpar Filtros
+            </a>
+            {% endif %}
+            <a href="{{ url_for('new_product') }}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 font-semibold">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span>Adicionar Produto</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+        </div>
+    </div>
+</div>
+<style>
+.drs-wrap{position:relative;height:28px;display:flex;align-items:center;padding:0 2px}
+.drs-track-bg{position:absolute;width:100%;height:4px;background:#e5e7eb;border-radius:2px}
+.drs-track-fill{position:absolute;height:4px;border-radius:2px}
+.crm-fill{background:#6366f1}
+.drs-wrap input[type=range]{position:absolute;width:100%;pointer-events:none;-webkit-appearance:none;appearance:none;background:transparent;height:28px;margin:0;padding:0}
+.crm-drs input[type=range]::-webkit-slider-thumb{pointer-events:all;-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:white;border:2.5px solid #6366f1;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.crm-drs input[type=range]::-moz-range-thumb{pointer-events:all;width:14px;height:14px;border-radius:50%;background:white;border:2.5px solid #6366f1;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+</style>
+<script type="application/json" id="crm-jinja-data">
+{
+    "categoryOptions": {{ category_options | tojson }},
+    "bounds": {
+        "altura":      {"min": {{ bounds.altura.min }},      "max": {{ bounds.altura.max }}},
+        "comprimento": {"min": {{ bounds.comprimento.min }}, "max": {{ bounds.comprimento.max }}},
+        "largura":     {"min": {{ bounds.largura.min }},     "max": {{ bounds.largura.max }}},
+        "peso":        {"min": {{ bounds.peso.min }},        "max": {{ bounds.peso.max }}}
+    },
+    "filters": {
+        "min_altura":       "{{ filters.min_altura or '' }}",
+        "max_altura":       "{{ filters.max_altura or '' }}",
+        "min_comprimento":  "{{ filters.min_comprimento or '' }}",
+        "max_comprimento":  "{{ filters.max_comprimento or '' }}",
+        "min_largura":      "{{ filters.min_largura or '' }}",
+        "max_largura":      "{{ filters.max_largura or '' }}",
+        "min_peso":         "{{ filters.min_peso or '' }}",
+        "max_peso":         "{{ filters.max_peso or '' }}"
+    }
+}
+</script>
+<script>
+// ---- Live Filter Logic (CRM) ----
+let _crmFilterDebounce;
+function _submitCrmFilters() {
+    var form = document.getElementById('crm-filter-form');
+    var pageInput = form.querySelector('input[name="page"]');
+    if (pageInput) pageInput.remove();
+    form.submit();
+}
+function handleCrmFilterChange() {
+    clearTimeout(_crmFilterDebounce);
+    _crmFilterDebounce = setTimeout(_submitCrmFilters, 600);
+}
+function handleCrmFilterImmediate() {
+    clearTimeout(_crmFilterDebounce);
+    _submitCrmFilters();
+}
+
+// ---- Category-aware dropdown filtering (CRM) ----
+var _crmJinjaData = JSON.parse(document.getElementById('crm-jinja-data').textContent);
+const _crmCatOptions = _crmJinjaData.categoryOptions;
+const _crmPedrasLabels = {sem_pedras: 'Sem pedras (0 / vazio)', unico: 'Único (1 pedra)', par: 'Par (2 pedras)', trio: 'Trio (3 pedras)', conjunto: 'Conjunto (4+ pedras)'};
+
+function _crmRebuildSelect(sel, items, labelFn, allLabel) {
+    const current = sel.value;
+    sel.innerHTML = '';
+    const allOpt = document.createElement('option');
+    allOpt.value = ''; allOpt.textContent = allLabel;
+    sel.appendChild(allOpt);
+    items.forEach(function(v) {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = labelFn(v);
+        sel.appendChild(opt);
+    });
+    if (Array.from(sel.options).some(function(o){ return o.value === current; })) {
+        sel.value = current;
+    }
+}
+
+function _crmUpdateSliderBounds(field, newMin, newMax, step) {
+    var rMin = document.getElementById(field+'-r-min');
+    var rMax = document.getElementById(field+'-r-max');
+    var iMin = document.getElementById(field+'-i-min');
+    var iMax = document.getElementById(field+'-i-max');
+    if (!rMin || !rMax) return;
+    rMin.min = newMin; rMin.max = newMax; rMin.step = step;
+    rMax.min = newMin; rMax.max = newMax; rMax.step = step;
+    var curMinV = parseFloat(iMin.value);
+    var curMaxV = parseFloat(iMax.value);
+    if (isNaN(curMinV) || curMinV < newMin) { rMin.value = newMin; iMin.value = ''; }
+    else { rMin.value = curMinV; }
+    if (isNaN(curMaxV) || curMaxV > newMax) { rMax.value = newMax; iMax.value = ''; }
+    else { rMax.value = curMaxV; }
+    _drsFill(field, newMin, newMax);
+}
+
+function _crmUpdateCategoryDropdowns(category) {
+    var cutSel    = document.getElementById('crm_cut');
+    var pedrasSel = document.getElementById('crm_numero_pedras');
+    if (!cutSel || !pedrasSel) return;
+
+    var opts = (category && _crmCatOptions[category]) || _crmCatOptions['__all__'];
+    if (!opts) return;
+
+    _crmRebuildSelect(cutSel,    opts.cuts,   function(v){ return v; },  'Todas');
+    _crmRebuildSelect(pedrasSel, opts.pedras, function(v){ return _crmPedrasLabels[v]; }, 'Todos');
+
+    if (opts.bounds) {
+        var b = opts.bounds;
+        var rb = opts.range_buckets || {};
+        _crmUpdateSliderBounds('crm-altura', b.altura.min, b.altura.max, 0.1);
+        _crmUpdateRangeDropdownBounds('crm-comprimento', rb.comprimento || [], 'mm', 1, 2);
+        _crmUpdateRangeDropdownBounds('crm-largura',     rb.largura || [],     'mm', 1, 2);
+        _crmUpdateRangeDropdownBounds('crm-peso',        rb.peso || [],        'ct', 1, 2);
+    }
+}
+
+function handleCrmCategoryChange() {
+    var catSel = document.getElementById('crm_category');
+    _crmUpdateCategoryDropdowns(catSel ? catSel.value : '');
+    handleCrmFilterImmediate();
+}
+
+// ---- Range bucket dropdowns (CRM) ----
+const _crmRangeDropdownRebuilders = {};
+
+function _crmRangeDropdownSetup(field, buckets, unit, step, decimals) {
+    const sel = document.getElementById(field + '-range-select');
+    const iMin = document.getElementById(field + '-i-min');
+    const iMax = document.getElementById(field + '-i-max');
+    if (!sel || !iMin || !iMax) return;
+
+    function rebuild(nextBuckets) {
+        const resolvedBuckets = Array.isArray(nextBuckets) && nextBuckets.length
+            ? nextBuckets
+            : (Array.isArray(buckets) ? buckets : _buildRangeBuckets(nextBuckets, unit, step, decimals));
+        const curMin = iMin.value !== '' ? parseFloat(iMin.value) : null;
+        const curMax = iMax.value !== '' ? parseFloat(iMax.value) : null;
+        sel.innerHTML = '';
+        const allOpt = document.createElement('option');
+        allOpt.value = '';
+        allOpt.textContent = 'Todos';
+        sel.appendChild(allOpt);
+        let matched = false;
+        resolvedBuckets.forEach(function(b) {
+            const opt = document.createElement('option');
+            opt.value = b.min + '|' + b.max;
+            opt.textContent = b.label;
+            if (curMin !== null && curMax !== null &&
+                Math.abs(curMin - b.min) < 0.001 && Math.abs(curMax - b.max) < 0.001) {
+                opt.selected = true;
+                matched = true;
+            }
+            sel.appendChild(opt);
+        });
+        if (!matched && (curMin !== null || curMax !== null)) {
+            iMin.value = '';
+            iMax.value = '';
+        }
+    }
+
+    if (!sel.dataset.bound) {
+        sel.dataset.bound = '1';
+        sel.addEventListener('change', function() {
+            if (!this.value) {
+                iMin.value = '';
+                iMax.value = '';
+            } else {
+                const parts = this.value.split('|');
+                iMin.value = parts[0];
+                iMax.value = parts[1];
+            }
+            handleCrmFilterImmediate();
+        });
+    }
+
+    rebuild(buckets);
+    _crmRangeDropdownRebuilders[field] = rebuild;
+}
+
+function _crmUpdateRangeDropdownBounds(field, buckets, unit, step, decimals) {
+    if (_crmRangeDropdownRebuilders[field]) {
+        _crmRangeDropdownRebuilders[field](buckets);
+    } else {
+        _crmRangeDropdownSetup(field, buckets, unit, step, decimals);
+    }
+}
+
+function _buildRangeBuckets(maxVal, unit, step, decimals) {
+    const buckets = [];
+    if (!maxVal || maxVal <= 0) return buckets;
+    let lo = 0;
+    while (lo < maxVal - 0.0001) {
+        const hi = Math.min(lo + step, maxVal);
+        const minVal = lo === 0 ? 0 : +(lo + 0.01).toFixed(decimals);
+        const maxRounded = +hi.toFixed(decimals);
+        let label;
+        if (lo === 0) {
+            label = 'de 0 ' + unit + ' a ' + Number(hi).toFixed(decimals).replace('.', ',') + ' ' + unit;
+        } else {
+            label = 'de ' + Number(minVal).toFixed(decimals).replace('.', ',') + ' ' + unit + ' a ' + Number(maxRounded).toFixed(decimals).replace('.', ',') + ' ' + unit;
+        }
+        buckets.push({ min: minVal, max: maxRounded, label: label });
+        lo = hi;
+    }
+    return buckets;
+}
+
+// ---- Dual Range Slider (CRM) ----
+function _drsFill(field, bMin, bMax) {
+    const rMin = document.getElementById(field+'-r-min');
+    const rMax = document.getElementById(field+'-r-max');
+    const fill = document.getElementById(field+'-fill');
+    if (!rMin || !rMax || !fill) return;
+    const range = bMax - bMin;
+    if (range <= 0) { fill.style.left='0%'; fill.style.width='100%'; return; }
+    const lo = ((parseFloat(rMin.value) - bMin) / range) * 100;
+    const hi = ((parseFloat(rMax.value) - bMin) / range) * 100;
+    fill.style.left = lo + '%';
+    fill.style.width = Math.max(0, hi - lo) + '%';
+}
+function _drsSetup(field, bMin, bMax, curMin, curMax, step) {
+    const rMin = document.getElementById(field+'-r-min');
+    const rMax = document.getElementById(field+'-r-max');
+    const iMin = document.getElementById(field+'-i-min');
+    const iMax = document.getElementById(field+'-i-max');
+    if (!rMin || !rMax) return;
+    step = step || 0.1;
+    rMin.min = bMin; rMin.max = bMax; rMin.step = step;
+    rMax.min = bMin; rMax.max = bMax; rMax.step = step;
+    rMin.value = (curMin !== '') ? parseFloat(curMin) : bMin;
+    rMax.value = (curMax !== '') ? parseFloat(curMax) : bMax;
+    _drsFill(field, bMin, bMax);
+    rMin.addEventListener('input', function() {
+        let v = parseFloat(this.value), maxV = parseFloat(rMax.value);
+        if (v >= maxV) { v = maxV - step; this.value = v; }
+        iMin.value = (Math.abs(v - bMin) < step * 0.5) ? '' : +v.toFixed(2);
+        _drsFill(field, bMin, bMax);
+        handleCrmFilterChange();
+    });
+    rMax.addEventListener('input', function() {
+        let v = parseFloat(this.value), minV = parseFloat(rMin.value);
+        if (v <= minV) { v = minV + step; this.value = v; }
+        iMax.value = (Math.abs(v - bMax) < step * 0.5) ? '' : +v.toFixed(2);
+        _drsFill(field, bMin, bMax);
+        handleCrmFilterChange();
+    });
+    iMin.addEventListener('change', function() {
+        const v = parseFloat(this.value);
+        if (!isNaN(v) && v >= bMin && v < parseFloat(rMax.value)) { rMin.value = v; _drsFill(field, bMin, bMax); }
+        handleCrmFilterChange();
+    });
+    iMax.addEventListener('change', function() {
+        const v = parseFloat(this.value);
+        if (!isNaN(v) && v <= bMax && v > parseFloat(rMin.value)) { rMax.value = v; _drsFill(field, bMin, bMax); }
+        handleCrmFilterChange();
+    });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var b = _crmJinjaData.bounds, f = _crmJinjaData.filters;
+    var allBuckets = (_crmJinjaData.categoryOptions && _crmJinjaData.categoryOptions['__all__'] && _crmJinjaData.categoryOptions['__all__'].range_buckets) || {};
+    _drsSetup('crm-altura', b.altura.min, b.altura.max, f.min_altura, f.max_altura, 0.1);
+    _crmRangeDropdownSetup('crm-comprimento', allBuckets.comprimento || [], 'mm', 1, 2);
+    _crmRangeDropdownSetup('crm-largura',     allBuckets.largura || [],     'mm', 1, 2);
+    _crmRangeDropdownSetup('crm-peso',        allBuckets.peso || [],        'ct', 1, 2);
+
+    var catSel = document.getElementById('crm_category');
+    if (catSel) {
+        _crmUpdateCategoryDropdowns(catSel.value);
+    }
+});
+
+async function deleteProduct(productId, btn) {
+    if (!confirm('Tem certeza que deseja deletar este produto?')) return;
+
+    btn.disabled = true;
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<svg class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+
+    try {
+        const res = await fetch(`/crm/product/${productId}/delete`, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const li = document.querySelector(`li[data-product-id="${productId}"]`);
+            if (li) {
+                li.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                li.style.opacity = '0';
+                li.style.transform = 'translateX(-8px)';
+                setTimeout(() => {
+                    li.remove();
+                    const countEl = document.getElementById('products-count');
+                    if (countEl) {
+                        const n = Math.max(0, (parseInt(countEl.textContent) || 1) - 1);
+                        countEl.textContent = n + ' produto' + (n !== 1 ? 's' : '');
+                    }
+                }, 260);
+            }
+            showFlashMessage('Produto deletado com sucesso!', 'success');
+        } else {
+            showFlashMessage('Erro ao deletar produto.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    } catch (e) {
+        showFlashMessage('Erro ao deletar produto. Tente novamente.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
+function applyCrmSort(value) {
+    const url = new URL(window.location);
+    if (value) {
+        url.searchParams.set('sort_by', value);
+    } else {
+        url.searchParams.delete('sort_by');
+    }
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+}
+
+function toggleCrmFilters() {
+    var el = document.getElementById('crm-filters-container');
+    var chevron = document.getElementById('crm-filter-chevron');
+    if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        chevron.style.transform = 'rotate(180deg)';
+    } else {
+        el.classList.add('hidden');
+        chevron.style.transform = 'rotate(0deg)';
+    }
+}
+
+function toggleAddProductMenu(event) {
+    event.stopPropagation();
+    document.getElementById('add-product-menu').classList.toggle('hidden');
+}
+
+document.addEventListener('click', function (e) {
+    var menu = document.getElementById('add-product-menu');
+    if (menu && !e.target.closest('#add-product-menu') && !e.target.closest('button[onclick^="toggleAddProductMenu"]')) {
+        menu.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

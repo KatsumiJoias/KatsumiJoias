@@ -1,0 +1,91 @@
+{% extends "crm_base.html" %}
+
+{% block crm_content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <div class="flex items-center gap-3 mb-2">
+            <a href="{{ url_for('crm_ajustes') }}" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <div class="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
+                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">Taxa de Aumento</h1>
+        </div>
+        <p class="text-sm text-gray-600 ml-16">Porcentagem para aumentar os preços base dos produtos no site</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-6 p-4 rounded-lg border-l-4 {% if category == 'error' %}bg-red-50 border-red-500 text-red-800{% else %}bg-green-50 border-green-500 text-green-800{% endif %} flex items-start gap-3">
+                    <svg class="h-5 w-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        {% if category == 'error' %}
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        {% else %}
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        {% endif %}
+                    </svg>
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-4">
+            <div class="flex items-center gap-3">
+                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+                <h2 class="text-lg font-semibold text-white">Configurar Taxa</h2>
+            </div>
+        </div>
+
+        <form method="POST" class="p-6">
+            <div class="mb-6">
+                <label for="rate" class="block text-sm font-semibold text-gray-700 mb-2">Taxa de Aumento (%)</label>
+                <div class="relative max-w-xs">
+                    <input type="number"
+                           name="rate"
+                           id="rate"
+                           value="{{ rate }}"
+                           min="0"
+                           step="1"
+                           required
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500 transition-all duration-150 bg-gray-50 pr-10 text-lg"
+                           placeholder="0">
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-lg font-medium">%</span>
+                    </div>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">
+                    Esse valor será aplicado como aumento percentual sobre todos os preços exibidos no site.
+                    Por exemplo, se definir <strong>10%</strong>, um produto de <strong>$100</strong> será exibido como <strong>$110</strong>.
+                </p>
+                <p class="mt-1 text-xs text-gray-400">
+                    Essa taxa NÃO afeta os preços exibidos no CRM, apenas no site público.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg shadow-md hover:from-amber-600 hover:to-orange-700 transition-all font-medium">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Salvar
+                </button>
+                <a href="{{ url_for('crm_ajustes') }}"
+                   class="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium">
+                    Voltar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

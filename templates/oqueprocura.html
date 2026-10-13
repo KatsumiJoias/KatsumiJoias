@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}O que você procura? — Katsumi Joias{% endblock %}
+
+{% block content %}
+<!-- Hero section -->
+<div class="relative bg-luxury-black overflow-hidden" style="min-height: 480px;">
+    <img src="{{ url_for('static', filename='images/oqueprocurapage.jpg') }}"
+         alt="Pedras preciosas"
+         class="absolute inset-0 w-full h-full object-cover opacity-50">
+    <div class="absolute inset-0 bg-gradient-to-b from-luxury-black/40 via-luxury-black/50 to-luxury-black/90"></div>
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 text-center">
+        <p class="text-luxury-gold text-xs font-semibold tracking-widest uppercase mb-3">Acesso exclusivo ao mercado</p>
+        <h1 class="text-4xl md:text-5xl font-serif font-bold text-white mb-5">O que você procura?</h1>
+        <p class="text-gray-300 text-lg max-w-xl mx-auto leading-relaxed">
+            Descreva a gema dos seus sonhos. Nossos especialistas analisam sua solicitação e retornam com opções selecionadas especialmente para você.
+        </p>
+    </div>
+</div>
+
+<!-- Form card -->
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 md:mt-12 pb-20">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 md:p-10">
+
+        <div id="form-success" class="hidden text-center py-8">
+            <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-serif font-bold text-luxury-black mb-2">Solicitação enviada!</h2>
+            <p class="text-gray-600 mb-8">Em breve um de nossos especialistas entrará em contato com você.</p>
+            <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-luxury-gold text-white font-medium rounded-lg hover:bg-yellow-600 transition-colors">
+                Voltar para a loja
+            </a>
+        </div>
+
+        <form id="solicitacao-form" class="space-y-6">
+            <div>
+                <h2 class="text-xl font-serif font-semibold text-luxury-black mb-1">Diga o que você busca</h2>
+                <p class="text-sm text-gray-500">Todos os campos marcados com * são obrigatórios.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div class="sm:col-span-2">
+                    <label for="sq-name" class="block text-sm font-semibold text-gray-700 mb-1.5">Nome completo *</label>
+                    <input type="text" id="sq-name" name="name" required
+                           placeholder="Seu nome"
+                           class="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold bg-gray-50 px-4 py-2.5">
+                </div>
+                <div>
+                    <label for="sq-email" class="block text-sm font-semibold text-gray-700 mb-1.5">E-mail *</label>
+                    <input type="email" id="sq-email" name="email" required
+                           placeholder="seu@email.com"
+                           class="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold bg-gray-50 px-4 py-2.5">
+                </div>
+                <div>
+                    <label for="sq-phone" class="block text-sm font-semibold text-gray-700 mb-1.5">Telefone / WhatsApp *</label>
+                    <input type="tel" id="sq-phone" name="phone" required
+                           placeholder="(31) 99999-9999"
+                           class="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold bg-gray-50 px-4 py-2.5">
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="sq-description" class="block text-sm font-semibold text-gray-700 mb-1.5">O que você está buscando? *</label>
+                    <textarea id="sq-description" name="description" rows="5" required
+                              placeholder="Descreva a pedra ou joia que você busca: tipo da gema, cor, tamanho, corte, orçamento aproximado, destino (anel, colar, etc.)..."
+                              class="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold bg-gray-50 resize-none px-4 py-3 leading-relaxed"></textarea>
+                    <p class="mt-1 text-xs text-gray-400">Quanto mais detalhes, mais precisa será nossa recomendação.</p>
+                </div>
+            </div>
+
+            <div id="form-error" class="hidden rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"></div>
+
+            <button type="submit" id="sq-submit-btn"
+                    class="w-full inline-flex items-center justify-center gap-3 px-8 py-4 bg-luxury-gold text-white font-semibold rounded-lg hover:bg-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg text-base">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                Enviar solicitação
+            </button>
+
+            <p class="text-center text-xs text-gray-400">
+                Ao enviar você concorda em ser contactado pela nossa equipe de especialistas.
+            </p>
+        </form>
+    </div>
+
+    <!-- Trust badges -->
+    <div class="mt-8 grid grid-cols-3 gap-4 text-center">
+        <div>
+            <div class="mx-auto w-10 h-10 bg-luxury-gold/10 rounded-full flex items-center justify-center mb-2">
+                <svg class="w-5 h-5 text-luxury-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+            </div>
+            <p class="text-xs font-semibold text-gray-700">100% Seguro</p>
+            <p class="text-xs text-gray-400 mt-0.5">Dados protegidos</p>
+        </div>
+        <div>
+            <div class="mx-auto w-10 h-10 bg-luxury-gold/10 rounded-full flex items-center justify-center mb-2">
+                <svg class="w-5 h-5 text-luxury-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <p class="text-xs font-semibold text-gray-700">Resposta rápida</p>
+            <p class="text-xs text-gray-400 mt-0.5">Em até 24h</p>
+        </div>
+        <div>
+            <div class="mx-auto w-10 h-10 bg-luxury-gold/10 rounded-full flex items-center justify-center mb-2">
+                <svg class="w-5 h-5 text-luxury-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                </svg>
+            </div>
+            <p class="text-xs font-semibold text-gray-700">Seleção exclusiva</p>
+            <p class="text-xs text-gray-400 mt-0.5">Curada por especialistas</p>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+const firebaseConfig = {
+    apiKey: "{{ firebase_config.apiKey }}",
+    authDomain: "{{ firebase_config.authDomain }}",
+    projectId: "{{ firebase_config.projectId }}",
+    storageBucket: "{{ firebase_config.storageBucket }}",
+    messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+    appId: "{{ firebase_config.appId }}"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+    try {
+        const idToken = await user.getIdToken();
+        const res = await fetch('/api/account/data', { headers: { Authorization: 'Bearer ' + idToken } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const nameEl  = document.getElementById('sq-name');
+        const emailEl = document.getElementById('sq-email');
+        const phoneEl = document.getElementById('sq-phone');
+        if (nameEl  && !nameEl.value  && data.name)  nameEl.value  = data.name;
+        if (emailEl && !emailEl.value && user.email) emailEl.value = user.email;
+        if (phoneEl && !phoneEl.value && data.phone) {
+            const d = String(data.phone).replace(/\D/g, '').slice(0, 11);
+            let v = d;
+            if (d.length === 11)     v = `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+            else if (d.length >= 10) v = `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+            phoneEl.value = v;
+        }
+    } catch (e) {}
+});
+</script>
+
+<script>
+document.getElementById('sq-phone').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length === 11)      v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+    else if (v.length >= 10)  v = `(${v.slice(0,2)}) ${v.slice(2,6)}-${v.slice(6)}`;
+    else if (v.length >= 6)   v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+    else if (v.length >= 2)   v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+    this.value = v;
+});
+
+document.getElementById('solicitacao-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('sq-submit-btn');
+    const errEl = document.getElementById('form-error');
+    errEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Enviando...`;
+
+    const payload = {
+        name:        document.getElementById('sq-name').value.trim(),
+        email:       document.getElementById('sq-email').value.trim(),
+        phone:       document.getElementById('sq-phone').value.trim(),
+        description: document.getElementById('sq-description').value.trim(),
+    };
+
+    try {
+        const res = await fetch('/api/solicitacoes/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('solicitacao-form').classList.add('hidden');
+            document.getElementById('form-success').classList.remove('hidden');
+        } else {
+            errEl.textContent = data.error || 'Erro ao enviar. Tente novamente.';
+            errEl.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Enviar solicitação`;
+        }
+    } catch (err) {
+        errEl.textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Enviar solicitação`;
+    }
+});
+</script>
+{% endblock %}

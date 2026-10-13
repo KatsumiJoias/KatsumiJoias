@@ -1,0 +1,394 @@
+{% extends "crm_base.html" %}
+
+{% macro brl(value) -%}
+R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X','.') }}
+{%- endmacro %}
+
+{% macro num(value, decimals=2) -%}
+{{ ("{:,.%df}" % decimals).format(value or 0).replace(',','X').replace('.',',').replace('X','.') }}
+{%- endmacro %}
+
+{% block crm_content %}
+<div class="mb-4 md:mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <h2 class="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h2>
+        <p class="mt-1 text-sm text-gray-600">Visão geral de estoque, vendas e recebimentos</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="{{ url_for('crm_new_order') }}"
+           class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all text-sm font-semibold">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Criar pedido
+        </a>
+    </div>
+</div>
+
+<!-- ── Linha 1: financeiro ── -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="flex items-start justify-between">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Faturado</p>
+            <span class="text-[10px] font-medium text-gray-400">total</span>
+        </div>
+        <p class="mt-2 text-2xl font-bold text-gray-900">{{ brl(total_billed) }}</p>
+        <p class="mt-1 text-xs text-gray-500">
+            Ticket médio {{ brl(avg_ticket) }} · {{ orders_30d }} pedido{{ 's' if orders_30d != 1 }} em 30 dias
+        </p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="flex items-start justify-between">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recebido</p>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 mt-1"></span>
+        </div>
+        <p class="mt-2 text-2xl font-bold text-emerald-600">{{ brl(total_received) }}</p>
+        <div class="mt-3 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+            {% set pct = (total_received / total_billed * 100) if total_billed else 0 %}
+            <div class="h-full bg-emerald-500 rounded-full" style="width: {{ [pct, 100] | min }}%"></div>
+        </div>
+        <p class="mt-1.5 text-xs text-gray-500">{{ num(pct, 1) }}% do faturado</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="flex items-start justify-between">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Saldo devedor</p>
+            <span class="w-2 h-2 rounded-full bg-amber-500 mt-1"></span>
+        </div>
+        <p class="mt-2 text-2xl font-bold text-amber-600">{{ brl(total_receivable) }}</p>
+        <p class="mt-1 text-xs text-gray-500">
+            {{ open_balance_count }} pedido{{ 's' if open_balance_count != 1 }} em aberto
+        </p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="flex items-start justify-between">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cobranças vencidas</p>
+            {% if overdue_count %}<span class="w-2 h-2 rounded-full bg-red-500 mt-1 animate-pulse"></span>{% endif %}
+        </div>
+        <p class="mt-2 text-2xl font-bold {{ 'text-red-600' if overdue_count else 'text-gray-900' }}">{{ overdue_count }}</p>
+        <p class="mt-1 text-xs text-gray-500">
+            {{ brl(due_7d_total) }} a cobrar nos próximos 7 dias
+        </p>
+    </div>
+</div>
+
+<!-- ── Linha 2: estoque, clientes, pedidos ── -->
+<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Estoque ativo</p>
+        <p class="mt-2 text-2xl font-bold text-gray-900">{{ active_products }}</p>
+        <p class="mt-1 text-xs text-gray-500">
+            {{ num(stock_carats) }} ct · {{ stock_stones }} pedra{{ 's' if stock_stones != 1 }}
+        </p>
+        <div class="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+            <span>{{ draft_products }} rascunho{{ 's' if draft_products != 1 }}</span>
+            <span>{{ sold_out_products }} esgotado{{ 's' if sold_out_products != 1 }}</span>
+        </div>
+        <a href="{{ url_for('crm_produtos') }}" class="mt-3 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver produtos →</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor do estoque</p>
+        <p class="mt-2 text-2xl font-bold text-gray-900">{{ brl(stock_value_brl) }}</p>
+        <p class="mt-1 text-xs text-gray-500">
+            {% if exchange_rate %}Cotação US$ 1 = {{ brl(exchange_rate) }}{% else %}Cotação indisponível{% endif %}
+        </p>
+        <a href="{{ url_for('crm_exchange_rate') }}" class="mt-3 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">Ajustar cotação →</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Clientes</p>
+        <p class="mt-2 text-2xl font-bold text-gray-900">{{ total_customers }}</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
+                Interno {{ customers_internal }}
+            </span>
+            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-sky-50 text-sky-700">
+                Site {{ customers_website }}
+            </span>
+        </div>
+        <a href="{{ url_for('crm_clientes') }}" class="mt-3 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver clientes →</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pedidos</p>
+        <p class="mt-2 text-2xl font-bold text-gray-900">{{ total_orders }}</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
+                Interno {{ orders_internal }}
+            </span>
+            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-sky-50 text-sky-700">
+                Site {{ orders_website }}
+            </span>
+        </div>
+        <a href="{{ url_for('crm_pedidos') }}" class="mt-3 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver pedidos →</a>
+    </div>
+</div>
+
+<!-- ── Próximas cobranças ── -->
+<div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-4 flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+            <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <h3 class="text-base font-semibold text-white">Próximas cobranças</h3>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+            {% if overdue_count %}
+            <span class="bg-red-900/30 text-white px-2.5 py-1 rounded-full font-semibold">{{ overdue_count }} vencida{{ 's' if overdue_count != 1 }}</span>
+            {% endif %}
+            {% if unscheduled_count %}
+            <span class="bg-white/20 text-white px-2.5 py-1 rounded-full font-medium">{{ unscheduled_count }} sem data</span>
+            {% endif %}
+            <span class="bg-white/20 text-white px-2.5 py-1 rounded-full font-medium">{{ upcoming_total }} total</span>
+        </div>
+    </div>
+
+    {% if upcoming_charges %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vencimento</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pedido</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Já pago</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo devedor</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ação</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for charge in upcoming_charges %}
+                <tr class="hover:bg-gray-50 transition-colors {% if charge.overdue %}bg-red-50/40{% endif %}">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        {% if charge.unscheduled %}
+                        <span class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                            Sem data definida
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full
+                            {% if charge.overdue %}bg-red-100 text-red-700
+                            {% elif charge.days_until is not none and charge.days_until <= 7 %}bg-amber-100 text-amber-700
+                            {% else %}bg-emerald-50 text-emerald-700{% endif %}">
+                            {{ charge.next_charge_date | date_br }}
+                        </span>
+                        <p class="text-[11px] text-gray-400 mt-1">
+                            {% if charge.overdue %}{{ -charge.days_until }} dia{{ 's' if charge.days_until != -1 }} em atraso
+                            {% elif charge.days_until == 0 %}hoje
+                            {% else %}em {{ charge.days_until }} dia{{ 's' if charge.days_until != 1 }}{% endif %}
+                        </p>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if charge.customer_id %}
+                        <a href="{{ url_for('crm_customer_detail', customer_id=charge.customer_id) }}"
+                           class="text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline">{{ charge.customer_name }}</a>
+                        {% else %}
+                        <span class="text-sm font-medium text-gray-900">{{ charge.customer_name }}</span>
+                        {% endif %}
+                        {% if charge.seller_name %}
+                        <p class="text-[11px] text-gray-400">Vendedor: {{ charge.seller_name }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <a href="{{ url_for('crm_order_detail', order_id=charge.order_id) }}"
+                           class="text-sm font-mono text-gray-700 hover:text-indigo-700">#{{ charge.order_number }}</a>
+                        <p class="text-[11px] text-gray-400">de {{ brl(charge.amount_brl) }}</p>
+                    </td>
+                    <td class="px-4 py-3 text-right text-sm text-emerald-600 font-medium">{{ brl(charge.paid_total_brl) }}</td>
+                    <td class="px-4 py-3 text-right text-sm font-bold text-amber-700">{{ brl(charge.balance_brl) }}</td>
+                    <td class="px-4 py-3">
+                        <a href="{{ url_for('crm_order_detail', order_id=charge.order_id) }}"
+                           class="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline">Lançar pagamento →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12 px-6">
+        <svg class="mx-auto h-10 w-10 text-emerald-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-sm font-medium text-gray-700">Nenhuma cobrança pendente</p>
+        <p class="text-xs text-gray-400 mt-1">Todos os pedidos com saldo devedor estão quitados.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ── Devedores + vendedores ── -->
+<div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-800">Maiores saldos devedores</h3>
+            <a href="{{ url_for('crm_clientes') }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Clientes →</a>
+        </div>
+        {% if top_debtors %}
+        <ul class="divide-y divide-gray-50">
+            {% for debtor in top_debtors %}
+            <li class="px-5 py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    {% if debtor.customer_id %}
+                    <a href="{{ url_for('crm_customer_detail', customer_id=debtor.customer_id) }}"
+                       class="text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline truncate">{{ debtor.name }}</a>
+                    {% else %}
+                    <span class="text-sm font-medium text-gray-900 truncate">{{ debtor.name }}</span>
+                    {% endif %}
+                    <p class="text-xs text-gray-400">{{ debtor.orders }} pedido{{ 's' if debtor.orders != 1 }} em aberto</p>
+                </div>
+                <span class="text-sm font-bold text-amber-700 whitespace-nowrap">{{ brl(debtor.balance_brl) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="px-5 py-8 text-center text-sm text-gray-400">Nenhum cliente com saldo devedor.</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-800">Produção por vendedor</h3>
+            <a href="{{ url_for('crm_vendedores') }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Vendedores ({{ total_sellers }}) →</a>
+        </div>
+        {% if seller_ranking %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Vendedor</th>
+                        <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Pedidos</th>
+                        <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Vendido</th>
+                        <th class="px-5 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Comissão</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    {% for seller in seller_ranking %}
+                    <tr>
+                        <td class="px-5 py-3 text-sm font-medium text-gray-900">{{ seller.name }}</td>
+                        <td class="px-3 py-3 text-sm text-gray-600 text-right">{{ seller.orders }}</td>
+                        <td class="px-3 py-3 text-sm text-gray-900 text-right font-medium">{{ brl(seller.billed) }}</td>
+                        <td class="px-5 py-3 text-sm text-purple-700 text-right font-semibold">{{ brl(seller.commission) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-5 py-8 text-center">
+            <p class="text-sm text-gray-400">Nenhum pedido atribuído a vendedor ainda.</p>
+            <a href="{{ url_for('crm_vendedores') }}" class="mt-2 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">Cadastrar vendedores →</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Últimos pedidos ── -->
+<div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-800">Últimos pedidos</h3>
+        <a href="{{ url_for('crm_pedidos') }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver todos →</a>
+    </div>
+    {% if recent_orders %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Pedido</th>
+                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Origem</th>
+                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Cliente</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Total</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Saldo</th>
+                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Data</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for order in recent_orders %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-5 py-3">
+                        <a href="{{ url_for('crm_order_detail', order_id=order.id) }}"
+                           class="text-sm font-mono font-medium text-indigo-600 hover:text-indigo-800">#{{ order.id[:8].upper() }}</a>
+                    </td>
+                    <td class="px-3 py-3">
+                        <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+                            {% if order.source == 'Internal' %}bg-indigo-50 text-indigo-700{% else %}bg-sky-50 text-sky-700{% endif %}">
+                            {{ order.source_label }}
+                        </span>
+                    </td>
+                    <td class="px-3 py-3 text-sm text-gray-900">{{ order.get('customer_name', '—') }}</td>
+                    <td class="px-3 py-3 text-sm text-gray-900 text-right font-medium">{{ brl(order.get('amount_brl')) }}</td>
+                    <td class="px-3 py-3 text-sm text-right font-medium {{ 'text-amber-700' if order.balance_brl > 0 else 'text-emerald-600' }}">
+                        {{ brl(order.balance_brl) if order.balance_brl > 0 else 'Quitado' }}
+                    </td>
+                    <td class="px-5 py-3 text-sm text-gray-500">{{ order.get('created_at', '—') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-5 py-8 text-center text-sm text-gray-400">Nenhum pedido registrado ainda.</p>
+    {% endif %}
+</div>
+
+<!-- ── Ações rápidas ── -->
+<div class="mt-6 md:mt-8">
+    <h3 class="text-base md:text-lg font-medium text-gray-900 mb-4">Ações Rápidas</h3>
+    <div class="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <a href="{{ url_for('crm_new_order') }}"
+           class="relative block p-4 md:p-6 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-indigo-500 hover:shadow-md transition-all duration-200">
+            <div class="flex items-center">
+                <svg class="h-7 w-7 md:h-8 md:w-8 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M12 11v6m-3-3h6"/>
+                </svg>
+                <div class="ml-3 md:ml-4">
+                    <h4 class="text-base md:text-lg font-medium text-gray-900">Criar Pedido</h4>
+                    <p class="mt-0.5 text-xs md:text-sm text-gray-500">Venda interna</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('new_product') }}"
+           class="relative block p-4 md:p-6 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-indigo-500 hover:shadow-md transition-all duration-200">
+            <div class="flex items-center">
+                <svg class="h-7 w-7 md:h-8 md:w-8 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                <div class="ml-3 md:ml-4">
+                    <h4 class="text-base md:text-lg font-medium text-gray-900">Adicionar Produto</h4>
+                    <p class="mt-0.5 text-xs md:text-sm text-gray-500">Cadastrar novo</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('crm_clientes') }}"
+           class="relative block p-4 md:p-6 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-indigo-500 hover:shadow-md transition-all duration-200">
+            <div class="flex items-center">
+                <svg class="h-7 w-7 md:h-8 md:w-8 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                </svg>
+                <div class="ml-3 md:ml-4">
+                    <h4 class="text-base md:text-lg font-medium text-gray-900">Adicionar Cliente</h4>
+                    <p class="mt-0.5 text-xs md:text-sm text-gray-500">CPF ou CNPJ</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('crm_logs') }}"
+           class="relative block p-4 md:p-6 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-indigo-500 hover:shadow-md transition-all duration-200">
+            <div class="flex items-center">
+                <svg class="h-7 w-7 md:h-8 md:w-8 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <div class="ml-3 md:ml-4">
+                    <h4 class="text-base md:text-lg font-medium text-gray-900">Ver Logs</h4>
+                    <p class="mt-0.5 text-xs md:text-sm text-gray-500">Auditoria</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

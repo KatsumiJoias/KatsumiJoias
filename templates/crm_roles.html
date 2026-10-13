@@ -1,0 +1,211 @@
+{% extends "crm_base.html" %}
+
+{% block title %}Gerenciar Roles - CRM{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Gerenciar Roles de Usuários</h1>
+                <p class="text-sm text-gray-600 mt-1">Defina quem tem acesso ao CRM (Admin)</p>
+            </div>
+            <a href="{{ url_for('crm_ajustes') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-luxury-gold">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Message Display -->
+    <div id="message" class="hidden mb-4 rounded-md p-4">
+        <p id="message-text" class="text-sm"></p>
+    </div>
+
+    <!-- Customers List -->
+    <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Nome
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Role
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ações
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for customer in customers %}
+                <tr id="customer-{{ customer.id }}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ customer.name }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ customer.email }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span id="role-badge-{{ customer.id }}" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                            Verificando...
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="toggleAdmin('{{ customer.email }}', '{{ customer.id }}')" 
+                                id="btn-{{ customer.id }}"
+                                class="text-indigo-600 hover:text-indigo-900">
+                            Alterar Role
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    const firebaseConfig = {
+        apiKey: "{{ firebase_config.apiKey }}",
+        authDomain: "{{ firebase_config.authDomain }}",
+        projectId: "{{ firebase_config.projectId }}",
+        storageBucket: "{{ firebase_config.storageBucket }}",
+        messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+        appId: "{{ firebase_config.appId }}"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Store roles info
+    const userRoles = {};
+
+    function showMessage(message, isError = false) {
+        const messageDiv = document.getElementById('message');
+        const messageText = document.getElementById('message-text');
+        
+        messageDiv.classList.remove('hidden', 'bg-red-50', 'bg-green-50');
+        messageText.classList.remove('text-red-800', 'text-green-800');
+        
+        if (isError) {
+            messageDiv.classList.add('bg-red-50');
+            messageText.classList.add('text-red-800');
+        } else {
+            messageDiv.classList.add('bg-green-50');
+            messageText.classList.add('text-green-800');
+        }
+        
+        messageText.textContent = message;
+        
+        // Auto hide after 3 seconds
+        setTimeout(() => {
+            messageDiv.classList.add('hidden');
+        }, 3000);
+    }
+
+    async function checkUserRole(email, customerId) {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            const idToken = await user.getIdToken();
+            
+            // Get user by email (we'll check on backend)
+            const response = await fetch(`/api/auth/check-admin-by-email?email=${encodeURIComponent(email)}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                updateRoleBadge(customerId, data.is_admin);
+                userRoles[email] = data.is_admin;
+            } else {
+                updateRoleBadge(customerId, false);
+                userRoles[email] = false;
+            }
+        } catch (error) {
+            console.error('Error checking role:', error);
+            updateRoleBadge(customerId, false);
+            userRoles[email] = false;
+        }
+    }
+
+    function updateRoleBadge(customerId, isAdmin) {
+        const badge = document.getElementById(`role-badge-${customerId}`);
+        if (isAdmin) {
+            badge.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800';
+            badge.textContent = 'Admin';
+        } else {
+            badge.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800';
+            badge.textContent = 'Usuário';
+        }
+    }
+
+    window.toggleAdmin = async function(email, customerId) {
+        const currentRole = userRoles[email] || false;
+        const newRole = !currentRole;
+        
+        if (!confirm(`Deseja ${newRole ? 'conceder' : 'revogar'} permissões de admin para ${email}?`)) {
+            return;
+        }
+        
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                showMessage('Você precisa estar logado', true);
+                return;
+            }
+            
+            const idToken = await user.getIdToken();
+            
+            const response = await fetch('/api/admin/set-role', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + idToken
+                },
+                body: JSON.stringify({
+                    email: email,
+                    is_admin: newRole
+                })
+            });
+            
+            if (response.ok) {
+                userRoles[email] = newRole;
+                updateRoleBadge(customerId, newRole);
+                showMessage(`Role atualizada com sucesso para ${email}`, false);
+            } else {
+                const data = await response.json();
+                showMessage(data.error || 'Erro ao atualizar role', true);
+            }
+        } catch (error) {
+            console.error('Error toggling admin:', error);
+            showMessage('Erro ao atualizar role', true);
+        }
+    };
+
+    // Check roles on page load
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const email = row.querySelector('td:nth-child(2)').textContent.trim();
+                const customerId = row.id.replace('customer-', '');
+                checkUserRole(email, customerId);
+            });
+        }
+    });
+</script>
+{% endblock %}

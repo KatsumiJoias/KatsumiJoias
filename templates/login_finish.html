@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmando acesso - Katsumi Joias{% endblock %}
+
+{% block content %}
+<div class="bg-luxury-gray py-8 lg:py-10 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full mx-auto space-y-6">
+        <div>
+            <h2 class="text-center text-3xl font-serif font-bold text-luxury-black">
+                Confirmando seu acesso
+            </h2>
+            <p id="status-text" class="mt-2 text-center text-sm text-gray-600">
+                Aguarde enquanto validamos seu link...
+            </p>
+        </div>
+
+        <div id="auth-message" class="hidden rounded-md p-4">
+            <p id="auth-message-text" class="text-sm"></p>
+        </div>
+
+        <form id="email-confirm-form" class="hidden space-y-4">
+            <p class="text-sm text-gray-600">
+                Para concluir o login, confirme o e-mail para o qual o link foi enviado.
+            </p>
+            <div>
+                <label for="confirm-email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                <input id="confirm-email" name="email" type="email" autocomplete="email" required
+                       class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold sm:text-sm bg-white"
+                       placeholder="seu@email.com">
+            </div>
+            <button type="submit" id="confirm-btn" class="w-full py-3 px-4 text-sm font-medium rounded-md text-white bg-luxury-gold hover:bg-luxury-gold-dark transition-colors duration-200">
+                Confirmar e entrar
+            </button>
+        </form>
+
+        <div id="back-to-login" class="hidden text-center">
+            <a href="/login" class="text-sm font-medium text-luxury-gold hover:text-green-700">
+                Voltar para o login
+            </a>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import {
+        getAuth,
+        isSignInWithEmailLink,
+        signInWithEmailLink
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    const EMAIL_KEY = 'emailForSignIn';
+
+    const firebaseConfig = {
+        apiKey: "{{ firebase_config.apiKey }}",
+        authDomain: "{{ firebase_config.authDomain }}",
+        projectId: "{{ firebase_config.projectId }}",
+        storageBucket: "{{ firebase_config.storageBucket }}",
+        messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+        appId: "{{ firebase_config.appId }}"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const statusText = document.getElementById('status-text');
+    const messageDiv = document.getElementById('auth-message');
+    const messageText = document.getElementById('auth-message-text');
+    const emailForm = document.getElementById('email-confirm-form');
+    const backLink = document.getElementById('back-to-login');
+
+    function showMessage(message, isError = false) {
+        messageDiv.classList.remove('hidden', 'bg-red-50', 'bg-green-50');
+        messageText.classList.remove('text-red-800', 'text-green-800');
+
+        if (isError) {
+            messageDiv.classList.add('bg-red-50');
+            messageText.classList.add('text-red-800');
+        } else {
+            messageDiv.classList.add('bg-green-50');
+            messageText.classList.add('text-green-800');
+        }
+
+        messageText.textContent = message;
+    }
+
+    function showEmailForm(prefill = '') {
+        statusText.textContent = 'Confirme seu e-mail para concluir o acesso.';
+        emailForm.classList.remove('hidden');
+        backLink.classList.remove('hidden');
+        if (prefill) {
+            document.getElementById('confirm-email').value = prefill;
+        }
+    }
+
+    function showFatalError(message) {
+        statusText.textContent = 'Não foi possível concluir o login.';
+        showMessage(message, true);
+        backLink.classList.remove('hidden');
+    }
+
+    async function handleSuccessfulLogin(user) {
+        const idToken = await user.getIdToken();
+        const response = await fetch('/api/auth/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+        });
+
+        if (!response.ok) {
+            throw new Error('verify_failed');
+        }
+
+        window.localStorage.removeItem(EMAIL_KEY);
+        showMessage('Login realizado com sucesso! Redirecionando...', false);
+        setTimeout(() => { window.location.href = '/account'; }, 1500);
+    }
+
+    function mapLinkError(error) {
+        switch (error.code) {
+            case 'auth/invalid-action-code':
+            case 'auth/expired-action-code':
+                return 'Este link expirou ou já foi usado. Solicite um novo link na página de login.';
+            case 'auth/invalid-email':
+                return 'E-mail inválido. Verifique e tente novamente.';
+            case 'auth/account-exists-with-different-credential':
+                return 'Este e-mail já está vinculado ao Google. Entre com Google ou use o mesmo e-mail cadastrado.';
+            default:
+                return 'Não foi possível validar o link. Solicite um novo link de acesso.';
+        }
+    }
+
+    async function completeSignIn(email) {
+        const confirmBtn = document.getElementById('confirm-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Entrando...';
+        statusText.textContent = 'Validando seu link...';
+        emailForm.classList.add('hidden');
+
+        try {
+            const userCredential = await signInWithEmailLink(auth, email, window.location.href);
+            await handleSuccessfulLogin(userCredential.user);
+        } catch (error) {
+            console.error('Email link sign-in error:', error);
+            showFatalError(mapLinkError(error));
+            emailForm.classList.remove('hidden');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Confirmar e entrar';
+        }
+    }
+
+    if (!isSignInWithEmailLink(auth, window.location.href)) {
+        showFatalError('Link inválido ou incompleto. Solicite um novo link na página de login.');
+    } else {
+        const storedEmail = window.localStorage.getItem(EMAIL_KEY);
+        if (storedEmail) {
+            completeSignIn(storedEmail);
+        } else {
+            showEmailForm('');
+        }
+    }
+
+    document.getElementById('email-confirm-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('confirm-email').value.trim().toLowerCase();
+        window.localStorage.setItem(EMAIL_KEY, email);
+        await completeSignIn(email);
+    });
+</script>
+{% endblock %}

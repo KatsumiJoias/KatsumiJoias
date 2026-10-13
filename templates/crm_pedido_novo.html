@@ -1,0 +1,906 @@
+{% extends "crm_base.html" %}
+
+{% block crm_content %}
+<div class="max-w-6xl mx-auto px-0 sm:px-4">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+        <a href="{{ url_for('crm_pedidos') }}" class="hover:text-gray-700 font-medium">Pedidos</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+        <span class="text-gray-900 font-semibold">Novo pedido</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+            <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg">
+                    <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M12 11v6m-3-3h6"/>
+                    </svg>
+                </div>
+                <h1 class="text-xl md:text-3xl font-bold text-gray-900">Novo Pedido</h1>
+            </div>
+            <p class="text-sm text-gray-600 ml-14">
+                Venda interna · origem <span class="font-semibold text-indigo-700">Interno</span>
+                {% if exchange_rate %}
+                · cotação US$ 1 = R$ {{ "%.4f" | format(exchange_rate) | replace('.', ',') }}
+                {% endif %}
+            </p>
+        </div>
+        <a href="{{ url_for('crm_pedidos') }}"
+           class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Voltar
+        </a>
+    </div>
+
+    {% if not exchange_rate %}
+    <div class="mb-6 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+        <span class="font-semibold">Cotação indisponível.</span>
+        Os valores em reais ficarão iguais aos valores em dólar até a cotação ser atualizada em
+        <a href="{{ url_for('crm_exchange_rate') }}" class="underline font-medium">Ajustes → Cotação do Dólar</a>.
+    </div>
+    {% endif %}
+
+    <div class="space-y-6">
+
+        <!-- ════ 1. Cliente ════ -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    <h2 class="text-lg font-semibold text-white">1. Cliente</h2>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <div class="relative">
+                    <label for="customer-search" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Buscar cliente <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" id="customer-search" autocomplete="off"
+                               placeholder="Digite nome, e-mail, CPF ou CNPJ…"
+                               class="block w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 bg-gray-50">
+                    </div>
+                    <div id="customer-results"
+                         class="hidden absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-y-auto"></div>
+                    <p class="mt-1.5 text-xs text-gray-500">
+                        Não encontrou?
+                        <a href="{{ url_for('crm_clientes') }}" target="_blank" class="text-green-600 hover:text-green-800 font-medium">Cadastrar cliente →</a>
+                    </p>
+                </div>
+
+                <!-- Cliente selecionado -->
+                <div id="customer-selected" class="hidden rounded-xl border border-green-200 bg-green-50/60 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p id="cs-name" class="text-base font-bold text-gray-900"></p>
+                            <p id="cs-doc" class="text-xs text-gray-500 font-mono mt-0.5"></p>
+                        </div>
+                        <button type="button" onclick="clearCustomer()"
+                                class="text-xs text-red-600 hover:text-red-800 font-medium hover:underline flex-shrink-0">Trocar</button>
+                    </div>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="customer_email" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">E-mail</label>
+                            <input type="email" id="customer_email" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                        </div>
+                        <div>
+                            <label for="customer_phone" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Telefone</label>
+                            <input type="tel" id="customer_phone" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                        </div>
+                        <div>
+                            <label for="customer_cpf" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">CPF</label>
+                            <input type="text" id="customer_cpf" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white font-mono">
+                        </div>
+                        <div>
+                            <label for="customer_cnpj" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">CNPJ</label>
+                            <input type="text" id="customer_cnpj" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white font-mono">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-green-200">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Endereço</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
+                            <div class="sm:col-span-2">
+                                <label for="addr_cep" class="block text-xs text-gray-500 mb-1">CEP</label>
+                                <input type="text" id="addr_cep" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                            </div>
+                            <div class="sm:col-span-3">
+                                <label for="addr_street" class="block text-xs text-gray-500 mb-1">Endereço</label>
+                                <input type="text" id="addr_street" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                            </div>
+                            <div class="sm:col-span-1">
+                                <label for="addr_number" class="block text-xs text-gray-500 mb-1">Número</label>
+                                <input type="text" id="addr_number" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label for="addr_complement" class="block text-xs text-gray-500 mb-1">Complemento</label>
+                                <input type="text" id="addr_complement" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label for="addr_neighborhood" class="block text-xs text-gray-500 mb-1">Bairro</label>
+                                <input type="text" id="addr_neighborhood" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                            </div>
+                            <div class="sm:col-span-1">
+                                <label for="addr_city" class="block text-xs text-gray-500 mb-1">Cidade</label>
+                                <input type="text" id="addr_city" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                            </div>
+                            <div class="sm:col-span-1">
+                                <label for="addr_state" class="block text-xs text-gray-500 mb-1">UF</label>
+                                <select id="addr_state" class="block w-full rounded-lg border-gray-300 shadow-sm text-sm bg-white">
+                                    <option value="">—</option>
+                                    {% for uf in brazilian_states %}
+                                    <option value="{{ uf }}">{{ uf }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vendedor -->
+                <div class="pt-2 border-t border-gray-100">
+                    <label for="seller_id" class="block text-sm font-semibold text-gray-700 mb-2">Vendedor</label>
+                    {% if sellers %}
+                    <select id="seller_id" onchange="renderTotals()"
+                            class="block w-full sm:max-w-md rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 bg-gray-50">
+                        <option value="" data-commission="0">Sem vendedor atribuído</option>
+                        {% for seller in sellers %}
+                        <option value="{{ seller.id }}" data-commission="{{ seller.commission_pct or 0 }}">
+                            {{ seller.name }} — {{ seller.commission_pct or 0 }}% de comissão
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1.5 text-xs text-gray-500">A comissão é gravada no pedido no momento da venda.</p>
+                    {% else %}
+                    <div class="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-600">
+                        Nenhum vendedor cadastrado.
+                        <a href="{{ url_for('crm_vendedores') }}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-medium underline">Cadastrar vendedores →</a>
+                    </div>
+                    <input type="hidden" id="seller_id" value="">
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ 2. Produtos ════ -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                    <h2 class="text-lg font-semibold text-white">2. Produtos</h2>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <div class="relative">
+                    <label for="product-search" class="block text-sm font-semibold text-gray-700 mb-2">Adicionar por SKU ou nome</label>
+                    <div class="relative">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" id="product-search" autocomplete="off"
+                               placeholder="Ex.: 1042, turmalina, esmeralda oval…"
+                               class="block w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                    </div>
+                    <div id="product-results"
+                         class="hidden absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-y-auto"></div>
+                    <p class="mt-1.5 text-xs text-gray-500">
+                        Ao selecionar, Pedra / Formato / Calibre / CT / preço são preenchidos automaticamente. Produtos esgotados não aparecem.
+                    </p>
+                </div>
+
+                <!-- Linhas de itens -->
+                <div id="items-empty" class="rounded-xl border-2 border-dashed border-gray-200 py-12 text-center">
+                    <svg class="mx-auto h-10 w-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                    <p class="text-sm font-medium text-gray-500">Nenhum produto adicionado</p>
+                    <p class="text-xs text-gray-400 mt-1">Busque pelo SKU acima para incluir itens no pedido.</p>
+                </div>
+
+                <div id="items-wrapper" class="hidden overflow-x-auto -mx-6 px-6">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Lote</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase">SKU</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Pedra</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Formato</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Calibre</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Venda</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold text-gray-500 uppercase">CT</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Pedras</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold text-gray-500 uppercase">US$/ct</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Total US$</th>
+                                <th class="px-2 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-body" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ 3. Fechamento ════ -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Pagamento inicial -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <h2 class="text-lg font-semibold text-white">3. Pagamento (opcional)</h2>
+                    </div>
+                </div>
+                <div class="p-6 space-y-5">
+                    <p class="text-sm text-gray-600">
+                        Registre aqui o valor já recebido no fechamento. Você também pode lançar pagamentos depois,
+                        na página do pedido ou na ficha do cliente.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="initial_payment_amount" class="block text-sm font-semibold text-gray-700 mb-1.5">Valor recebido (R$)</label>
+                            <input type="text" inputmode="decimal" id="initial_payment_amount" oninput="renderTotals()"
+                                   placeholder="0,00"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50">
+                            <button type="button" onclick="fillFullPayment()"
+                                    class="mt-1 text-xs text-emerald-700 hover:underline">Preencher total do pedido</button>
+                        </div>
+                        <div>
+                            <label for="initial_payment_method" class="block text-sm font-semibold text-gray-700 mb-1.5">Forma de pagamento</label>
+                            <select id="initial_payment_method"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50">
+                                <option value="">Selecione…</option>
+                                {% for value, label in payment_methods %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="initial_payment_date" class="block text-sm font-semibold text-gray-700 mb-1.5">Data do pagamento</label>
+                            <input type="date" id="initial_payment_date" value="{{ today_iso }}"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50">
+                        </div>
+                    </div>
+
+                    <p id="payment-warning" class="hidden rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-xs text-red-700"></p>
+
+                    <div id="next-charge-block" class="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                        <label for="next_charge_date" class="block text-sm font-semibold text-amber-900 mb-1.5">
+                            Data da próxima cobrança
+                        </label>
+                        <input type="date" id="next_charge_date"
+                               class="block w-full sm:max-w-xs rounded-lg border-amber-300 shadow-sm text-sm focus:border-amber-500 focus:ring-amber-500 bg-white">
+                        <p id="next-charge-hint" class="mt-1.5 text-xs text-amber-800">
+                            Obrigatória enquanto restar saldo devedor — é o que dispara o alerta de cobrança para a equipe.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label for="notes" class="block text-sm font-semibold text-gray-700 mb-1.5">Observações do pedido</label>
+                        <textarea id="notes" rows="3" maxlength="1000"
+                                  placeholder="Combinações de entrega, condições acordadas, etc."
+                                  class="block w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumo -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden lg:sticky lg:top-20">
+                    <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4">
+                        <h2 class="text-base font-semibold text-white">Resumo da venda</h2>
+                    </div>
+                    <div class="p-5 space-y-3 text-sm">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Itens</span>
+                            <span id="sum-count" class="font-medium text-gray-900">0</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Peso total</span>
+                            <span id="sum-carats" class="font-medium text-gray-900">0 ct</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Subtotal</span>
+                            <span id="sum-subtotal" class="font-medium text-gray-900">US$ 0,00</span>
+                        </div>
+                        <div class="pt-1">
+                            <label for="discount_usd" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Desconto (US$)</label>
+                            <input type="text" inputmode="decimal" id="discount_usd" oninput="renderTotals()" placeholder="0,00"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50">
+                        </div>
+                        <div class="border-t border-gray-200 pt-3 mt-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor total líquido</p>
+                            <p id="sum-total-usd" class="mt-1 text-2xl font-bold text-gray-900">US$ 0,00</p>
+                            <p id="sum-total-brl" class="text-sm font-medium text-gray-500">R$ 0,00</p>
+                        </div>
+                        <div id="sum-commission-row" class="hidden flex justify-between text-gray-600 border-t border-gray-100 pt-3">
+                            <span>Comissão</span>
+                            <span id="sum-commission" class="font-semibold text-purple-700">R$ 0,00</span>
+                        </div>
+                        <div class="border-t border-gray-200 pt-3 space-y-1.5">
+                            <div class="flex justify-between text-gray-600">
+                                <span>Pago agora</span>
+                                <span id="sum-paid" class="font-medium text-emerald-600">R$ 0,00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Saldo devedor</span>
+                                <span id="sum-balance" class="font-bold text-amber-700">R$ 0,00</span>
+                            </div>
+                        </div>
+
+                        <div id="form-error" class="hidden rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-xs text-red-700"></div>
+
+                        <button type="button" id="submit-btn" onclick="submitOrder()"
+                                class="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span id="submit-label">Registrar pedido</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const EXCHANGE_RATE = {{ exchange_rate or 0 }};
+let selectedCustomer = null;
+let itemRows = [];
+let rowSeq = 0;
+
+/* ── Helpers ── */
+function parseNum(raw) {
+    if (raw === null || raw === undefined || raw === '') return 0;
+    let text = String(raw).replace(/[^\d.,-]/g, '');
+    if (text.includes(',') && text.includes('.')) {
+        text = text.replace(/\./g, '').replace(',', '.');
+    } else if (text.includes(',')) {
+        text = text.replace(',', '.');
+    }
+    const value = parseFloat(text);
+    return isNaN(value) ? 0 : value;
+}
+
+function fmtMoney(value, symbol) {
+    return symbol + ' ' + (value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtCt(value) {
+    return (value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text == null ? '' : text;
+    return div.innerHTML;
+}
+
+function debounce(fn, delay) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+    };
+}
+
+/* ── Busca de cliente ── */
+const customerInput   = document.getElementById('customer-search');
+const customerResults = document.getElementById('customer-results');
+
+const searchCustomers = debounce(async (query) => {
+    if (query.trim().length < 2) {
+        customerResults.classList.add('hidden');
+        return;
+    }
+    try {
+        const res  = await fetch('/crm/api/customers/search?q=' + encodeURIComponent(query));
+        const data = await res.json();
+        renderCustomerResults(data.results || []);
+    } catch (e) {
+        customerResults.classList.add('hidden');
+    }
+}, 250);
+
+function renderCustomerResults(results) {
+    if (!results.length) {
+        customerResults.innerHTML =
+            '<div class="px-4 py-3 text-sm text-gray-500">Nenhum cliente encontrado.</div>';
+        customerResults.classList.remove('hidden');
+        return;
+    }
+    customerResults.innerHTML = results.map((c, i) => {
+        const doc = c.cnpj ? 'CNPJ ' + c.cnpj : (c.cpf ? 'CPF ' + c.cpf : '');
+        const badge = c.source === 'Internal'
+            ? '<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">Interno</span>'
+            : '<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-sky-50 text-sky-700">Site</span>';
+        return `
+        <button type="button" data-index="${i}"
+                class="customer-option w-full text-left px-4 py-3 hover:bg-green-50 border-b border-gray-50 last:border-0 transition-colors">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-semibold text-gray-900">${escapeHtml(c.name)}</span>
+                ${badge}
+            </div>
+            <p class="text-xs text-gray-500">${escapeHtml(c.email || 'sem e-mail')}${doc ? ' · ' + escapeHtml(doc) : ''}</p>
+        </button>`;
+    }).join('');
+    customerResults.classList.remove('hidden');
+    customerResults.querySelectorAll('.customer-option').forEach(btn => {
+        btn.addEventListener('click', () => selectCustomer(results[parseInt(btn.dataset.index, 10)]));
+    });
+}
+
+function selectCustomer(customer) {
+    selectedCustomer = customer;
+    customerResults.classList.add('hidden');
+    customerInput.value = customer.name;
+
+    document.getElementById('cs-name').textContent = customer.name;
+    const docs = [];
+    if (customer.cpf)  docs.push('CPF ' + customer.cpf);
+    if (customer.cnpj) docs.push('CNPJ ' + customer.cnpj);
+    document.getElementById('cs-doc').textContent = docs.join(' · ');
+
+    document.getElementById('customer_email').value = customer.email || '';
+    document.getElementById('customer_phone').value = customer.phone || '';
+    document.getElementById('customer_cpf').value   = customer.cpf || '';
+    document.getElementById('customer_cnpj').value  = customer.cnpj || '';
+
+    document.getElementById('addr_cep').value          = customer.cep || '';
+    document.getElementById('addr_street').value       = customer.street || '';
+    document.getElementById('addr_number').value       = customer.number || '';
+    document.getElementById('addr_complement').value   = customer.complement || '';
+    document.getElementById('addr_neighborhood').value = customer.neighborhood || '';
+    document.getElementById('addr_city').value         = customer.city || '';
+    document.getElementById('addr_state').value        = customer.state || '';
+
+    document.getElementById('customer-selected').classList.remove('hidden');
+    hideError();
+}
+
+function clearCustomer() {
+    selectedCustomer = null;
+    customerInput.value = '';
+    document.getElementById('customer-selected').classList.add('hidden');
+    customerInput.focus();
+}
+
+customerInput.addEventListener('input', (e) => {
+    if (selectedCustomer && e.target.value !== selectedCustomer.name) selectedCustomer = null;
+    searchCustomers(e.target.value);
+});
+
+/* ── Busca de produto ── */
+const productInput   = document.getElementById('product-search');
+const productResults = document.getElementById('product-results');
+
+const searchProducts = debounce(async (query) => {
+    if (!query.trim()) {
+        productResults.classList.add('hidden');
+        return;
+    }
+    try {
+        const res  = await fetch('/crm/api/products/search?q=' + encodeURIComponent(query));
+        const data = await res.json();
+        renderProductResults(data.results || []);
+    } catch (e) {
+        productResults.classList.add('hidden');
+    }
+}, 250);
+
+function renderProductResults(results) {
+    if (!results.length) {
+        productResults.innerHTML =
+            '<div class="px-4 py-3 text-sm text-gray-500">Nenhum produto disponível para esta busca.</div>';
+        productResults.classList.remove('hidden');
+        return;
+    }
+    productResults.innerHTML = results.map((p, i) => `
+        <button type="button" data-index="${i}"
+                class="product-option w-full text-left px-4 py-3 hover:bg-purple-50 border-b border-gray-50 last:border-0 transition-colors">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-bold font-mono text-purple-700">${escapeHtml(p.sku || 'sem SKU')}</span>
+                <span class="text-xs font-semibold text-gray-900">${fmtMoney(p.price_per_carat_usd, 'US$')}/ct</span>
+            </div>
+            <p class="text-xs text-gray-700 mt-0.5">${escapeHtml(p.name)}</p>
+            <p class="text-[11px] text-gray-500 mt-0.5">
+                ${escapeHtml(p.pedra || '—')} · ${escapeHtml(p.formato || '—')} · ${escapeHtml(p.calibre || '—')}
+                · <span class="font-medium">${fmtCt(p.ct)} ct</span> · ${p.numero_pedras} pedra(s)
+                ${p.active ? '' : ' · <span class="text-amber-600">rascunho</span>'}
+            </p>
+        </button>`).join('');
+    productResults.classList.remove('hidden');
+    productResults.querySelectorAll('.product-option').forEach(btn => {
+        btn.addEventListener('click', () => addItem(results[parseInt(btn.dataset.index, 10)]));
+    });
+}
+
+productInput.addEventListener('input', (e) => searchProducts(e.target.value));
+
+/* ── Itens do pedido ── */
+function addItem(product) {
+    if (itemRows.some(r => r.product.id === product.id)) {
+        showError('O produto ' + (product.sku || product.name) + ' já está no pedido.');
+        productResults.classList.add('hidden');
+        productInput.value = '';
+        return;
+    }
+    rowSeq += 1;
+    itemRows.push({
+        rowId: rowSeq,
+        product: product,
+        lote: '',
+        saleMode: 'full',
+        ct: product.ct,
+        pedras: product.numero_pedras,
+        pricePerCarat: product.price_per_carat_usd,
+    });
+    productResults.classList.add('hidden');
+    productInput.value = '';
+    hideError();
+    renderItems();
+}
+
+function removeItem(rowId) {
+    itemRows = itemRows.filter(r => r.rowId !== rowId);
+    renderItems();
+}
+
+function updateRow(rowId, field, value) {
+    const row = itemRows.find(r => r.rowId === rowId);
+    if (!row) return;
+
+    if (field === 'saleMode') {
+        row.saleMode = value;
+        if (value === 'full') {
+            row.ct = row.product.ct;
+            row.pedras = row.product.numero_pedras;
+        }
+        renderItems();
+        return;
+    }
+    if (field === 'lote')   row.lote = value;
+    if (field === 'ct')     row.ct = parseNum(value);
+    if (field === 'pedras') row.pedras = parseInt(value, 10) || 0;
+    if (field === 'price')  row.pricePerCarat = parseNum(value);
+    renderTotals();
+}
+
+function rowTotal(row) {
+    return row.pricePerCarat * (row.ct || 1);
+}
+
+function renderItems() {
+    const wrapper = document.getElementById('items-wrapper');
+    const empty   = document.getElementById('items-empty');
+    const body    = document.getElementById('items-body');
+
+    if (!itemRows.length) {
+        wrapper.classList.add('hidden');
+        empty.classList.remove('hidden');
+        body.innerHTML = '';
+        renderTotals();
+        return;
+    }
+    empty.classList.add('hidden');
+    wrapper.classList.remove('hidden');
+
+    body.innerHTML = itemRows.map(row => {
+        const p = row.product;
+        const partial = row.saleMode === 'partial';
+        const overCt = row.ct > p.ct + 0.0001;
+        const overPedras = row.pedras > p.numero_pedras;
+        return `
+        <tr class="align-top">
+            <td class="px-2 py-3">
+                <input type="text" value="${escapeHtml(row.lote)}" placeholder="Lote"
+                       oninput="updateRow(${row.rowId}, 'lote', this.value)"
+                       class="w-24 rounded-lg border-gray-300 shadow-sm text-sm bg-gray-50 focus:border-purple-500 focus:ring-purple-500">
+            </td>
+            <td class="px-2 py-3">
+                <span class="block font-mono text-sm font-bold text-purple-700">${escapeHtml(p.sku || '—')}</span>
+                <span class="block text-[11px] text-gray-400 max-w-[140px] truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+            </td>
+            <td class="px-2 py-3 text-sm text-gray-700">${escapeHtml(p.pedra || '—')}</td>
+            <td class="px-2 py-3 text-sm text-gray-700">${escapeHtml(p.formato || '—')}</td>
+            <td class="px-2 py-3 text-sm text-gray-700 whitespace-nowrap">${escapeHtml(p.calibre || '—')}</td>
+            <td class="px-2 py-3">
+                <select onchange="updateRow(${row.rowId}, 'saleMode', this.value)"
+                        class="w-28 rounded-lg border-gray-300 shadow-sm text-xs bg-gray-50 focus:border-purple-500 focus:ring-purple-500">
+                    <option value="full"    ${partial ? '' : 'selected'}>Integral</option>
+                    <option value="partial" ${partial ? 'selected' : ''}>Parcial</option>
+                </select>
+                <span class="block mt-1 text-[10px] text-gray-400">estoque: ${fmtCt(p.ct)} ct / ${p.numero_pedras}</span>
+            </td>
+            <td class="px-2 py-3 text-right">
+                ${partial ? `
+                <input type="text" inputmode="decimal" value="${row.ct}"
+                       oninput="updateRow(${row.rowId}, 'ct', this.value)"
+                       class="w-20 text-right rounded-lg shadow-sm text-sm bg-gray-50 ${overCt ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-purple-500 focus:ring-purple-500'}">
+                ` : `<span class="text-sm font-medium text-gray-900">${fmtCt(row.ct)}</span>`}
+            </td>
+            <td class="px-2 py-3 text-right">
+                ${partial ? `
+                <input type="number" min="0" step="1" value="${row.pedras}"
+                       oninput="updateRow(${row.rowId}, 'pedras', this.value)"
+                       class="w-16 text-right rounded-lg shadow-sm text-sm bg-gray-50 ${overPedras ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-purple-500 focus:ring-purple-500'}">
+                ` : `<span class="text-sm text-gray-700">${row.pedras}</span>`}
+            </td>
+            <td class="px-2 py-3 text-right">
+                <input type="text" inputmode="decimal" value="${row.pricePerCarat}"
+                       oninput="updateRow(${row.rowId}, 'price', this.value)"
+                       class="w-24 text-right rounded-lg border-gray-300 shadow-sm text-sm bg-gray-50 focus:border-purple-500 focus:ring-purple-500">
+            </td>
+            <td class="px-2 py-3 text-right">
+                <span class="text-sm font-bold text-gray-900 whitespace-nowrap">${fmtMoney(rowTotal(row), 'US$')}</span>
+            </td>
+            <td class="px-2 py-3 text-right">
+                <button type="button" onclick="removeItem(${row.rowId})"
+                        class="text-gray-300 hover:text-red-500 transition-colors" title="Remover item">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    renderTotals();
+}
+
+/* ── Totais ── */
+function round2(value) {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+// Mesma conta feita no servidor, para que os números exibidos e validados coincidam
+function orderTotals() {
+    const subtotal = round2(itemRows.reduce((acc, row) => acc + rowTotal(row), 0));
+    const discount = Math.min(parseNum(document.getElementById('discount_usd').value), subtotal);
+    const totalUsd = round2(Math.max(0, subtotal - discount));
+    const totalBrl = round2(EXCHANGE_RATE ? totalUsd * EXCHANGE_RATE : totalUsd);
+    const paid     = round2(parseNum(document.getElementById('initial_payment_amount').value));
+    return {
+        subtotal: subtotal,
+        discount: discount,
+        totalUsd: totalUsd,
+        totalBrl: totalBrl,
+        paid: paid,
+        balance: round2(Math.max(0, totalBrl - paid)),
+        overpaid: round2(paid - totalBrl),
+    };
+}
+
+function renderTotals() {
+    const t = orderTotals();
+    const carats = itemRows.reduce((acc, row) => acc + (row.ct || 0), 0);
+    const subtotal = t.subtotal;
+    const totalUsd = t.totalUsd;
+    const totalBrl = t.totalBrl;
+    const paid     = t.paid;
+    const balance  = t.balance;
+
+    // Aviso imediato quando o desconto derruba o total abaixo do valor já recebido
+    const payWarn = document.getElementById('payment-warning');
+    if (t.overpaid > 0.009 && totalBrl > 0) {
+        payWarn.textContent = 'O valor recebido (' + fmtMoney(paid, 'R$') + ') é maior que o total do pedido ('
+            + fmtMoney(totalBrl, 'R$') + '). Reduza o desconto ou o valor recebido.';
+        payWarn.classList.remove('hidden');
+    } else {
+        payWarn.classList.add('hidden');
+    }
+
+    document.getElementById('sum-count').textContent    = itemRows.length;
+    document.getElementById('sum-carats').textContent   = fmtCt(carats) + ' ct';
+    document.getElementById('sum-subtotal').textContent = fmtMoney(subtotal, 'US$');
+    document.getElementById('sum-total-usd').textContent = fmtMoney(totalUsd, 'US$');
+    document.getElementById('sum-total-brl').textContent = fmtMoney(totalBrl, 'R$');
+    document.getElementById('sum-paid').textContent      = fmtMoney(paid, 'R$');
+
+    const balanceEl = document.getElementById('sum-balance');
+    balanceEl.textContent = balance > 0.009 ? fmtMoney(balance, 'R$') : 'Quitado';
+    balanceEl.className = balance > 0.009 ? 'font-bold text-amber-700' : 'font-bold text-emerald-600';
+
+    // Comissão do vendedor selecionado
+    const sellerSelect = document.getElementById('seller_id');
+    const option = sellerSelect && sellerSelect.selectedOptions ? sellerSelect.selectedOptions[0] : null;
+    const commissionPct = option ? parseNum(option.dataset.commission) : 0;
+    const commissionRow = document.getElementById('sum-commission-row');
+    if (commissionPct > 0 && totalBrl > 0) {
+        commissionRow.classList.remove('hidden');
+        commissionRow.classList.add('flex');
+        document.getElementById('sum-commission').textContent =
+            fmtMoney(totalBrl * commissionPct / 100, 'R$') + ' (' + commissionPct + '%)';
+    } else {
+        commissionRow.classList.add('hidden');
+        commissionRow.classList.remove('flex');
+    }
+
+    // Próxima cobrança só é exigida quando sobra saldo
+    const block = document.getElementById('next-charge-block');
+    const hint  = document.getElementById('next-charge-hint');
+    if (balance > 0.009 && totalBrl > 0) {
+        block.classList.remove('hidden');
+        hint.textContent = 'Restará ' + fmtMoney(balance, 'R$') + ' em aberto — informe quando cobrar o cliente.';
+    } else if (totalBrl > 0) {
+        block.classList.add('hidden');
+    } else {
+        block.classList.remove('hidden');
+        hint.textContent = 'Obrigatória enquanto restar saldo devedor — é o que dispara o alerta de cobrança para a equipe.';
+    }
+}
+
+function fillFullPayment() {
+    const t = orderTotals();
+    const field = document.getElementById('initial_payment_amount');
+    field.value = t.totalBrl > 0
+        ? t.totalBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '';
+    renderTotals();
+}
+
+/* ── Erros ── */
+function showError(message) {
+    const box = document.getElementById('form-error');
+    box.textContent = message;
+    box.classList.remove('hidden');
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function hideError() {
+    document.getElementById('form-error').classList.add('hidden');
+}
+
+/* ── Envio ── */
+async function submitOrder() {
+    hideError();
+
+    if (!selectedCustomer) {
+        showError('Selecione o cliente do pedido.');
+        return;
+    }
+    if (!itemRows.length) {
+        showError('Adicione pelo menos um produto ao pedido.');
+        return;
+    }
+
+    for (const row of itemRows) {
+        const label = row.product.sku || row.product.name;
+        if (row.pricePerCarat <= 0) {
+            showError('Informe o preço por quilate do SKU ' + label + '.');
+            return;
+        }
+        if (row.saleMode === 'partial') {
+            if (row.ct <= 0) {
+                showError('Informe o peso (ct) vendido do SKU ' + label + '.');
+                return;
+            }
+            if (row.ct > row.product.ct + 0.0001) {
+                showError('O SKU ' + label + ' tem apenas ' + fmtCt(row.product.ct) + ' ct em estoque.');
+                return;
+            }
+            if (row.pedras > row.product.numero_pedras) {
+                showError('O SKU ' + label + ' tem apenas ' + row.product.numero_pedras + ' pedra(s) em estoque.');
+                return;
+            }
+        }
+    }
+
+    const t = orderTotals();
+    const discount = t.discount;
+    const paid     = t.paid;
+    const balance  = t.balance;
+    const nextCharge = document.getElementById('next_charge_date').value;
+
+    if (t.overpaid > 0.009) {
+        showError('O valor recebido (' + fmtMoney(paid, 'R$') + ') é maior que o total do pedido ('
+                  + fmtMoney(t.totalBrl, 'R$') + '). Reduza o desconto ou o valor recebido.');
+        document.getElementById('initial_payment_amount').focus();
+        return;
+    }
+    if (paid > 0 && !document.getElementById('initial_payment_method').value) {
+        showError('Selecione a forma do pagamento informado.');
+        return;
+    }
+    if (balance > 0.009 && !nextCharge) {
+        showError('Há saldo devedor: informe a data da próxima cobrança.');
+        return;
+    }
+
+    const payload = {
+        customer_id:    selectedCustomer.id,
+        customer_name:  selectedCustomer.name,
+        customer_email: document.getElementById('customer_email').value,
+        customer_phone: document.getElementById('customer_phone').value,
+        customer_cpf:   document.getElementById('customer_cpf').value,
+        customer_cnpj:  document.getElementById('customer_cnpj').value,
+        cep:            document.getElementById('addr_cep').value,
+        street:         document.getElementById('addr_street').value,
+        number:         document.getElementById('addr_number').value,
+        complement:     document.getElementById('addr_complement').value,
+        neighborhood:   document.getElementById('addr_neighborhood').value,
+        city:           document.getElementById('addr_city').value,
+        state:          document.getElementById('addr_state').value,
+        seller_id:      document.getElementById('seller_id').value,
+        discount_usd:   discount,
+        notes:          document.getElementById('notes').value,
+        next_charge_date: nextCharge,
+        initial_payment_amount: paid || '',
+        initial_payment_method: document.getElementById('initial_payment_method').value,
+        initial_payment_date:   document.getElementById('initial_payment_date').value,
+        items: itemRows.map(row => ({
+            product_id:           row.product.id,
+            lote:                 row.lote,
+            sale_mode:            row.saleMode,
+            ct:                   row.ct,
+            numero_pedras:        row.pedras,
+            price_per_carat_usd:  row.pricePerCarat,
+        })),
+    };
+
+    const btn   = document.getElementById('submit-btn');
+    const label = document.getElementById('submit-label');
+    btn.disabled = true;
+    label.textContent = 'Registrando…';
+
+    try {
+        const res  = await fetch('/crm/api/pedidos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            showError(data.error || 'Erro ao registrar o pedido.');
+            btn.disabled = false;
+            label.textContent = 'Registrar pedido';
+            return;
+        }
+        window.location.href = '/crm/pedidos/' + data.order_id;
+    } catch (e) {
+        showError('Erro de conexão. Tente novamente.');
+        btn.disabled = false;
+        label.textContent = 'Registrar pedido';
+    }
+}
+
+/* ── Fecha dropdowns ao clicar fora ── */
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#customer-search') && !e.target.closest('#customer-results')) {
+        customerResults.classList.add('hidden');
+    }
+    if (!e.target.closest('#product-search') && !e.target.closest('#product-results')) {
+        productResults.classList.add('hidden');
+    }
+});
+
+renderTotals();
+
+{% if preset_customer %}
+selectCustomer({{ preset_customer | tojson }});
+{% endif %}
+</script>
+{% endblock %}

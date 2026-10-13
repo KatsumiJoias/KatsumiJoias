@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if seo and seo.title %}{{ seo.title }}{% else %}{% block title %}Katsumi Joias{% endblock %}{% endif %}</title>
+    {% if seo and seo.description %}
+    <meta name="description" content="{{ seo.description }}">
+    {% endif %}
+    {% if seo and seo.canonical_url %}
+    <link rel="canonical" href="{{ seo.canonical_url }}">
+    {% endif %}
+    {% if seo and seo.prev_url %}
+    <link rel="prev" href="{{ seo.prev_url }}">
+    {% endif %}
+    {% if seo and seo.next_url %}
+    <link rel="next" href="{{ seo.next_url }}">
+    {% endif %}
+    {% if seo and seo.og_title %}
+    <meta property="og:title" content="{{ seo.og_title }}">
+    {% endif %}
+    {% if seo and seo.og_description %}
+    <meta property="og:description" content="{{ seo.og_description }}">
+    {% endif %}
+    {% if seo and seo.og_image %}
+    <meta property="og:image" content="{{ seo.og_image }}">
+    {% endif %}
+    {% if seo and seo.og_url %}
+    <meta property="og:url" content="{{ seo.og_url }}">
+    {% endif %}
+    {% if seo and seo.og_type %}
+    <meta property="og:type" content="{{ seo.og_type }}">
+    {% else %}
+    <meta property="og:type" content="website">
+    {% endif %}
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:site_name" content="Katsumi Joias">
+    {% if seo and seo.twitter_card %}
+    <meta name="twitter:card" content="{{ seo.twitter_card }}">
+    {% else %}
+    <meta name="twitter:card" content="summary_large_image">
+    {% endif %}
+    {% if seo and seo.og_title %}
+    <meta name="twitter:title" content="{{ seo.og_title }}">
+    {% endif %}
+    {% if seo and seo.og_description %}
+    <meta name="twitter:description" content="{{ seo.og_description }}">
+    {% endif %}
+    {% if seo and seo.og_image %}
+    <meta name="twitter:image" content="{{ seo.og_image }}">
+    {% endif %}
+    {% if seo and seo.json_ld %}
+    <script type="application/ld+json">{{ seo.json_ld | tojson }}</script>
+    {% endif %}
+    {% block head_extra %}{% endblock %}
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon-96x96.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <meta name="theme-color" content="#1f5b40">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'luxury-gold': '#B68C3F',
+                        'luxury-gold-dark': '#8C6B2E',
+                        'luxury-gold-light': '#D9C18A',
+                        'luxury-black': '#141210',
+                        'luxury-gray': '#F4EFE6',
+                        'luxury-cream': '#FAF7F1',
+                        'luxury-dark': '#262220',
+                        'luxury-emerald': '#0E3B2E'
+                    },
+                    fontFamily: {
+                        'serif': ['Marcellus', 'serif'],
+                        'sans': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .luxury-gradient {
+            background: linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%);
+        }
+        .product-card {
+            transition: all 0.3s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .luxury-border {
+            border: 1px solid #e5e5e5;
+        }
+        /* Mobile menu drawer */
+        .mobile-menu {
+            transition: transform 0.35s ease-in-out;
+            transform: translateX(-100%);
+            visibility: hidden;
+        }
+        .mobile-menu.show {
+            transform: translateX(0);
+            visibility: visible;
+        }
+        body.menu-open {
+            overflow: hidden;
+        }
+        /* Floating navbar — must stay fixed (Tailwind .relative must not override) */
+        .navbar-float {
+            position: fixed !important;
+            top: -160px;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            transition: top 0.3s ease-in-out;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        .navbar-float.show {
+            top: 0;
+        }
+        @media (max-width: 1023px) {
+            #floating-header {
+                display: none !important;
+            }
+        }
+        #main-header {
+            position: relative;
+            z-index: 30;
+        }
+        #global-search-bar {
+            top: var(--header-h, 60px);
+        }
+        .drawer-catalog-chevron.open {
+            transform: rotate(180deg);
+        }
+        /* Catalog page */
+        .catalog-mobile-pill {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.625rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .catalog-mobile-pill--filters {
+            border: 1.5px solid #B68C3F;
+            color: #0E3B2E;
+            background: white;
+        }
+        .catalog-mobile-pill--sort {
+            border: 1.5px solid #d1d5db;
+            color: #6b7280;
+            background: white;
+        }
+        .catalog-filter-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #6b7280;
+        }
+        .catalog-card-desktop {
+            border: 1.5px solid transparent;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .catalog-card-desktop:hover {
+            border-color: #B68C3F;
+            transform: none;
+        }
+        @media (min-width: 1024px) {
+            .catalog-card-desktop .catalog-card-cta {
+                border: 1.5px solid #B68C3F;
+                background: transparent;
+                color: #B68C3F;
+                box-shadow: none;
+            }
+            .catalog-card-desktop:hover .catalog-card-cta {
+                background: #B68C3F;
+                color: white;
+            }
+        }
+        .catalog-pagination-active {
+            background: #0E3B2E;
+            color: white;
+            border-color: #0E3B2E;
+        }
+        @media (max-width: 1023px) {
+            #filters-container.mobile-filters-open {
+                display: block !important;
+                position: fixed;
+                inset: 0;
+                z-index: 60;
+                overflow-y: auto;
+                border-radius: 0;
+                margin: 0;
+            }
+            #mobile-filters-backdrop.mobile-filters-open {
+                display: block;
+            }
+        }
+        /* Cart notification animation */
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .cart-notification {
+            animation: slideInRight 0.3s ease-out;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .product-card-compact:hover {
+            transform: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+        .catalog-sort-select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23B68C3F'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.65rem center;
+            background-size: 1rem;
+            padding-right: 2.25rem;
+        }
+        .historia-hero-text {
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75), 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
+        .rv-pdp-scroll-track {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .rv-pdp-scroll-track::-webkit-scrollbar {
+            display: none;
+        }
+        @media (min-width: 1024px) {
+            .rv-pdp-scroll-track {
+                scrollbar-width: thin;
+                scrollbar-color: rgba(182, 140, 63, 0.45) transparent;
+            }
+            .rv-pdp-scroll-track::-webkit-scrollbar {
+                display: block;
+                height: 6px;
+            }
+            .rv-pdp-scroll-track::-webkit-scrollbar-thumb {
+                background: rgba(182, 140, 63, 0.45);
+                border-radius: 9999px;
+            }
+            .rv-pdp-scroll-track::-webkit-scrollbar-track {
+                background: transparent;
+            }
+        }
+    </style>
+</head>
+<body class="bg-luxury-cream font-sans text-luxury-black">
+    <!-- Header -->
+    {% if not hide_navbar %}
+    {% include '_site_nav.html' %}
+    {% endif %}
+
+    <!-- Shopping Cart Sidebar -->
+    <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-[85%] sm:w-96 bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out">
+        <div class="flex flex-col h-full">
+            <!-- Cart Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 class="text-2xl font-serif font-semibold text-luxury-black">Carrinho</h2>
+                <button onclick="toggleCart()" class="text-gray-500 hover:text-luxury-black transition-colors">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Cart Items -->
+            <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <!-- Cart items will be dynamically added here -->
+                <div id="empty-cart" class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                    </svg>
+                    <p class="mt-4 text-gray-500">Seu carrinho está vazio</p>
+                </div>
+            </div>
+
+            <!-- Recently Viewed (fixed at bottom, above footer) -->
+            <div id="recently-viewed-sidebar" class="hidden flex-shrink-0 border-t-2 border-luxury-gold/40 bg-luxury-cream/50 px-6 py-5">
+                <p class="text-xs font-semibold text-luxury-gold uppercase tracking-wider mb-3">Vistos recentemente</p>
+                <div id="recently-viewed-sidebar-list" class="space-y-2 max-h-[6.875rem] overflow-y-auto scrollbar-hide"></div>
+            </div>
+            
+            <!-- Cart Footer -->
+            <div id="cart-footer" class="border-t border-gray-200 p-6 hidden">
+                <div class="space-y-4">
+                    <div id="cert-summary-sidebar" class="hidden text-xs bg-luxury-cream/80 rounded-md px-3 py-2 border border-luxury-gold/15">
+                        <span data-cert-summary-text class="text-gray-700"></span>
+                        <a href="/guias/certificacao-gemologica" target="_blank" rel="noopener noreferrer" class="text-luxury-gold hover:underline font-medium ml-1">Saiba mais</a>
+                    </div>
+                    <div class="flex justify-between text-lg font-medium">
+                        <span>Subtotal:</span>
+                        <span id="cart-subtotal">$0.00</span>
+                    </div>
+                    <button onclick="goToCheckout()" class="w-full bg-luxury-gold text-white py-3 rounded-md hover:bg-luxury-gold-dark transition-colors duration-200">
+                        Finalizar Compra
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Overlay -->
+    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50 cart-notification">
+        <div class="flex items-center space-x-2">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span id="toast-message">Produto adicionado ao carrinho!</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="min-h-screen">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    {% if not hide_navbar %}
+    {% include '_footer.html' %}
+    {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const floatingMobileMenuButton = document.getElementById('floating-mobile-menu-button');
+            const closeMenuButton = document.getElementById('close-menu-button');
+            const overlay = document.getElementById('mobile-menu-overlay');
+            const floatingHeader = document.getElementById('floating-header');
+
+            function openMenu() {
+                mobileMenu.classList.add('show');
+                overlay.classList.remove('hidden');
+                document.body.classList.add('menu-open');
+            }
+
+            function closeMenu() {
+                mobileMenu.classList.remove('show');
+                overlay.classList.add('hidden');
+                document.body.classList.remove('menu-open');
+            }
+
+            window.closeMobileMenu = closeMenu;
+
+            if (mobileMenuButton) mobileMenuButton.addEventListener('click', openMenu);
+            if (floatingMobileMenuButton) floatingMobileMenuButton.addEventListener('click', openMenu);
+            if (closeMenuButton) closeMenuButton.addEventListener('click', closeMenu);
+            if (overlay) overlay.addEventListener('click', closeMenu);
+
+            if (mobileMenu) {
+                mobileMenu.querySelectorAll('a.drawer-nav-link, #drawer-catalog-submenu a').forEach(link => {
+                    link.addEventListener('click', closeMenu);
+                });
+            }
+
+            const catalogToggle = document.getElementById('drawer-catalog-toggle');
+            const catalogSubmenu = document.getElementById('drawer-catalog-submenu');
+            const catalogChevron = document.getElementById('drawer-catalog-chevron');
+            if (catalogToggle && catalogSubmenu) {
+                catalogToggle.addEventListener('click', function() {
+                    catalogSubmenu.classList.toggle('hidden');
+                    catalogChevron?.classList.toggle('open');
+                });
+            }
+
+            function updateHeaderHeight() {
+                const main = document.getElementById('main-header');
+                if (main) {
+                    document.documentElement.style.setProperty('--header-h', main.offsetHeight + 'px');
+                }
+            }
+            updateHeaderHeight();
+            window.addEventListener('resize', updateHeaderHeight);
+
+            // Floating header logic
+            let lastScrollY = window.scrollY;
+            const scrollThreshold = 80;
+
+            window.addEventListener('scroll', () => {
+                const currentScrollY = window.scrollY;
+                if (!floatingHeader) return;
+
+                if (currentScrollY > scrollThreshold) {
+                    if (currentScrollY < lastScrollY) {
+                        floatingHeader.classList.add('show');
+                    } else {
+                        floatingHeader.classList.remove('show');
+                    }
+                } else {
+                    floatingHeader.classList.remove('show');
+                }
+
+                lastScrollY = currentScrollY;
+            });
+        });
+
+        // ========== Recently Viewed ==========
+
+        const RECENTLY_VIEWED_KEY = 'recentlyViewed';
+        const RECENTLY_VIEWED_MAX = 15;
+
+        function getRecentlyViewed(excludeId) {
+            try {
+                let list = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+                const seen = new Set();
+                list = list.filter(p => {
+                    if (!p || !p.id || seen.has(p.id)) return false;
+                    seen.add(p.id);
+                    return true;
+                });
+                if (excludeId) list = list.filter(p => p.id !== excludeId);
+                return list;
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function trackRecentlyViewed(product) {
+            if (!product || !product.id || product.id === CERTIFICATE_PRODUCT_ID) return;
+            try {
+                let list = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+                list = list.filter(p => p.id !== product.id);
+                list.unshift({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    discount: product.discount || 0,
+                    caratWeight: product.caratWeight || 1,
+                    image: product.image || '',
+                    category: product.category || ''
+                });
+                const seen = new Set();
+                list = list.filter(p => {
+                    if (!p || !p.id || seen.has(p.id)) return false;
+                    seen.add(p.id);
+                    return true;
+                });
+                list = list.slice(0, RECENTLY_VIEWED_MAX);
+                localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(list));
+            } catch (_) {}
+            renderRecentlyViewedSidebar(window.__pdpExcludeId || null);
+            if (typeof renderRecentlyViewedPdp === 'function') {
+                renderRecentlyViewedPdp(window.__pdpExcludeId || null);
+            }
+        }
+
+        function removeFromRecentlyViewed(productId) {
+            if (!productId) return;
+            try {
+                let list = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+                list = list.filter(p => p.id !== productId);
+                localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(list));
+            } catch (_) {}
+            if (typeof renderRecentlyViewedPdp === 'function') {
+                renderRecentlyViewedPdp(window.__pdpExcludeId || null);
+            }
+        }
+
+        function addRecentItemToCart(item, event, options) {
+            options = options || {};
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const added = addToCart({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                discount: item.discount || 0,
+                caratWeight: item.caratWeight || 1,
+                image: item.image || ''
+            });
+            if (added && options.removeFromRecent) {
+                removeFromRecentlyViewed(item.id);
+            }
+        }
+
+        async function getItemPriceDisplay(item) {
+            if (!exchangeRate) {
+                exchangeRate = await fetchExchangeRate();
+            }
+            const currency = getCurrency();
+            const caratWeight = item.caratWeight || 1;
+            const discount = item.discount || 0;
+            const totalUSD = item.price * caratWeight * (1 - discount / 100);
+            if (currency === 'BRL' && exchangeRate && exchangeRate.rate) {
+                const brl = totalUSD * exchangeRate.rate;
+                return {
+                    total: `R$ ${brl.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    installment: `R$ ${(brl / 5).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                };
+            }
+            return {
+                total: `$ ${totalUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                installment: `$ ${(totalUSD / 5).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+            };
+        }
+
+        async function formatRecentItemPrice(item) {
+            const prices = await getItemPriceDisplay(item);
+            return prices.total;
+        }
+
+        let _rvSidebarGen = 0;
+
+        async function renderRecentlyViewedSidebar(excludeId) {
+            const section = document.getElementById('recently-viewed-sidebar');
+            const listEl = document.getElementById('recently-viewed-sidebar-list');
+            if (!section || !listEl) return;
+
+            const gen = ++_rvSidebarGen;
+            const items = getRecentlyViewed(excludeId).slice(0, RECENTLY_VIEWED_MAX);
+            if (!items.length) {
+                section.classList.add('hidden');
+                listEl.innerHTML = '';
+                return;
+            }
+
+            section.classList.remove('hidden');
+            listEl.innerHTML = '';
+            for (const item of items) {
+                if (gen !== _rvSidebarGen) return;
+                const price = await formatRecentItemPrice(item);
+                if (gen !== _rvSidebarGen) return;
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 h-[4.25rem] shrink-0';
+                const safeName = item.name.replace(/"/g, '&quot;');
+                row.innerHTML = `
+                    <a href="/product/${item.id}" onclick="toggleCart()" class="flex items-center gap-3 flex-1 min-w-0 group h-full">
+                        <img src="${item.image || '/static/placeholder.jpg'}" alt="${safeName}"
+                             class="w-12 h-12 object-cover rounded flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 leading-snug line-clamp-1 group-hover:text-luxury-gold transition-colors">${item.name}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">${price}</p>
+                        </div>
+                    </a>
+                    <button type="button" title="Adicionar ao carrinho"
+                            class="flex-shrink-0 p-1.5 border border-luxury-gold text-luxury-gold rounded-md hover:bg-luxury-gold hover:text-white transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                        </svg>
+                    </button>`;
+                row.querySelector('button').addEventListener('click', (e) => addRecentItemToCart(item, e, { removeFromRecent: true }));
+                listEl.appendChild(row);
+            }
+        }
+
+        let _pdpRvGen = 0;
+
+        async function renderRecentlyViewedPdp(excludeId) {
+            const section = document.getElementById('recently-viewed-pdp');
+            const grid = document.getElementById('recently-viewed-pdp-grid');
+            if (!section || !grid) return;
+
+            const gen = ++_pdpRvGen;
+            const items = getRecentlyViewed(null).slice(0, RECENTLY_VIEWED_MAX);
+            if (!items.length) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            grid.innerHTML = '';
+            for (const item of items) {
+                if (gen !== _pdpRvGen) return;
+                const prices = await getItemPriceDisplay(item);
+                if (gen !== _pdpRvGen) return;
+                const safeName = item.name.replace(/"/g, '&quot;');
+                const categoryBadge = item.category
+                    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-700">${item.category}</span>`
+                    : '';
+                const card = document.createElement('a');
+                card.href = `/product/${item.id}`;
+                card.className = 'product-card product-card-compact group flex flex-col flex-shrink-0 w-[38vw] min-w-[130px] max-w-[150px] sm:w-40 md:w-44 lg:w-60 xl:w-64 bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 snap-start';
+                const cw = item.caratWeight;
+                const caratSuffix = cw ? ` <span class="text-sm font-normal text-gray-500">(${Number(cw) % 1 === 0 ? Number(cw) : Number(cw).toFixed(2)} ct)</span>` : '';
+                card.innerHTML = `
+                    <div class="relative aspect-square overflow-hidden flex-shrink-0">
+                        <img src="${item.image || '/static/placeholder.jpg'}" alt="${safeName}"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-2 right-2 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide bg-white/95 text-luxury-black border border-gray-200 shadow-sm">
+                            Peça única
+                        </span>
+                    </div>
+                    <div class="p-3 flex flex-col flex-1">
+                        <div class="flex flex-wrap gap-1 mb-2">
+                            ${categoryBadge}
+                        </div>
+                        <h3 class="text-sm font-medium text-luxury-black mb-2 group-hover:text-luxury-gold transition-colors line-clamp-1 leading-snug">${item.name}</h3>
+                        <div class="mt-auto space-y-2">
+                            <p class="text-base font-medium text-luxury-black">${prices.total}${caratSuffix}</p>
+                            <span class="w-full inline-flex items-center justify-center px-2 py-1.5 bg-luxury-gold text-white text-xs font-semibold rounded-md group-hover:bg-luxury-gold-dark transition-colors duration-200">
+                                Ver Detalhes
+                            </span>
+                        </div>
+                    </div>`;
+                grid.appendChild(card);
+            }
+            bindRvPdpScrollControls();
+            grid.querySelectorAll('img').forEach(img => {
+                if (img.complete) {
+                    updateRvPdpScrollArrows();
+                } else {
+                    img.addEventListener('load', updateRvPdpScrollArrows, { once: true });
+                }
+            });
+            requestAnimationFrame(updateRvPdpScrollArrows);
+        }
+
+        let _rvPdpScrollBound = false;
+
+        function updateRvPdpScrollArrows() {
+            const grid = document.getElementById('recently-viewed-pdp-grid');
+            const prev = document.getElementById('rv-pdp-scroll-prev');
+            const next = document.getElementById('rv-pdp-scroll-next');
+            if (!grid || !prev || !next) return;
+            const atStart = grid.scrollLeft <= 2;
+            const atEnd = grid.scrollLeft >= grid.scrollWidth - grid.clientWidth - 2;
+            prev.disabled = atStart;
+            next.disabled = atEnd;
+            prev.classList.toggle('opacity-30', atStart);
+            next.classList.toggle('opacity-30', atEnd);
+        }
+
+        function bindRvPdpScrollControls() {
+            const grid = document.getElementById('recently-viewed-pdp-grid');
+            const prev = document.getElementById('rv-pdp-scroll-prev');
+            const next = document.getElementById('rv-pdp-scroll-next');
+            if (!grid) return;
+
+            function scrollRvPdp(dir) {
+                const card = grid.querySelector('.product-card-compact');
+                const gap = parseInt(getComputedStyle(grid).gap) || 16;
+                const amount = card ? card.offsetWidth + gap : 240;
+                grid.scrollBy({ left: dir * amount, behavior: 'smooth' });
+            }
+
+            if (!_rvPdpScrollBound) {
+                _rvPdpScrollBound = true;
+                prev?.addEventListener('click', () => scrollRvPdp(-1));
+                next?.addEventListener('click', () => scrollRvPdp(1));
+                grid.addEventListener('scroll', updateRvPdpScrollArrows, { passive: true });
+                grid.addEventListener('wheel', (e) => {
+                    if (grid.scrollWidth <= grid.clientWidth) return;
+                    e.preventDefault();
+                    grid.scrollLeft += e.deltaY || e.deltaX;
+                }, { passive: false });
+            }
+            updateRvPdpScrollArrows();
+        }
+
+        // ========== Shopping Cart Management ==========
+
+        const CERTIFICATE_PRODUCT_ID = 'IQROwNnZhK67ZQHEQram';
+        let certificateProductCache = null;
+
+        function getGemCartItems(cart) {
+            return cart.filter(item => item.id !== CERTIFICATE_PRODUCT_ID);
+        }
+
+        function countCertificatesInCart(cart) {
+            return getGemCartItems(cart).filter(i => i.wantsCertificate).length;
+        }
+
+        async function getCertificateUnitPriceUSD() {
+            const cert = await getCertificateProduct();
+            if (!cert) return 0;
+            const discount = cert.discount || 0;
+            return cert.price * (1 - discount / 100);
+        }
+
+        async function calcCertificatesTotalUSD(cart) {
+            const count = countCertificatesInCart(cart);
+            if (!count) return 0;
+            return (await getCertificateUnitPriceUSD()) * count;
+        }
+
+        async function calcCartSubtotalUSD(cart) {
+            let subtotal = 0;
+            getGemCartItems(cart).forEach(item => {
+                const caratWeight = item.caratWeight || 1;
+                const discount = item.discount || 0;
+                subtotal += item.price * caratWeight * (1 - discount / 100);
+            });
+            subtotal += await calcCertificatesTotalUSD(cart);
+            return subtotal;
+        }
+
+        function toggleProductCertificate(productId, enabled) {
+            let cart = getCart();
+            const item = cart.find(i => i.id === productId);
+            if (!item || item.id === CERTIFICATE_PRODUCT_ID) return;
+            item.wantsCertificate = !!enabled;
+            saveCart(cart);
+            if (enabled) {
+                getCertificateProduct().then(cert => {
+                    if (cert) showCartNotification('Laudo Gemológico — ' + item.name, false);
+                });
+            }
+            updateCartUI();
+            if (typeof loadCartPage === 'function') loadCartPage();
+        }
+
+        async function updateCertSummaryUI(cart) {
+            const summaryEls = [
+                document.getElementById('cert-summary-sidebar'),
+                document.getElementById('cert-summary-page')
+            ];
+            const count = countCertificatesInCart(cart);
+            const gemCount = getGemCartItems(cart).length;
+
+            if (gemCount === 0 || count === 0) {
+                summaryEls.forEach(el => el?.classList.add('hidden'));
+                return;
+            }
+
+            const totalUSD = await calcCertificatesTotalUSD(cart);
+            const currency = getCurrency();
+            let totalLabel;
+            if (currency === 'BRL' && exchangeRate) {
+                totalLabel = `+ R$ ${(totalUSD * exchangeRate.rate).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            } else {
+                totalLabel = `+ $${totalUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+
+            const text = count === 1
+                ? `1 laudo gemológico selecionado · ${totalLabel}`
+                : `${count} laudos gemológicos selecionados · ${totalLabel}`;
+
+            summaryEls.forEach(el => {
+                if (!el) return;
+                el.classList.remove('hidden');
+                const textEl = el.querySelector('[data-cert-summary-text]');
+                if (textEl) textEl.textContent = text;
+            });
+        }
+
+        function buildCertToggleHtml(item, certPriceLabel) {
+            const checked = item.wantsCertificate ? 'checked' : '';
+            const safeId = String(item.id).replace(/'/g, "\\'");
+            return `
+                <label class="flex items-start gap-2 mt-2.5 pt-2.5 border-t border-gray-100 cursor-pointer group/cert">
+                    <input type="checkbox" ${checked}
+                           class="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-luxury-gold focus:ring-luxury-gold flex-shrink-0"
+                           onchange="toggleProductCertificate('${safeId}', this.checked)">
+                    <span class="text-[11px] leading-snug min-w-0">
+                            <span class="font-semibold text-luxury-gold">Laudo Gemológico</span>
+                            <span class="text-gray-500"> · certificação independente</span>
+                        ${certPriceLabel ? `<span class="block text-gray-400 mt-0.5">${certPriceLabel} cada</span>` : ''}
+                    </span>
+                </label>`;
+        }
+
+        function migrateCart(cart) {
+            let changed = false;
+            if (cart.some(i => i.id === CERTIFICATE_PRODUCT_ID)) {
+                cart.forEach(g => {
+                    if (g.id !== CERTIFICATE_PRODUCT_ID && g.wantsCertificate === undefined) {
+                        g.wantsCertificate = true;
+                        changed = true;
+                    }
+                });
+                const before = cart.length;
+                cart = cart.filter(i => i.id !== CERTIFICATE_PRODUCT_ID);
+                if (cart.length !== before) changed = true;
+            }
+            cart.forEach(g => {
+                if (g.id !== CERTIFICATE_PRODUCT_ID && g.wantsCertificate === undefined) {
+                    g.wantsCertificate = false;
+                    changed = true;
+                }
+            });
+            return { cart, changed };
+        }
+
+        async function getCertificateProduct() {
+            if (certificateProductCache) return certificateProductCache;
+            try {
+                const res = await fetch('/api/certificate-product');
+                if (!res.ok) return null;
+                certificateProductCache = await res.json();
+                return certificateProductCache;
+            } catch (e) {
+                console.error('Error fetching certificate product:', e);
+                return null;
+            }
+        }
+
+        async function formatCertPrice(cert) {
+            const currency = getCurrency();
+            const discount = cert.discount || 0;
+            const totalUSD = cert.price * (1 - discount / 100);
+            if (currency === 'BRL' && exchangeRate) {
+                const brl = totalUSD * exchangeRate.rate;
+                return `+ R$ ${brl.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+            return `+ $${totalUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        // Get cart from localStorage (dedupe by product id)
+        function getCart() {
+            const raw = localStorage.getItem('cart');
+            if (!raw) return [];
+            try {
+                let cart = JSON.parse(raw);
+                const seen = new Set();
+                const deduped = cart.filter(item => {
+                    if (!item || !item.id || seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    return true;
+                });
+                const migrated = migrateCart(deduped);
+                cart = migrated.cart;
+                if (migrated.changed || deduped.length !== JSON.parse(raw).length) {
+                    localStorage.setItem('cart', JSON.stringify(cart));
+                }
+                return cart;
+            } catch (_) {
+                return [];
+            }
+        }
+
+        // Save cart to localStorage (dedupe by product id)
+        function saveCart(cart) {
+            const seen = new Set();
+            cart = cart.filter(item => {
+                if (!item || !item.id || seen.has(item.id)) return false;
+                seen.add(item.id);
+                return true;
+            });
+            localStorage.setItem('cart', JSON.stringify(cart));
+            const count = getGemCartItems(cart).length;
+            const countElements = [
+                document.getElementById('cart-count-main'),
+                document.getElementById('cart-count-float'),
+                document.getElementById('cart-count-mobile'),
+                document.getElementById('cart-count-mobile-float')
+            ];
+            
+            countElements.forEach(el => {
+                if (el) {
+                    el.textContent = count;
+                    if (count > 0) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        // Add item to cart
+        function addToCart(product) {
+            if (product.id === CERTIFICATE_PRODUCT_ID) return false;
+            console.log('Adding to cart:', product);
+            let cart = getCart();
+            const existingItem = cart.find(item => item.id === product.id);
+            
+            if (existingItem) {
+                showCartNotification(product.name, true);
+                return false;
+            }
+
+            const newItem = {
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                discount: product.discount || 0,
+                caratWeight: product.caratWeight || 1,
+                image: product.image,
+                quantity: 1,
+                wantsCertificate: false
+            };
+            console.log('New cart item:', newItem);
+            cart.push(newItem);
+            
+            console.log('Cart after adding:', cart);
+            saveCart(cart);
+            showCartNotification(product.name, false);
+            updateCartUI();
+            return true;
+        }
+
+        // Remove item from cart
+        function removeFromCart(productId) {
+            let cart = getCart();
+            cart = cart.filter(item => item.id !== productId);
+            saveCart(cart);
+            updateCartUI();
+            if (typeof loadCartPage === 'function') loadCartPage();
+        }
+
+        // Update item quantity
+        function updateQuantity(productId, quantity) {
+            let cart = getCart();
+            const item = cart.find(item => item.id === productId);
+            
+            if (item) {
+                item.quantity = parseInt(quantity);
+                if (item.quantity <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    saveCart(cart);
+                    updateCartUI();
+                }
+            }
+        }
+
+        // Toggle cart sidebar
+        function toggleCart() {
+            const cartSidebar = document.getElementById('cart-sidebar');
+            const cartOverlay = document.getElementById('cart-overlay');
+            const isOpen = !cartSidebar.classList.contains('translate-x-full');
+            
+            if (isOpen) {
+                cartSidebar.classList.add('translate-x-full');
+                cartOverlay.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            } else {
+                cartSidebar.classList.remove('translate-x-full');
+                cartOverlay.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+                updateCartUI();
+            }
+        }
+
+        // Update cart UI (serialized to prevent duplicate DOM renders from parallel calls)
+        let _updateCartUIQueue = Promise.resolve();
+
+        function updateCartUI() {
+            _updateCartUIQueue = _updateCartUIQueue
+                .then(() => _updateCartUIImpl())
+                .catch(err => console.error('updateCartUI error:', err));
+            return _updateCartUIQueue;
+        }
+
+        async function _updateCartUIImpl() {
+            const cart = getCart();
+            const cartItemsContainer = document.getElementById('cart-items');
+            const emptyCart = document.getElementById('empty-cart');
+            const cartFooter = document.getElementById('cart-footer');
+            const cartSubtotal = document.getElementById('cart-subtotal');
+            
+            const gemItems = getGemCartItems(cart);
+            const count = gemItems.length;
+            const countElements = [
+                document.getElementById('cart-count-main'),
+                document.getElementById('cart-count-float'),
+                document.getElementById('cart-count-mobile'),
+                document.getElementById('cart-count-mobile-float')
+            ];
+            
+            countElements.forEach(el => {
+                if (el) {
+                    el.textContent = count;
+                    if (count > 0) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+            
+            // Clear and rebuild cart items
+            if (gemItems.length === 0) {
+                emptyCart.classList.remove('hidden');
+                cartFooter.classList.add('hidden');
+                const existingItems = cartItemsContainer.querySelectorAll('.cart-item');
+                existingItems.forEach(item => item.remove());
+            } else {
+                emptyCart.classList.add('hidden');
+                cartFooter.classList.remove('hidden');
+                
+                const existingItems = cartItemsContainer.querySelectorAll('.cart-item');
+                existingItems.forEach(item => item.remove());
+                
+                for (const item of gemItems) {
+                    const itemEl = await createCartItemElement(item);
+                    cartItemsContainer.appendChild(itemEl);
+                }
+                
+                await updateCertSummaryUI(cart);
+                
+                const currency = getCurrency();
+                const subtotal = await calcCartSubtotalUSD(cart);
+                
+                if (currency === 'BRL' && exchangeRate) {
+                    const subtotalBRL = subtotal * exchangeRate.rate;
+                    cartSubtotal.textContent = `R$ ${subtotalBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                } else {
+                    cartSubtotal.textContent = `$${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                }
+            }
+
+            await renderRecentlyViewedSidebar(window.__pdpExcludeId || null);
+        }
+
+        // Create cart item element (aplica desconto no preço exibido)
+        async function createCartItemElement(item) {
+            const div = document.createElement('div');
+            div.className = 'cart-item pb-4 border-b border-gray-200';
+            
+            const currency = getCurrency();
+            const caratWeight = item.caratWeight || 1;
+            const discount = item.discount || 0;
+            const totalPriceOriginal = item.price * caratWeight;
+            const totalPrice = totalPriceOriginal * (1 - discount / 100);
+            
+            let priceDisplay = `$${totalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            let originalPriceHtml = '';
+            if (currency === 'BRL' && exchangeRate) {
+                const priceBRL = totalPrice * exchangeRate.rate;
+                priceDisplay = `R$ ${priceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                if (discount > 0) {
+                    const originalBRL = totalPriceOriginal * exchangeRate.rate;
+                    originalPriceHtml = `<span class="text-xs text-gray-400 line-through block">R$ ${originalBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+                }
+            } else if (discount > 0) {
+                originalPriceHtml = `<span class="text-xs text-gray-400 line-through block">$${totalPriceOriginal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+            }
+
+            const cert = await getCertificateProduct();
+            const certPriceLabel = cert ? await formatCertPrice(cert) : '';
+            const certToggle = buildCertToggleHtml(item, certPriceLabel);
+            const safeId = String(item.id).replace(/'/g, "\\'");
+            
+            div.innerHTML = `
+                <div class="flex gap-3">
+                    <img src="${item.image || '/static/placeholder.jpg'}" alt="${item.name}" class="w-16 h-16 object-cover rounded flex-shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-medium text-gray-900 leading-snug break-words">${item.name}</h3>
+                        <div class="text-sm text-gray-500 mt-1">${originalPriceHtml}<span>${priceDisplay}</span></div>
+                    </div>
+                    <button onclick="removeFromCart('${safeId}')" class="text-red-500 hover:text-red-700 flex-shrink-0 self-start p-0.5">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+                ${certToggle}`;
+            return div;
+        }
+
+        // Show notification when item is added
+        function showCartNotification(productName, alreadyInCart = false) {
+            const toast = document.getElementById('toast-notification');
+            const message = document.getElementById('toast-message');
+            
+            if (alreadyInCart) {
+                message.textContent = `${productName} já está no carrinho!`;
+                toast.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 cart-notification';
+            } else {
+                message.textContent = `${productName} adicionado ao carrinho!`;
+                toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 cart-notification';
+            }
+            
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Close cart overlay
+        document.getElementById('cart-overlay')?.addEventListener('click', toggleCart);
+
+        // Initialize cart on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCartUI();
+            initializeCurrency();
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('openCart') === '1') {
+                params.delete('openCart');
+                const qs = params.toString();
+                history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+                setTimeout(function() {
+                    const sidebar = document.getElementById('cart-sidebar');
+                    if (sidebar && sidebar.classList.contains('translate-x-full')) {
+                        toggleCart();
+                    }
+                }, 150);
+            }
+        });
+
+        // ========== Currency Management ==========
+        
+        let exchangeRate = null;
+        
+        // Get currency from localStorage (default: BRL — only changes when the user explicitly picks another)
+        function getCurrency() {
+            return localStorage.getItem('currency') || 'BRL';
+        }
+        
+        // Set currency and update UI
+        function setCurrency(currency) {
+            localStorage.setItem('currency', currency);
+            updateCurrencyUI();
+            // Close all dropdowns
+            document.querySelectorAll('[id^="currency-dropdown"]').forEach(dropdown => {
+                dropdown.classList.add('hidden');
+            });
+            // Reload page to update prices
+            window.location.reload();
+        }
+        
+        // Search bar toggle functions
+        function toggleSearch() {
+            const searchBar = document.getElementById('global-search-bar');
+            const searchInput = document.getElementById('search-input');
+            if (!searchBar || !searchInput) return;
+
+            if (searchBar.classList.contains('hidden')) {
+                searchBar.classList.remove('hidden');
+                setTimeout(() => searchInput.focus(), 100);
+            } else {
+                searchBar.classList.add('hidden');
+                searchInput.value = '';
+            }
+        }
+
+        function closeSearch() {
+            const searchBar = document.getElementById('global-search-bar');
+            const searchInput = document.getElementById('search-input');
+            if (!searchBar || !searchInput) return;
+            searchBar.classList.add('hidden');
+            searchInput.value = '';
+        }
+        
+        // Submit search on Enter key
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const searchValue = this.value.trim();
+                    if (searchValue) {
+                        window.location.href = `/products?search=${encodeURIComponent(searchValue)}`;
+                    }
+                }
+            });
+        }
+        
+        // Update currency UI elements
+        function updateCurrencyUI() {
+            const currency = getCurrency();
+            const flagUrl = currency === 'USD' ? 'https://flagcdn.com/w20/us.png' : 'https://flagcdn.com/w20/br.png';
+            
+            // Update all flag images
+            document.querySelectorAll('[id^="currency-flag"]').forEach(img => {
+                img.src = flagUrl;
+                img.alt = currency;
+            });
+            
+            // Update currency codes (desktop only)
+            document.querySelectorAll('[id^="currency-code"]').forEach(span => {
+                span.textContent = currency;
+            });
+        }
+        
+        // Fetch exchange rate from API
+        async function fetchExchangeRate() {
+            try {
+                const response = await fetch('/api/exchange-rate');
+                if (response.ok) {
+                    exchangeRate = await response.json();
+                    return exchangeRate;
+                }
+            } catch (error) {
+                console.error('Error fetching exchange rate:', error);
+            }
+            return null;
+        }
+        
+        // Initialize currency on page load
+        async function initializeCurrency() {
+            updateCurrencyUI();
+            exchangeRate = await fetchExchangeRate();
+            await updateProductCardPriceDisplays();
+            
+            // Toggle currency dropdowns
+            const dropdownPairs = [
+                ['currency-button-main', 'currency-dropdown-main'],
+                ['currency-button-float', 'currency-dropdown-float'],
+                ['currency-button-drawer', 'currency-dropdown-drawer']
+            ];
+            
+            dropdownPairs.forEach(([buttonId, dropdownId]) => {
+                const button = document.getElementById(buttonId);
+                const dropdown = document.getElementById(dropdownId);
+                
+                if (button && dropdown) {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Close other dropdowns
+                        document.querySelectorAll('[id^="currency-dropdown"]').forEach(d => {
+                            if (d.id !== dropdownId) d.classList.add('hidden');
+                        });
+                        dropdown.classList.toggle('hidden');
+                    });
+                }
+            });
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', () => {
+                document.querySelectorAll('[id^="currency-dropdown"]').forEach(dropdown => {
+                    dropdown.classList.add('hidden');
+                });
+            });
+        }
+        
+        // Format price according to currency
+        function formatPrice(priceUSD) {
+            const currency = getCurrency();
+            if (currency === 'BRL' && exchangeRate) {
+                const priceBRL = priceUSD * exchangeRate.rate;
+                return `R$ ${priceBRL.toFixed(2).replace('.', ',')}`;
+            }
+            return `$ ${priceUSD.toFixed(2)}`;
+        }
+
+        function formatUsdAmount(value) {
+            return `$ ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function formatBrlAmount(value) {
+            return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        async function updateProductCardPriceDisplays() {
+            const currency = getCurrency();
+            if (!exchangeRate) {
+                exchangeRate = await fetchExchangeRate();
+            }
+            const rate = exchangeRate && exchangeRate.rate ? exchangeRate.rate : null;
+
+            document.querySelectorAll('.price-display').forEach(priceEl => {
+                const priceUSD = parseFloat(priceEl.dataset.priceUsd);
+                if (Number.isNaN(priceUSD)) return;
+
+                const caratWeight = parseFloat(priceEl.dataset.caratWeight);
+                const discount = parseFloat(priceEl.dataset.discount) || 0;
+                const discountMultiplier = 1 - (discount / 100);
+                const hasCarat = !Number.isNaN(caratWeight) && caratWeight > 0;
+
+                const baseTotalUSD = hasCarat ? priceUSD * caratWeight : priceUSD;
+                const finalTotalUSD = baseTotalUSD * discountMultiplier;
+
+                const totalPriceEl = priceEl.querySelector('.total-price');
+                const originalTotalPriceEl = priceEl.querySelector('.original-total-price');
+                const installmentEl = priceEl.querySelector('.installment-amount');
+
+                if (currency === 'BRL' && rate) {
+                    const baseTotalBRL = baseTotalUSD * rate;
+                    const finalTotalBRL = finalTotalUSD * rate;
+                    const installmentBRL = finalTotalBRL / 5;
+
+                    if (discount > 0 && originalTotalPriceEl) {
+                        originalTotalPriceEl.textContent = formatBrlAmount(baseTotalBRL);
+                    }
+                    if (totalPriceEl) {
+                        totalPriceEl.textContent = formatBrlAmount(finalTotalBRL);
+                    }
+                    if (installmentEl) {
+                        installmentEl.textContent = formatBrlAmount(installmentBRL);
+                    }
+                } else {
+                    if (discount > 0 && originalTotalPriceEl) {
+                        originalTotalPriceEl.textContent = formatUsdAmount(baseTotalUSD);
+                    }
+                    if (totalPriceEl) {
+                        totalPriceEl.textContent = formatUsdAmount(finalTotalUSD);
+                    }
+                    if (installmentEl) {
+                        installmentEl.textContent = formatUsdAmount(finalTotalUSD / 5);
+                    }
+                }
+            });
+        }
+        
+        // Navigate to checkout (Pagar.me — BRL — default for all currencies)
+        function goToCheckout() {
+            window.location.href = '/checkout';
+        }
+
+        // Newsletter subscription
+        document.addEventListener('DOMContentLoaded', function() {
+            const newsletterForm = document.getElementById('newsletter-form');
+            if (newsletterForm) {
+                newsletterForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const emailInput = document.getElementById('newsletter-email');
+                    const message = document.getElementById('newsletter-message');
+                    const submitButton = newsletterForm.querySelector('button[type="submit"]');
+                    
+                    const email = emailInput.value.trim();
+                    
+                    if (!email) {
+                        return;
+                    }
+                    
+                    // Disable button during submission
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Inscrevendo...';
+                    
+                    try {
+                        const response = await fetch('/api/newsletter/subscribe', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ email: email })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            message.textContent = data.message || 'Inscrição realizada com sucesso!';
+                            message.className = 'text-sm mt-2 text-green-400';
+                            message.classList.remove('hidden');
+                            emailInput.value = '';
+                        } else {
+                            message.textContent = data.error || 'Erro ao inscrever. Tente novamente.';
+                            message.className = 'text-sm mt-2 text-red-400';
+                            message.classList.remove('hidden');
+                        }
+                    } catch (error) {
+                        console.error('Newsletter subscription error:', error);
+                        message.textContent = 'Erro ao processar inscrição. Tente novamente.';
+                        message.className = 'text-sm mt-2 text-red-400';
+                        message.classList.remove('hidden');
+                    } finally {
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Quero receber';
+                        
+                        // Hide message after 5 seconds
+                        setTimeout(() => {
+                            message.classList.add('hidden');
+                        }, 5000);
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Firebase Auth Integration for User Button -->
+    {% if firebase_config %}
+    <script type="application/json" id="firebase-config-data">
+    {
+        "apiKey": "{{ firebase_config.apiKey }}",
+        "authDomain": "{{ firebase_config.authDomain }}",
+        "projectId": "{{ firebase_config.projectId }}",
+        "storageBucket": "{{ firebase_config.storageBucket }}",
+        "messagingSenderId": "{{ firebase_config.messagingSenderId }}",
+        "appId": "{{ firebase_config.appId }}"
+    }
+    </script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Get Firebase config from injected data
+        const configElement = document.getElementById('firebase-config-data');
+        if (configElement) {
+            const firebaseConfig = JSON.parse(configElement.textContent);
+
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+
+            // Update user button links based on auth state
+            onAuthStateChanged(auth, (user) => {
+                const userButtons = [
+                    document.getElementById('user-button-desktop'),
+                    document.getElementById('user-button-mobile'),
+                    document.getElementById('user-button-floating'),
+                    document.getElementById('user-button-floating-mobile')
+                ];
+
+                userButtons.forEach(button => {
+                    if (button) {
+                        if (user) {
+                            // User is logged in, link to account
+                            button.href = '/account';
+                        } else {
+                            // User is not logged in, link to login
+                            button.href = '/login';
+                        }
+                    }
+                });
+            });
+        }
+    </script>
+    {% endif %}
+    {% include '_whatsapp_widget.html' %}
+</body>
+</html> 

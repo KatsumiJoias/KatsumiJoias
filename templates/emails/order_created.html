@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
+  <title>Recebemos seu pedido — Katsumi Joias</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    @media only screen and (max-width: 620px) {
+      .container { width: 100% !important; }
+      .px { padding-left: 24px !important; padding-right: 24px !important; }
+      .item-price { text-align: left !important; padding-top: 4px !important; }
+      .stack { display: block !important; width: 100% !important; }
+    }
+    a { color: #1f5b40; }
+    .pix-code, .pix-code span, .pix-code a {
+      color: #333333 !important;
+      text-decoration: none !important;
+    }
+    a[x-apple-data-detectors] {
+      color: inherit !important;
+      text-decoration: none !important;
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f2ec; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+    {% if payment_method == 'pix' %}Seu pedido #{{ order_number }} está reservado. Conclua o pagamento via PIX para garantirmos suas gemas.{% elif payment_method == 'credit_card' %}Seu pedido #{{ order_number }} está registrado. O pagamento no cartão não foi aprovado, tente novamente.{% else %}Seu pedido #{{ order_number }} foi registrado. Aguardamos a confirmação do pagamento.{% endif %}
+    &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f2ec" style="background-color:#f4f2ec;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+          <!-- CABEÇALHO -->
+          <tr>
+            <td bgcolor="#1f5b40" style="background-color:#1f5b40; padding:28px 40px; border-radius:6px 6px 0 0;" class="px" align="center">
+              <a href="{{ site_url }}/" target="_blank" style="text-decoration:none;">
+                <img src="{{ site_url }}/static/images/logo.png" width="160" alt="Katsumi Joias" style="display:block; width:160px; max-width:160px; height:auto; border:0; border-radius:4px;">
+              </a>
+              <p style="margin:14px 0 0 0; font-family:Marcellus, Georgia, 'Times New Roman', serif; font-size:12px; font-weight:600; letter-spacing:0.25em; text-transform:uppercase; color:#D9C18A;">
+                Tradição em pedras preciosas desde 1942
+              </p>
+            </td>
+          </tr>
+
+          <!-- CORPO -->
+          <tr>
+            <td bgcolor="#ffffff" style="background-color:#ffffff; padding:44px 40px 8px 40px;" class="px">
+
+              <h1 style="margin:0 0 8px 0; font-family:Georgia, 'Times New Roman', serif; font-size:26px; line-height:34px; font-weight:normal; color:#1f5b40;">
+                Recebemos seu pedido, {{ customer_name }}.
+              </h1>
+
+              <p style="margin:0 0 24px 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:24px; color:#444444;">
+                O pedido <strong style="color:#1f5b40;">#{{ order_number }}</strong>, realizado em {{ order_date }}, foi registrado
+                e suas gemas estão reservadas. Falta apenas a confirmação do pagamento para
+                iniciarmos a preparação.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:0 0 28px 0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="44" height="2" bgcolor="#b08d3e" style="font-size:0; line-height:0;">&nbsp;</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              {% if payment_method == 'pix' %}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f7f4" style="background-color:#f3f7f4; border:1px solid #d9e6dd; border-radius:6px;">
+                <tr>
+                  <td style="padding:28px 28px 24px 28px;">
+                    <p style="margin:0 0 6px 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#b08d3e; font-weight:bold;">
+                      Pagamento pendente
+                    </p>
+                    <h2 style="margin:0 0 12px 0; font-family:Georgia, 'Times New Roman', serif; font-size:19px; line-height:26px; font-weight:normal; color:#1f5b40;">
+                      Conclua seu pagamento via PIX
+                    </h2>
+                    <p style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:22px; color:#444444;">
+                      Copie o código abaixo e cole na área PIX do seu banco.
+                      A reserva das suas gemas é válida até <strong>{{ pix_expiration }}</strong>.
+                      após esse prazo, o pedido é cancelado automaticamente.
+                    </p>
+
+                    {% if pix_code %}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color:#ffffff; border:1px dashed #b08d3e; border-radius:4px;">
+                      <tr>
+                        <td style="padding:14px 16px; font-family:'Courier New', Courier, monospace; font-size:12px; line-height:18px; color:#333333; word-break:break-all;">
+                          <span class="pix-code" x-apple-data-detectors="false" data-detector="false" style="color:#333333;text-decoration:none;">{{ pix_code_html }}</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                    {% endif %}
+
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;">
+                      <tr>
+                        <td bgcolor="#1f5b40" style="background-color:#1f5b40; border-radius:4px;">
+                          <a href="{{ order_url }}" target="_blank" style="display:inline-block; padding:13px 32px; font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; letter-spacing:0.5px; color:#ffffff; text-decoration:none; border-radius:4px;">
+                            Ver QR Code e pagar
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              {% elif payment_method == 'credit_card' %}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#faf6ef" style="background-color:#faf6ef; border:1px solid #e8dcc4; border-radius:6px;">
+                <tr>
+                  <td style="padding:28px 28px 24px 28px;">
+                    <p style="margin:0 0 6px 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#b08d3e; font-weight:bold;">
+                      Pagamento não aprovado
+                    </p>
+                    <h2 style="margin:0 0 12px 0; font-family:Georgia, 'Times New Roman', serif; font-size:19px; line-height:26px; font-weight:normal; color:#1f5b40;">
+                      Não foi possível processar seu cartão
+                    </h2>
+                    <p style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:22px; color:#444444;">
+                      Seu pedido está registrado e suas gemas seguem reservadas, mas a operadora
+                      não autorizou o pagamento. Isso costuma ser limite, dados digitados
+                      incorretamente ou bloqueio preventivo do banco. Você pode tentar novamente
+                      com o mesmo cartão, outro cartão ou PIX.
+                    </p>
+
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td bgcolor="#1f5b40" style="background-color:#1f5b40; border-radius:4px;">
+                          <a href="{{ retry_url }}" target="_blank" style="display:inline-block; padding:13px 32px; font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; letter-spacing:0.5px; color:#ffffff; text-decoration:none; border-radius:4px;">
+                            Tentar pagamento novamente
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              {% elif payment_method == 'boleto' %}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f7f4" style="background-color:#f3f7f4; border:1px solid #d9e6dd; border-radius:6px;">
+                <tr>
+                  <td style="padding:28px 28px 24px 28px;">
+                    <p style="margin:0 0 6px 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#b08d3e; font-weight:bold;">
+                      Pagamento pendente
+                    </p>
+                    <h2 style="margin:0 0 12px 0; font-family:Georgia, 'Times New Roman', serif; font-size:19px; line-height:26px; font-weight:normal; color:#1f5b40;">
+                      Seu boleto foi gerado
+                    </h2>
+                    <p style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:22px; color:#444444;">
+                      Efetue o pagamento até a data de vencimento para confirmarmos seu pedido.
+                    </p>
+
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td bgcolor="#1f5b40" style="background-color:#1f5b40; border-radius:4px;">
+                          <a href="{{ order_url }}" target="_blank" style="display:inline-block; padding:13px 32px; font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold; letter-spacing:0.5px; color:#ffffff; text-decoration:none; border-radius:4px;">
+                            Ver boleto e pagar
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              {% endif %}
+
+            </td>
+          </tr>
+
+          <!-- RESUMO DO PEDIDO -->
+          <tr>
+            <td bgcolor="#ffffff" style="background-color:#ffffff; padding:36px 40px 8px 40px;" class="px">
+              <p style="margin:0 0 4px 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#b08d3e; font-weight:bold;">
+                Resumo do pedido
+              </p>
+              <h2 style="margin:0 0 18px 0; font-family:Georgia, 'Times New Roman', serif; font-size:19px; line-height:26px; font-weight:normal; color:#1f5b40;">
+                Suas gemas selecionadas
+              </h2>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                {% for item in items %}
+                <tr>
+                  <td class="stack" style="padding:14px 0; border-bottom:1px solid #ece8de; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:21px; color:#2b2b2b; vertical-align:top;">
+                    <strong style="font-family:Georgia, 'Times New Roman', serif; font-size:15px; color:#1f5b40;">{{ item.name }}</strong><br>
+                    <span style="font-size:12px; color:#8a8578;">{% if item.details %}{{ item.details }} &nbsp;·&nbsp; {% endif %}Quantidade: {{ item.quantity }}</span>
+                  </td>
+                  <td class="stack item-price" align="right" style="padding:14px 0; border-bottom:1px solid #ece8de; font-family:Arial, Helvetica, sans-serif; font-size:14px; color:#2b2b2b; vertical-align:top; white-space:nowrap;">
+                    {{ item.price }}
+                  </td>
+                </tr>
+                {% endfor %}
+
+                {% if shipping %}
+                <tr>
+                  <td style="padding:14px 0 4px 0; font-family:Arial, Helvetica, sans-serif; font-size:13px; color:#8a8578;">Frete</td>
+                  <td align="right" style="padding:14px 0 4px 0; font-family:Arial, Helvetica, sans-serif; font-size:13px; color:#8a8578;">{{ shipping }}</td>
+                </tr>
+                {% endif %}
+
+                <tr>
+                  <td style="padding:14px 0 0 0; font-family:Georgia, 'Times New Roman', serif; font-size:16px; color:#1f5b40;">Total</td>
+                  <td align="right" style="padding:14px 0 0 0; font-family:Georgia, 'Times New Roman', serif; font-size:18px; font-weight:bold; color:#1f5b40; white-space:nowrap;">{{ total }}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- NOTA DA CASA -->
+          <tr>
+            <td bgcolor="#ffffff" style="background-color:#ffffff; padding:32px 40px 40px 40px;" class="px">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="border-top:1px solid #ece8de; padding-top:24px; font-family:Georgia, 'Times New Roman', serif; font-size:13px; line-height:21px; color:#8a8578; font-style:italic;" align="center">
+                    Cada pedra deste pedido foi garimpada, lapidada e selecionada à mão
+                    em Minas Gerais, como fazemos há três gerações.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- RODAPÉ -->
+          <tr>
+            <td bgcolor="#143d2b" style="background-color:#143d2b; padding:32px 40px; border-radius:0 0 6px 6px;" class="px" align="center">
+              <p style="margin:0 0 10px 0; font-family:Georgia, 'Times New Roman', serif; font-size:15px; color:#ffffff;">
+                Katsumi Joias
+              </p>
+              <p style="margin:0 0 16px 0; font-family:Arial, Helvetica, sans-serif; font-size:12px; line-height:19px; color:#9dbcab;">
+                Dúvidas sobre seu pedido? Responda este e-mail ou fale conosco.<br>
+                <a href="{{ site_url }}/account" target="_blank" style="color:#cfe3d8; text-decoration:underline;">Minha conta</a>
+                &nbsp;·&nbsp;
+                <a href="{{ site_url }}/guias/certificacao-gemologica" target="_blank" style="color:#cfe3d8; text-decoration:underline;">Certificação Gemológica</a>
+                &nbsp;·&nbsp;
+                <a href="#" target="_blank" style="color:#cfe3d8; text-decoration:underline;">Instagram</a>
+              </p>
+              <p style="margin:0; font-family:Arial, Helvetica, sans-serif; font-size:11px; line-height:17px; color:#6f9682;">
+                © {{ current_year }} Katsumi Joias. Todos os direitos reservados.<br>
+                Você recebeu este e-mail porque realizou um pedido em katsumijoias.com.br.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

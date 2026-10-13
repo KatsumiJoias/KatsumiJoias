@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Compra — Katsumi Joias</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon-96x96.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <meta name="theme-color" content="#1f5b40">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'luxury-gold': '#B68C3F',
+                        'luxury-gold-dark': '#8C6B2E',
+                        'luxury-gold-light': '#D9C18A',
+                        'luxury-black': '#141210',
+                        'luxury-gray': '#F4EFE6',
+                        'luxury-cream': '#FAF7F1',
+                        'luxury-emerald': '#0E3B2E',
+                        'luxury-emerald-dark': '#0a3327',
+                        'pp-border': '#e8e4dc',
+                    },
+                    fontFamily: {
+                        'serif': ['Marcellus', 'serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+
+        input[type="text"], input[type="email"], input[type="tel"],
+        input[type="number"], select, textarea {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.7rem 0.875rem;
+            border: 1px solid #d9d4cb;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-family: 'Inter', sans-serif;
+            background: #fff;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            outline: none;
+            color: #141210;
+        }
+        .form-input:focus {
+            border-color: #B68C3F;
+            box-shadow: 0 0 0 3px rgba(182, 140, 63, 0.15);
+        }
+        .form-input.error { border-color: #ef4444; }
+        .form-label {
+            display: block;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.4rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .form-group { margin-bottom: 1rem; }
+        .form-hint {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 0.35rem;
+        }
+        .section-card {
+            background: #fff;
+            border: 1px solid #e8e4dc;
+            border-radius: 0.75rem;
+            padding: 1.5rem 1.5rem 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 2px rgba(20, 18, 16, 0.04);
+        }
+        .section-title {
+            font-family: 'Marcellus', serif;
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: #141210;
+            margin-bottom: 1.25rem;
+        }
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+        .payment-tab {
+            padding: 1rem 0.75rem;
+            border: 1.5px solid #d9d4cb;
+            border-radius: 0.5rem;
+            background: #fff;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .payment-tab .tab-label {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #141210;
+        }
+        .payment-tab .tab-sub {
+            font-size: 0.6875rem;
+            color: #6b7280;
+            line-height: 1.3;
+        }
+        .payment-tab.active {
+            border-color: #B68C3F;
+            background: #FAF7F1;
+            box-shadow: inset 0 0 0 1px rgba(182, 140, 63, 0.15);
+        }
+        .payment-tab:hover:not(.active) { background: #faf9f7; }
+
+        .order-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.875rem;
+            padding: 0.875rem 0;
+            border-bottom: 1px solid #f0ece4;
+        }
+        .order-item:last-child { border-bottom: none; }
+        .item-img-wrap {
+            width: 72px;
+            height: 72px;
+            border-radius: 0.375rem;
+            background: #E4EBEF;
+            flex-shrink: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .item-img { width: 100%; height: 100%; object-fit: cover; }
+        .item-img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+
+        .btn-primary {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: #B68C3F;
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            letter-spacing: 0.01em;
+        }
+        .btn-primary:hover:not(:disabled) { background: #8C6B2E; }
+        .btn-primary:active:not(:disabled) { transform: scale(0.995); }
+        .btn-primary:disabled { background: #c4b08a; cursor: not-allowed; }
+
+        .spinner {
+            display: inline-block;
+            width: 1.1rem; height: 1.1rem;
+            border: 2px solid rgba(255,255,255,0.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.4rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 0.3rem; display: none; }
+        .error-msg.show { display: block; }
+
+        .summary-sidebar { position: sticky; top: 1.5rem; }
+
+        .card-input-wrapper { position: relative; }
+        .card-brand-icon { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #6b7280; }
+
+        #pix-panel, #card-panel { display: none; }
+        #pix-panel.active, #card-panel.active { display: block; }
+
+        .pix-info {
+            background: #f3f7f4;
+            border: 1px solid #d9e6dd;
+            border-radius: 0.5rem;
+            padding: 1rem 1.125rem;
+        }
+
+        .breadcrumb-step { font-size: 0.8125rem; color: rgba(255,255,255,0.55); transition: color 0.15s; }
+        .breadcrumb-step.active { color: #fff; font-weight: 500; }
+        .breadcrumb-sep { color: rgba(255,255,255,0.35); font-size: 0.75rem; }
+
+        .trust-badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: center;
+        }
+        .trust-badge span { font-size: 0.6875rem; color: #6b7280; line-height: 1.3; }
+
+        .shipping-promo {
+            background: #0E3B2E;
+            color: #fff;
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.375rem;
+        }
+
+        .checkout-footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem 1rem;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 1rem;
+        }
+        .checkout-footer-links a { color: #6b7280; text-decoration: none; }
+        .checkout-footer-links a:hover { color: #141210; text-decoration: underline; }
+
+        .mobile-summary-header {
+            display: flex; align-items: center; justify-content: space-between;
+            cursor: pointer; padding: 1rem 1.25rem;
+            background: #FAF7F1; border-bottom: 1px solid #e8e4dc;
+        }
+        .mobile-summary-body { display: none; padding: 1rem 1.25rem; background: #fff; }
+        .mobile-summary-body.open { display: block; }
+
+        @media (min-width: 1024px) {
+            .mobile-summary-header { display: none; }
+            .mobile-summary-body { display: block !important; padding: 0; background: transparent; }
+        }
+
+        select.form-input {
+            padding-right: 2.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.1rem;
+        }
+    </style>
+</head>
+<body class="bg-luxury-gray font-sans text-luxury-black" style="min-height:100vh;">
+
+<!-- ───── HEADER ───── -->
+<header class="bg-luxury-emerald text-white border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between gap-4 h-16 lg:h-[4.25rem]">
+            <a href="/" class="flex items-center gap-2 flex-shrink-0">
+                <img src="{{ url_for('static', filename='images/logo.png') }}"
+                     alt="Katsumi Joias"
+                     class="h-8 w-auto object-contain">
+                <span class="hidden sm:inline font-serif text-sm tracking-[0.14em] text-white">KATSUMI JOIAS</span>
+            </a>
+
+            <div class="hidden md:flex items-center gap-2">
+                <a href="/cart" class="breadcrumb-step hover:text-white transition-colors">Carrinho</a>
+                <span class="breadcrumb-sep">›</span>
+                <span class="breadcrumb-step active">Informações</span>
+                <span class="breadcrumb-sep">›</span>
+                <span class="breadcrumb-step">Pagamento</span>
+                <span class="breadcrumb-sep">›</span>
+                <span class="breadcrumb-step">Confirmação</span>
+            </div>
+
+            <div class="flex items-center gap-3 sm:gap-5 flex-shrink-0">
+                <span class="hidden lg:flex items-center gap-1.5 text-xs text-white/70">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    Ambiente seguro
+                </span>
+                <a href="/?openCart=1" class="text-xs sm:text-sm text-white/80 hover:text-white transition-colors flex items-center gap-1 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    <span class="hidden sm:inline">Voltar ao carrinho</span>
+                    <span class="sm:hidden">Carrinho</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ───── MOBILE ORDER SUMMARY TOGGLE ───── -->
+<div class="lg:hidden" id="mobile-order-summary" style="border-bottom:1px solid #e8e4dc;">
+    <div class="mobile-summary-header" onclick="toggleMobileSummary()">
+        <div class="flex items-center gap-2 text-sm font-medium text-luxury-emerald">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+            Mostrar resumo do pedido
+            <svg id="summary-chevron" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </div>
+        <span class="font-semibold text-luxury-black" id="mobile-total-display">R$ 0,00</span>
+    </div>
+    <div class="mobile-summary-body" id="mobile-summary-body">
+        <div id="mobile-order-items-list"></div>
+        <div class="border-t border-pp-border pt-3 mt-2 space-y-1.5">
+            <div class="flex justify-between text-sm"><span class="text-gray-500">Subtotal</span><span id="mobile-subtotal">R$ 0,00</span></div>
+            <div class="flex justify-between text-sm"><span class="text-gray-500">Frete</span><span id="mobile-shipping" class="font-medium">—</span></div>
+            <div class="flex justify-between font-semibold"><span>Total</span><span id="mobile-total">R$ 0,00</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ───── MAIN CONTENT ───── -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+    <div class="flex flex-col lg:flex-row gap-6 lg:gap-10 items-start">
+
+        <!-- ═══ LEFT: CHECKOUT FORM ═══ -->
+        <div class="flex-1 min-w-0">
+
+            <!-- Empty cart warning -->
+            <div id="empty-cart-warning" class="hidden section-card text-center py-8">
+                <svg class="mx-auto w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                </svg>
+                <p class="text-gray-500 mb-4">Seu carrinho está vazio.</p>
+                <a href="/products" class="inline-block px-6 py-2.5 bg-luxury-emerald text-white rounded-lg text-sm font-medium hover:bg-luxury-emerald-dark transition-colors">Ver produtos</a>
+            </div>
+
+            <form id="checkout-form" autocomplete="on" novalidate>
+
+                <!-- ── Section 1: Contact ── -->
+                <div class="section-card">
+                    <div class="section-title">Informações de contato</div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                        <div class="form-group">
+                            <label class="form-label" for="field-name">Nome completo *</label>
+                            <input type="text" id="field-name" name="name" class="form-input" placeholder="Seu nome completo" autocomplete="name" required>
+                            <div class="error-msg" id="err-name">Por favor, informe seu nome completo.</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="field-email">E-mail *</label>
+                            <input type="email" id="field-email" name="email" class="form-input" placeholder="seu@email.com" autocomplete="email" required>
+                            <div class="error-msg" id="err-email">Por favor, informe um e-mail válido.</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="field-cpf">CPF *</label>
+                            <input type="text" id="field-cpf" name="cpf" class="form-input" placeholder="000.000.000-00" autocomplete="off" maxlength="14" required>
+                            <div class="error-msg" id="err-cpf">CPF inválido.</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="field-phone">Telefone / WhatsApp *</label>
+                            <input type="tel" id="field-phone" name="phone" class="form-input" placeholder="(31) 9115-0029" autocomplete="tel" required>
+                            <div class="error-msg" id="err-phone">Por favor, informe um telefone válido.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Section 2: Shipping Address ── -->
+                <div class="section-card">
+                    <div class="section-title">Endereço de entrega</div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4">
+                        <div class="form-group sm:col-span-1">
+                            <label class="form-label" for="field-cep">CEP *</label>
+                            <div class="relative">
+                                <input type="text" id="field-cep" name="cep" class="form-input" placeholder="00000-000" maxlength="9" required>
+                                <div id="cep-spinner" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div class="spinner" style="border-color:rgba(0,0,0,.15); border-top-color:#B68C3F; width:.9rem; height:.9rem;"></div>
+                                </div>
+                            </div>
+                            <div class="error-msg" id="err-cep">CEP inválido.</div>
+                            <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener" class="text-xs text-luxury-gold hover:underline mt-1 inline-block">Não sei meu CEP</a>
+                        </div>
+                        <div class="form-group sm:col-span-2">
+                            <label class="form-label" for="field-street">Rua / Avenida *</label>
+                            <input type="text" id="field-street" name="street" class="form-input" placeholder="Rua das Pedras" autocomplete="address-line1" required>
+                            <p class="form-hint">Preenchido automaticamente pelo CEP quando possível</p>
+                            <div class="error-msg" id="err-street">Por favor, informe o logradouro.</div>
+                        </div>
+                        <div class="form-group sm:col-span-1">
+                            <label class="form-label" for="field-number">Número *</label>
+                            <input type="text" id="field-number" name="number" class="form-input" placeholder="123" required>
+                            <div class="error-msg" id="err-number">Por favor, informe o número.</div>
+                        </div>
+                        <div class="form-group sm:col-span-2">
+                            <label class="form-label" for="field-complement">Complemento</label>
+                            <input type="text" id="field-complement" name="complement" class="form-input" placeholder="Apto 42, bloco B (opcional)" autocomplete="address-line2">
+                        </div>
+                        <div class="form-group sm:col-span-1">
+                            <label class="form-label" for="field-neighborhood">Bairro *</label>
+                            <input type="text" id="field-neighborhood" name="neighborhood" class="form-input" placeholder="Centro" required>
+                            <div class="error-msg" id="err-neighborhood">Por favor, informe o bairro.</div>
+                        </div>
+                        <div class="form-group sm:col-span-1">
+                            <label class="form-label" for="field-city">Cidade *</label>
+                            <input type="text" id="field-city" name="city" class="form-input" placeholder="São Paulo" autocomplete="address-level2" required>
+                            <div class="error-msg" id="err-city">Por favor, informe a cidade.</div>
+                        </div>
+                        <div class="form-group sm:col-span-1">
+                            <label class="form-label" for="field-state">Estado *</label>
+                            <select id="field-state" name="state" class="form-input" required>
+                                <option value="">Selecione</option>
+                                <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+                                <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                                <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+                                <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+                                <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                                <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+                                <option>SP</option><option>SE</option><option>TO</option>
+                            </select>
+                            <div class="error-msg" id="err-state">Selecione o estado.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Section 3: Payment ── -->
+                <div class="section-card">
+                    <div class="section-title">Pagamento</div>
+
+                    <!-- Payment method tabs -->
+                    <div class="payment-methods" role="group" aria-label="Método de pagamento">
+                        <button type="button" class="payment-tab active" id="tab-pix" onclick="setPaymentMethod('pix')">
+                            <span class="tab-label">PIX</span>
+                            <span class="tab-sub">5% de desconto · aprovação imediata</span>
+                        </button>
+                        <button type="button" class="payment-tab" id="tab-credit_card" onclick="setPaymentMethod('credit_card')">
+                            <span class="tab-label">Cartão de crédito</span>
+                            <span class="tab-sub">Em até 5x sem juros</span>
+                        </button>
+                    </div>
+
+                    <!-- PIX panel -->
+                    <div id="pix-panel" class="active">
+                        <div class="pix-info">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 text-luxury-emerald flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <div class="text-sm">
+                                    <p class="font-medium text-luxury-black mb-1">Pagamento instantâneo com PIX</p>
+                                    <p class="text-gray-600 leading-relaxed">Após confirmar, você receberá um QR Code PIX para pagar. O QR Code expira em <strong>1 hora</strong>. Disponível 24h, 7 dias por semana.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Credit Card panel -->
+                    <div id="card-panel">
+                        <div class="grid grid-cols-1 gap-y-3">
+                            <div class="form-group mb-0">
+                                <label class="form-label" for="card-number">Número do cartão</label>
+                                <div class="card-input-wrapper">
+                                    <input type="text" id="card-number" class="form-input" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number" inputmode="numeric">
+                                    <span class="card-brand-icon" id="card-brand-icon">💳</span>
+                                </div>
+                                <div class="error-msg" id="err-card-number">Número do cartão inválido.</div>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label" for="card-holder">Nome no cartão</label>
+                                <input type="text" id="card-holder" class="form-input" placeholder="NOME COMO NO CARTÃO" autocomplete="cc-name" style="text-transform:uppercase;">
+                                <div class="error-msg" id="err-card-holder">Informe o nome como impresso no cartão.</div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group mb-0">
+                                    <label class="form-label" for="card-expiry">Validade</label>
+                                    <input type="text" id="card-expiry" class="form-input" placeholder="MM/AA" maxlength="5" autocomplete="cc-exp">
+                                    <div class="error-msg" id="err-card-expiry">Data inválida.</div>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label" for="card-cvv">CVV</label>
+                                    <input type="text" id="card-cvv" class="form-input" placeholder="123" maxlength="4" autocomplete="cc-csc" inputmode="numeric">
+                                    <div class="error-msg" id="err-card-cvv">CVV inválido.</div>
+                                </div>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label" for="card-installments">Parcelamento</label>
+                                <select id="card-installments" class="form-input">
+                                    <option value="1">À vista (1x)</option>
+                                    <option value="2">2x</option>
+                                    <option value="3">3x</option>
+                                    <option value="4">4x</option>
+                                    <option value="5">5x</option>
+                                </select>
+                            </div>
+                            <p class="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
+                                <svg class="w-3.5 h-3.5 text-luxury-emerald flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Pagamento 100% seguro via Pagar.me. Seus dados são criptografados.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ── Global form error ── -->
+                <div id="form-global-error" class="hidden section-card" style="border-color:#fca5a5; background:#fef2f2;">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <p class="text-sm text-red-700" id="form-global-error-msg">Ocorreu um erro. Por favor, tente novamente.</p>
+                    </div>
+                </div>
+
+                <!-- ── Submit button ── -->
+                <button type="submit" class="btn-primary" id="submit-btn">
+                    <span id="submit-label">Pagar com PIX</span>
+                </button>
+
+                <div class="checkout-footer-links">
+                    <a href="/terms-of-service" target="_blank">Termos de Serviço</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/privacy-policy" target="_blank">Política de Privacidade</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="https://wa.me/5531911500029" target="_blank" rel="noopener">WhatsApp (31) 9115-0029</a>
+                </div>
+
+            </form>
+        </div><!-- end left -->
+
+        <!-- ═══ RIGHT: ORDER SUMMARY (desktop) ═══ -->
+        <aside class="lg:w-[22rem] xl:w-[24rem] hidden lg:block w-full">
+            <div class="summary-sidebar space-y-4">
+                <div class="section-card mb-0">
+                    <div class="section-title">Resumo do pedido</div>
+                    <div id="order-items-list">
+                        <div class="text-center py-6 text-gray-400 text-sm">Carregando itens…</div>
+                    </div>
+                    <div class="border-t border-pp-border pt-4 mt-1 space-y-2.5">
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Subtotal</span>
+                            <span id="sidebar-subtotal">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Frete</span>
+                            <span id="sidebar-shipping" class="font-medium text-gray-500">—</span>
+                        </div>
+                        <div class="flex justify-between items-baseline pt-2 border-t border-pp-border">
+                            <span class="font-serif text-base text-luxury-black" id="sidebar-total-label">Total no PIX</span>
+                            <span id="sidebar-total" class="text-xl font-semibold text-luxury-black">R$ 0,00</span>
+                        </div>
+                        <p class="text-xs text-gray-500 text-center pt-1" id="sidebar-installment-note">No cartão: em até 5x sem juros</p>
+                    </div>
+                </div>
+
+                <!-- Trust badges -->
+                <div class="section-card mb-0 py-5">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="trust-badge">
+                            <svg class="w-7 h-7 text-luxury-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            <span>Compra protegida</span>
+                        </div>
+                        <div class="trust-badge">
+                            <svg class="w-7 h-7 text-luxury-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <span>Ambiente seguro SSL</span>
+                        </div>
+                        <div class="trust-badge">
+                            <svg class="w-7 h-7 text-luxury-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span>Laudo Gemológico</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping promo -->
+                <div class="shipping-promo">
+                    <h3 class="font-serif text-base mb-2">Envio segurado, do cofre à sua porta</h3>
+                    <p class="text-sm text-white/75 leading-relaxed mb-3">
+                        Suas gemas são embaladas com discrição e rastreamento completo até a entrega.
+                    </p>
+                    <a href="/guias/como-funciona-o-envio" class="text-sm text-luxury-gold-light hover:text-white transition-colors inline-flex items-center gap-1">
+                        Como funciona o envio
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+</main>
+
+<!-- ───── SCRIPTS ───── -->
+<script>
+// ─────────────────────────────────────────────
+//  Config injected by server
+// ─────────────────────────────────────────────
+const PAGARME_PUBLIC_KEY = "{{ pagarme_public_key }}";
+const EXCHANGE_RATE       = {{ exchange_rate | tojson }};
+const CERTIFICATE_PRODUCT_ID = 'IQROwNnZhK67ZQHEQram';
+const MIN_CREDIT_CARD_BRL = 1.0;
+
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+let currentPaymentMethod = 'pix';
+let cartItems = [];
+let cartTotalBRL = 0;
+let currentShippingCost = 0;
+let shippingFreeMin = 300; // updated from server
+
+let certificateUnitUSD = 0;
+
+// ─────────────────────────────────────────────
+//  On load
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async function () {
+    try {
+        const res = await fetch('/api/certificate-product');
+        if (res.ok) {
+            const cert = await res.json();
+            const discount = cert.discount || 0;
+            certificateUnitUSD = cert.price * (1 - discount / 100);
+        }
+    } catch (_) {}
+    loadCart();
+    setupInputMasks();
+    prefillFromSession();
+
+    // Listen for state changes to recalculate shipping
+    const stateSelect = document.getElementById('field-state');
+    if (stateSelect) {
+        stateSelect.addEventListener('change', function () {
+            recalcShipping();
+        });
+    }
+});
+
+// ─────────────────────────────────────────────
+//  Cart loading
+// ─────────────────────────────────────────────
+function loadCart() {
+    try {
+        cartItems = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem('cart') || '[]');
+    } catch (e) {
+        cartItems = [];
+    }
+    cartItems = cartItems.filter(i => i.id !== CERTIFICATE_PRODUCT_ID);
+
+    if (!cartItems || cartItems.length === 0) {
+        document.getElementById('checkout-form').classList.add('hidden');
+        document.getElementById('empty-cart-warning').classList.remove('hidden');
+        document.getElementById('submit-btn').disabled = true;
+        return;
+    }
+
+    renderCartSummary();
+}
+
+function calcItemPriceBRL(item) {
+    const priceUSD = parseFloat(item.price) || 0;
+    const qty      = parseInt(item.quantity) || 1;
+    const carat    = parseFloat(item.caratWeight) || 1;
+    const discount = item.discount || 0;
+    let totalUSD = priceUSD * carat * qty * (1 - discount / 100);
+    if (item.wantsCertificate && certificateUnitUSD) {
+        totalUSD += certificateUnitUSD;
+    }
+    if (EXCHANGE_RATE && EXCHANGE_RATE.rate) {
+        return totalUSD * EXCHANGE_RATE.rate;
+    }
+    return totalUSD;
+}
+
+function fmtBRL(value) {
+    return 'R$ ' + value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function renderCartSummary() {
+    cartTotalBRL = 0;
+    const desktopList  = document.getElementById('order-items-list');
+    const mobileList   = document.getElementById('mobile-order-items-list');
+    let desktopHtml = '';
+    let mobileHtml  = '';
+
+    cartItems.forEach(item => {
+        const priceBRL = calcItemPriceBRL(item);
+        cartTotalBRL  += priceBRL;
+
+        const img = item.image
+            ? `<div class="item-img-wrap"><img src="${escHtml(item.image)}" alt="${escHtml(item.name)}" class="item-img"></div>`
+            : `<div class="item-img-wrap"><div class="item-img-placeholder"><svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg></div></div>`;
+
+        const specsParts = [];
+        if (item.caratWeight) specsParts.push(`${item.caratWeight} ct`);
+        specsParts.push('peça única');
+        const specsHtml = `<p class="text-xs text-gray-500 mt-0.5">${specsParts.join(' · ')}</p>`;
+
+        const certHtml = item.wantsCertificate
+                        ? `<p class="text-xs text-luxury-gold font-medium mt-0.5">+ Laudo Gemológico</p>`
+            : '';
+
+        const row = `
+            <div class="order-item">
+                ${img}
+                <div class="flex-1 min-w-0 pr-2">
+                    <p class="text-sm font-semibold text-luxury-black leading-snug">${escHtml(item.name)}</p>
+                    ${specsHtml}
+                    ${certHtml}
+                </div>
+                <span class="text-sm font-semibold text-luxury-black flex-shrink-0">${fmtBRL(priceBRL)}</span>
+            </div>`;
+        desktopHtml += row;
+        mobileHtml  += row;
+    });
+
+    if (desktopList)  desktopList.innerHTML  = desktopHtml;
+    if (mobileList)   mobileList.innerHTML   = mobileHtml;
+
+    const subtotalEl = document.getElementById('sidebar-subtotal');
+    const totalEl    = document.getElementById('sidebar-total');
+    const mobTotalDisplay = document.getElementById('mobile-total-display');
+    const mobSubtotal = document.getElementById('mobile-subtotal');
+    const mobTotal    = document.getElementById('mobile-total');
+
+    if (subtotalEl) subtotalEl.textContent = fmtBRL(cartTotalBRL);
+    if (mobSubtotal)     mobSubtotal.textContent     = fmtBRL(cartTotalBRL);
+
+    // Re-run shipping calc (in case state already filled)
+    const state = document.getElementById('field-state')?.value;
+    if (state) {
+        recalcShipping();
+    } else {
+        // No state yet — show subtotal as total
+        if (totalEl)         totalEl.textContent         = fmtBRL(cartTotalBRL);
+        if (mobTotalDisplay) mobTotalDisplay.textContent = fmtBRL(cartTotalBRL);
+        if (mobTotal)        mobTotal.textContent        = fmtBRL(cartTotalBRL);
+        updateInstallmentOptions(cartTotalBRL);
+        updateSubmitLabel(cartTotalBRL);
+        updateInstallmentNote(cartTotalBRL);
+    }
+}
+
+// ─────────────────────────────────────────────
+//  Shipping calculation
+// ─────────────────────────────────────────────
+async function recalcShipping() {
+    const state = document.getElementById('field-state')?.value || '';
+    if (!state) {
+        setShippingDisplay(null, null);
+        return;
+    }
+    try {
+        const url = `/api/shipping/calculate?state=${encodeURIComponent(state)}&total=${cartTotalBRL.toFixed(2)}`;
+        const res  = await fetch(url);
+        const data = await res.json();
+
+        currentShippingCost = data.shipping_cost || 0;
+        shippingFreeMin     = data.minimum || 300;
+        setShippingDisplay(currentShippingCost, data.free_shipping);
+        updateGrandTotal();
+    } catch (e) {
+        setShippingDisplay(null, null);
+    }
+}
+
+function setShippingDisplay(cost, isFree) {
+    const ids = ['sidebar-shipping', 'mobile-shipping'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (cost === null) {
+            el.textContent = '—';
+            el.className = el.className.replace(/text-\S+/g, '').trim() + ' text-gray-500 font-medium';
+        } else if (isFree) {
+            el.textContent = 'Grátis';
+            el.className = el.className.replace(/text-\S+/g, '').trim() + ' text-luxury-emerald font-semibold';
+        } else if (cost === 0) {
+            el.textContent = 'Grátis';
+            el.className = el.className.replace(/text-\S+/g, '').trim() + ' text-luxury-emerald font-semibold';
+        } else {
+            el.textContent = fmtBRL(cost);
+            el.className = el.className.replace(/text-\S+/g, '').trim() + ' text-gray-700 font-medium';
+        }
+    });
+}
+
+function updateGrandTotal() {
+    const grand = cartTotalBRL + currentShippingCost;
+    const totalEls = ['sidebar-total', 'mobile-total', 'mobile-total-display'];
+    totalEls.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = fmtBRL(grand);
+    });
+    updateInstallmentOptions(grand);
+    updateSubmitLabel(grand);
+    updateInstallmentNote(grand);
+}
+
+function updateSubmitLabel(grandTotal) {
+    const lbl = document.getElementById('submit-label');
+    const totalLabel = document.getElementById('sidebar-total-label');
+    const submitBtn = document.getElementById('submit-btn');
+    const total = grandTotal != null ? grandTotal : cartTotalBRL + currentShippingCost;
+    const cardTooLow = total < MIN_CREDIT_CARD_BRL;
+
+    if (lbl) {
+        if (currentPaymentMethod === 'pix') {
+            lbl.textContent = `Pagar ${fmtBRL(total)} com PIX`;
+        } else if (cardTooLow) {
+            lbl.textContent = 'Cartão a partir de R$ 1,00';
+        } else {
+                            lbl.textContent = `Finalizar com cartão: ${fmtBRL(total)}`;
+        }
+    }
+    if (totalLabel) {
+        totalLabel.textContent = currentPaymentMethod === 'pix' ? 'Total no PIX' : 'Total no cartão';
+    }
+    if (submitBtn) {
+        submitBtn.disabled = currentPaymentMethod === 'credit_card' && cardTooLow;
+        submitBtn.classList.toggle('opacity-50', submitBtn.disabled);
+        submitBtn.classList.toggle('cursor-not-allowed', submitBtn.disabled);
+    }
+}
+
+function updateInstallmentNote(grandTotal) {
+    const note = document.getElementById('sidebar-installment-note');
+    if (!note) return;
+    const total = grandTotal != null ? grandTotal : cartTotalBRL + currentShippingCost;
+    const installment = total / 5;
+    note.textContent = `No cartão: em até 5x de ${fmtBRL(installment)} sem juros`;
+}
+
+function updateInstallmentOptions(totalBRL) {
+    const sel = document.getElementById('card-installments');
+    if (!sel) return;
+    const maxInstallments = 5;
+    sel.innerHTML = '';
+    for (let i = 1; i <= maxInstallments; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        const installPrice = totalBRL / i;
+        if (i === 1) {
+            opt.textContent = `À vista: ${fmtBRL(totalBRL)}`;
+        } else {
+            opt.textContent = `${i}x de ${fmtBRL(installPrice)} sem juros`;
+        }
+        sel.appendChild(opt);
+    }
+}
+
+function escHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// ─────────────────────────────────────────────
+//  Payment method toggle
+// ─────────────────────────────────────────────
+function setPaymentMethod(method) {
+    currentPaymentMethod = method;
+    ['pix', 'credit_card'].forEach(m => {
+        const tab   = document.getElementById(`tab-${m}`);
+        const panel = document.getElementById(`${m === 'credit_card' ? 'card' : m}-panel`);
+        if (tab)   tab.classList.toggle('active', m === method);
+        if (panel) panel.classList.toggle('active', m === method);
+    });
+    updateSubmitLabel();
+}
+
+// ─────────────────────────────────────────────
+//  Mobile summary toggle
+// ─────────────────────────────────────────────
+function toggleMobileSummary() {
+    const body    = document.getElementById('mobile-summary-body');
+    const chevron = document.getElementById('summary-chevron');
+    const isOpen  = body.classList.toggle('open');
+    chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
+}
+
+// ─────────────────────────────────────────────
+//  Input masks
+// ─────────────────────────────────────────────
+function setupInputMasks() {
+    // CPF mask: 000.000.000-00
+    const cpfInput = document.getElementById('field-cpf');
+    cpfInput.addEventListener('input', function () {
+        let v = this.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 9)      v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+        else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+        this.value = v;
+    });
+
+    // Phone mask: (00) 00000-0000
+    const phoneInput = document.getElementById('field-phone');
+    phoneInput.addEventListener('input', function () {
+        let v = this.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 7)      v = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+        else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+        this.value = v;
+    });
+
+    // CEP mask: 00000-000
+    const cepInput = document.getElementById('field-cep');
+    cepInput.addEventListener('input', function () {
+        let v = this.value.replace(/\D/g, '').slice(0, 8);
+        if (v.length > 5) v = v.replace(/(\d{5})(\d{0,3})/, '$1-$2');
+        this.value = v;
+        if (v.replace('-', '').length === 8) fetchCEP(v);
+    });
+
+    // Card number mask: 0000 0000 0000 0000
+    const cardNum = document.getElementById('card-number');
+    cardNum.addEventListener('input', function () {
+        let v = this.value.replace(/\D/g, '').slice(0, 16);
+        v = v.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+        this.value = v;
+        detectCardBrand(v.replace(/\s/g, ''));
+    });
+
+    // Expiry mask: MM/AA
+    const expiry = document.getElementById('card-expiry');
+    expiry.addEventListener('input', function () {
+        let v = this.value.replace(/\D/g, '').slice(0, 4);
+        if (v.length > 2) v = v.replace(/(\d{2})(\d{0,2})/, '$1/$2');
+        this.value = v;
+    });
+
+    // CVV: digits only
+    const cvv = document.getElementById('card-cvv');
+    cvv.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 4);
+    });
+
+    // Card holder uppercase
+    const holder = document.getElementById('card-holder');
+    holder.addEventListener('input', function () {
+        this.value = this.value.toUpperCase();
+    });
+}
+
+// ─────────────────────────────────────────────
+//  CEP lookup (ViaCEP)
+// ─────────────────────────────────────────────
+async function fetchCEP(cep) {
+    const spinner = document.getElementById('cep-spinner');
+    const cleanCEP = cep.replace('-', '');
+    spinner.classList.remove('hidden');
+    try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+            setVal('field-street',       data.logradouro || '');
+            setVal('field-neighborhood', data.bairro     || '');
+            setVal('field-city',         data.localidade || '');
+            setVal('field-state',        data.uf         || '');
+            // Focus number field and recalculate shipping
+            setTimeout(() => {
+                document.getElementById('field-number').focus();
+                recalcShipping();
+            }, 100);
+            clearErr('err-cep');
+        } else {
+            showErr('err-cep', 'CEP não encontrado.');
+        }
+    } catch (e) {
+        // Silently fail
+    } finally {
+        spinner.classList.add('hidden');
+    }
+}
+
+function setVal(id, v) {
+    const el = document.getElementById(id);
+    if (el) el.value = v;
+}
+
+// ─────────────────────────────────────────────
+//  Card brand detection
+// ─────────────────────────────────────────────
+function detectCardBrand(num) {
+    const icon = document.getElementById('card-brand-icon');
+    if (!icon) return;
+    if (/^4/.test(num))                         icon.textContent = '💳 Visa';
+    else if (/^(51|52|53|54|55|2[2-7])/.test(num)) icon.textContent = '💳 Master';
+    else if (/^3[47]/.test(num))                icon.textContent = '💳 Amex';
+    else if (/^60/.test(num))                   icon.textContent = '💳 Hiper';
+    else if (/^(636|637|638)/.test(num))        icon.textContent = '💳 Hiper';
+    else if (/^356|^357|^358/.test(num))        icon.textContent = '💳 JCB';
+    else                                         icon.textContent = '💳';
+}
+
+// ─────────────────────────────────────────────
+//  CPF validation
+// ─────────────────────────────────────────────
+function validateCPF(cpf) {
+    cpf = cpf.replace(/\D/g, '');
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+    let sum = 0;
+    for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
+    let r = (sum * 10) % 11;
+    if (r === 10 || r === 11) r = 0;
+    if (r !== parseInt(cpf[9])) return false;
+    sum = 0;
+    for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
+    r = (sum * 10) % 11;
+    if (r === 10 || r === 11) r = 0;
+    return r === parseInt(cpf[10]);
+}
+
+// ─────────────────────────────────────────────
+//  Form validation helpers
+// ─────────────────────────────────────────────
+function showErr(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (msg) el.textContent = msg;
+    el.classList.add('show');
+    const inp = el.previousElementSibling?.tagName === 'INPUT' || el.previousElementSibling?.tagName === 'SELECT'
+        ? el.previousElementSibling
+        : el.closest('.form-group')?.querySelector('.form-input');
+    if (inp) inp.classList.add('error');
+}
+function clearErr(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('show');
+    const inp = el.closest('.form-group')?.querySelector('.form-input');
+    if (inp) inp.classList.remove('error');
+}
+function clearAllErrors() {
+    document.querySelectorAll('.error-msg').forEach(e => e.classList.remove('show'));
+    document.querySelectorAll('.form-input').forEach(e => e.classList.remove('error'));
+    document.getElementById('form-global-error').classList.add('hidden');
+}
+
+function validateForm() {
+    let valid = true;
+    clearAllErrors();
+
+    const name  = document.getElementById('field-name').value.trim();
+    const email = document.getElementById('field-email').value.trim();
+    const cpf   = document.getElementById('field-cpf').value.trim();
+    const phone = document.getElementById('field-phone').value.trim();
+
+    if (!name || name.split(' ').length < 2) { showErr('err-name'); valid = false; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('err-email'); valid = false; }
+    if (!validateCPF(cpf)) { showErr('err-cpf'); valid = false; }
+    if (phone.replace(/\D/g,'').length < 10) { showErr('err-phone'); valid = false; }
+
+    const cep   = document.getElementById('field-cep').value.replace(/\D/g,'');
+    const street = document.getElementById('field-street').value.trim();
+    const number = document.getElementById('field-number').value.trim();
+    const nbhd  = document.getElementById('field-neighborhood').value.trim();
+    const city  = document.getElementById('field-city').value.trim();
+    const state = document.getElementById('field-state').value.trim();
+
+    if (cep.length !== 8) { showErr('err-cep'); valid = false; }
+    if (!street)           { showErr('err-street'); valid = false; }
+    if (!number)           { showErr('err-number'); valid = false; }
+    if (!nbhd)             { showErr('err-neighborhood'); valid = false; }
+    if (!city)             { showErr('err-city'); valid = false; }
+    if (!state)            { showErr('err-state'); valid = false; }
+
+    if (currentPaymentMethod === 'credit_card') {
+        const total = cartTotalBRL + currentShippingCost;
+        if (total < MIN_CREDIT_CARD_BRL) {
+            showGlobalError('Pagamento no cartão disponível apenas para pedidos a partir de R$ 1,00. Use PIX para valores menores.');
+            valid = false;
+        }
+        const cardNum  = document.getElementById('card-number').value.replace(/\D/g,'');
+        const holder   = document.getElementById('card-holder').value.trim();
+        const expiry   = document.getElementById('card-expiry').value.trim();
+        const cvv      = document.getElementById('card-cvv').value.trim();
+        if (cardNum.length < 13) { showErr('err-card-number'); valid = false; }
+        if (!holder)              { showErr('err-card-holder'); valid = false; }
+        if (!/^\d{2}\/\d{2}$/.test(expiry)) { showErr('err-card-expiry'); valid = false; }
+        if (cvv.length < 3)       { showErr('err-card-cvv'); valid = false; }
+    }
+
+    return valid;
+}
+
+// ─────────────────────────────────────────────
+//  Card tokenization via Pagar.me API v5
+// ─────────────────────────────────────────────
+async function tokenizeCard() {
+    const numRaw = document.getElementById('card-number').value.replace(/\D/g,'');
+    const holder = document.getElementById('card-holder').value.trim();
+    const expiry = document.getElementById('card-expiry').value.trim().split('/');
+    const cvv    = document.getElementById('card-cvv').value.trim();
+
+    const expMonth = expiry[0];
+    const expYear  = expiry.length > 1 ? (expiry[1].length === 2 ? '20' + expiry[1] : expiry[1]) : '';
+
+    const payload = {
+        type: 'card',
+        card: {
+            number:      numRaw,
+            holder_name: holder,
+            exp_month:   expMonth,
+            exp_year:    expYear,
+            cvv:         cvv,
+        }
+    };
+
+    try {
+        const res = await fetch(
+            `https://api.pagar.me/core/v5/tokens?appId=${encodeURIComponent(PAGARME_PUBLIC_KEY)}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            }
+        );
+        const data = await res.json();
+        if (!res.ok) {
+            const msg = data.message || 'Erro ao processar cartão.';
+            showGlobalError('Erro no cartão: ' + msg);
+            return null;
+        }
+        return data.id; // token ID
+    } catch (e) {
+        showGlobalError('Erro de conexão ao processar cartão. Verifique sua internet.');
+        return null;
+    }
+}
+
+// ─────────────────────────────────────────────
+//  Form submit
+// ─────────────────────────────────────────────
+document.getElementById('checkout-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!validateForm()) {
+        document.querySelector('.error-msg.show')?.closest('.section-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    setLoading(true);
+
+    // Build payload
+    const address = {
+        cep:          document.getElementById('field-cep').value.replace(/\D/g,''),
+        street:       document.getElementById('field-street').value.trim(),
+        number:       document.getElementById('field-number').value.trim(),
+        complement:   document.getElementById('field-complement').value.trim(),
+        neighborhood: document.getElementById('field-neighborhood').value.trim(),
+        city:         document.getElementById('field-city').value.trim(),
+        state:        document.getElementById('field-state').value.trim(),
+    };
+
+    const formData = {
+        name:           document.getElementById('field-name').value.trim(),
+        email:          document.getElementById('field-email').value.trim().toLowerCase(),
+        cpf:            document.getElementById('field-cpf').value.replace(/\D/g,''),
+        phone:          document.getElementById('field-phone').value.replace(/\D/g,''),
+        address:        address,
+        payment_method: currentPaymentMethod,
+        cart_items:     typeof getCart === 'function' ? getCart().filter(i => i.id !== CERTIFICATE_PRODUCT_ID) : cartItems,
+        currency:       'BRL',
+        // shipping hint from client (server always re-calculates to prevent tampering)
+        client_shipping_cost: currentShippingCost,
+    };
+
+    // Tokenize card if needed
+    if (currentPaymentMethod === 'credit_card') {
+        const token = await tokenizeCard();
+        if (!token) { setLoading(false); return; }
+        formData.card_token   = token;
+        formData.installments = parseInt(document.getElementById('card-installments').value) || 1;
+    }
+
+    // Submit to server
+    try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (window._checkoutIdToken) {
+            headers['Authorization'] = 'Bearer ' + window._checkoutIdToken;
+        }
+        const res = await fetch('/api/checkout/process', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(formData),
+        });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+            showGlobalError(data.error || data.message || 'Erro ao processar pagamento. Tente novamente.');
+            setLoading(false);
+            return;
+        }
+
+        // Clear cart and redirect to success
+        localStorage.removeItem('cart');
+        window.location.href = `/checkout/success/${data.order_id}`;
+
+    } catch (err) {
+        showGlobalError('Erro de conexão. Verifique sua internet e tente novamente.');
+        setLoading(false);
+    }
+});
+
+// ─────────────────────────────────────────────
+//  UI helpers
+// ─────────────────────────────────────────────
+function setLoading(loading) {
+    const btn = document.getElementById('submit-btn');
+    const lbl = document.getElementById('submit-label');
+    btn.disabled = loading;
+    if (loading) {
+        lbl.innerHTML = '<span class="spinner"></span> Processando…';
+    } else {
+        updateSubmitLabel();
+    }
+}
+
+function showGlobalError(msg) {
+    const box = document.getElementById('form-global-error');
+    document.getElementById('form-global-error-msg').textContent = msg;
+    box.classList.remove('hidden');
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ─────────────────────────────────────────────
+//  Prefill from session (if logged in)
+// ─────────────────────────────────────────────
+async function prefillFromSession() {
+    // Fallback: prefill from localStorage
+    const saved = JSON.parse(localStorage.getItem('checkout_info') || 'null');
+    if (saved) {
+        if (saved.name)  document.getElementById('field-name').value  = saved.name;
+        if (saved.email) document.getElementById('field-email').value = saved.email;
+        if (saved.phone) document.getElementById('field-phone').value = saved.phone;
+    }
+
+    // Try to prefill from Firebase account data
+    try {
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+        const { getAuth, onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+
+        const firebaseConfig = {
+            apiKey: "{{ firebase_config.apiKey }}",
+            authDomain: "{{ firebase_config.authDomain }}",
+            projectId: "{{ firebase_config.projectId }}",
+            storageBucket: "{{ firebase_config.storageBucket }}",
+            messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+            appId: "{{ firebase_config.appId }}"
+        };
+        const fbApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+        const auth = getAuth(fbApp);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) return;
+            try {
+                const idToken = await user.getIdToken();
+                window._checkoutIdToken = idToken;
+                const res = await fetch('/api/account/data', {
+                    headers: { 'Authorization': 'Bearer ' + idToken }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const addr = data.address_structured || {};
+
+                function setIfEmpty(id, val) {
+                    const el = document.getElementById(id);
+                    if (el && !el.value && val) el.value = val;
+                }
+
+                setIfEmpty('field-name',         data.name || user.displayName || '');
+                setIfEmpty('field-email',         user.email || '');
+                setIfEmpty('field-phone',         data.phone || '');
+                if (data.cpf) {
+                    const cpfEl = document.getElementById('field-cpf');
+                    if (cpfEl && !cpfEl.value) {
+                        const digits = String(data.cpf).replace(/\D/g,'').slice(0, 11);
+                        if (digits.length === 11) {
+                            cpfEl.value = `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6,9)}-${digits.slice(9)}`;
+                        }
+                    }
+                }
+                if (addr.cep) {
+                    const cepFmt = addr.cep.length === 8 ? addr.cep.slice(0,5)+'-'+addr.cep.slice(5) : addr.cep;
+                    setIfEmpty('field-cep', cepFmt);
+                }
+                setIfEmpty('field-street',        addr.street || '');
+                setIfEmpty('field-number',        addr.number || '');
+                setIfEmpty('field-complement',    addr.complement || '');
+                setIfEmpty('field-neighborhood',  addr.neighborhood || '');
+                setIfEmpty('field-city',          addr.city || '');
+                const stateEl = document.getElementById('field-state');
+                if (stateEl && !stateEl.value && addr.state) stateEl.value = addr.state;
+
+                // Trigger shipping recalculation after address is prefilled
+                if (addr.state) {
+                    recalcShipping();
+                }
+            } catch (e) {
+                console.error('Error prefilling from account:', e);
+            }
+        });
+    } catch (e) {
+        // Firebase not available
+    }
+}
+</script>
+</body>
+</html>

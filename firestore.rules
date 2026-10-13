@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------
+    // Helper: check if the caller is an authenticated admin
+    // ---------------------------------------------------------------
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    // ---------------------------------------------------------------
+    // products — public read, admin-only write
+    // ---------------------------------------------------------------
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // settings — public read (site config consumed by frontend),
+    //            admin-only write
+    // ---------------------------------------------------------------
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // customers — customers can read their own document,
+    //             admins can read/write any document
+    // ---------------------------------------------------------------
+    match /customers/{customerId} {
+      allow read: if isAdmin()
+                  || (request.auth != null && request.auth.uid == customerId);
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // orders — authenticated users can create orders,
+    //          customers can read their own orders,
+    //          admins can read/write any order
+    // ---------------------------------------------------------------
+    match /orders/{orderId} {
+      allow create: if request.auth != null;
+      allow read: if isAdmin()
+                  || (request.auth != null && request.auth.uid == resource.data.customerId);
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // newsletter — anyone can subscribe (create), only admins manage
+    // ---------------------------------------------------------------
+    match /newsletter/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // solicitacoes — anyone can submit (create), only admins manage
+    // ---------------------------------------------------------------
+    match /solicitacoes/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // login_tokens — server-side only (deny all client access)
+    // ---------------------------------------------------------------
+    match /login_tokens/{docId} {
+      allow read, write: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // sellers — admin only
+    // ---------------------------------------------------------------
+    match /sellers/{sellerId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // activity_logs — admin only
+    // ---------------------------------------------------------------
+    match /activity_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // Default: deny everything else
+    // ---------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

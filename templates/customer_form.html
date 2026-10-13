@@ -1,0 +1,233 @@
+{% extends "crm_base.html" %}
+
+{% block crm_content %}
+{% set addr = (customer.address_structured if customer and customer.address_structured else {}) %}
+{% set person_type = (customer.person_type if customer and customer.person_type else ('cnpj' if customer and customer.cnpj else 'cpf')) %}
+
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">{{ 'Editar' if customer else 'Novo' }} Cliente</h2>
+            <p class="mt-1 text-sm text-gray-600">
+                {{ 'Atualize as informações do cliente' if customer else 'Preencha os dados do novo cliente' }}
+            </p>
+        </div>
+        {% if customer %}
+        <span class="inline-flex items-center self-start text-xs font-semibold px-2.5 py-1 rounded-full
+            {% if customer.source == 'Internal' %}bg-indigo-50 text-indigo-700 border border-indigo-200{% else %}bg-sky-50 text-sky-700 border border-sky-200{% endif %}">
+            Origem: {{ customer.source | source_label }}
+        </span>
+        {% endif %}
+    </div>
+
+    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+        <form method="POST" class="p-6 space-y-6">
+            <input type="hidden" name="person_type" id="person_type" value="{{ person_type }}">
+
+            <!-- Tipo de pessoa -->
+            <div>
+                <span class="block text-sm font-semibold text-gray-700 mb-2">Tipo de cadastro</span>
+                <div class="inline-flex rounded-lg border border-gray-300 overflow-hidden">
+                    <button type="button" id="tab-cpf" onclick="setPersonType('cpf')"
+                            class="px-5 py-2 text-sm font-medium transition-colors">Pessoa Física (CPF)</button>
+                    <button type="button" id="tab-cnpj" onclick="setPersonType('cnpj')"
+                            class="px-5 py-2 text-sm font-medium transition-colors border-l border-gray-300">Pessoa Jurídica (CNPJ)</button>
+                </div>
+            </div>
+
+            <!-- Campos pessoa física -->
+            <div id="fields-cpf" class="space-y-5">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1.5">
+                        Nome <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="name" id="name"
+                           value="{{ customer.name if customer else '' }}"
+                           class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50">
+                </div>
+                <div>
+                    <label for="cpf" class="block text-sm font-medium text-gray-700 mb-1.5">CPF</label>
+                    <input type="text" name="cpf" id="cpf" inputmode="numeric" maxlength="14"
+                           value="{{ (customer.cpf | doc_br) if customer and customer.cpf else '' }}"
+                           placeholder="000.000.000-00"
+                           class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 font-mono">
+                </div>
+            </div>
+
+            <!-- Campos pessoa jurídica -->
+            <div id="fields-cnpj" class="space-y-5 hidden">
+                <div>
+                    <label for="razao_social" class="block text-sm font-medium text-gray-700 mb-1.5">
+                        Razão social <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="razao_social" id="razao_social"
+                           value="{{ customer.razao_social if customer and customer.razao_social else '' }}"
+                           class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50">
+                </div>
+                <div>
+                    <label for="cnpj" class="block text-sm font-medium text-gray-700 mb-1.5">CNPJ</label>
+                    <input type="text" name="cnpj" id="cnpj" inputmode="numeric" maxlength="18"
+                           value="{{ (customer.cnpj | doc_br) if customer and customer.cnpj else '' }}"
+                           placeholder="00.000.000/0000-00"
+                           class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 font-mono">
+                </div>
+                <div>
+                    <label for="trade_name" class="block text-sm font-medium text-gray-700 mb-1.5">Nome fantasia</label>
+                    <input type="text" id="trade_name"
+                           value="{{ customer.trade_name if customer and customer.trade_name else '' }}"
+                           placeholder="Opcional"
+                           class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50">
+                    <p class="mt-1 text-xs text-gray-500">Se vazio, a razão social é usada nas listagens.</p>
+                </div>
+            </div>
+
+            <!-- Contato -->
+            <div class="border-t border-gray-100 pt-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5">E-mail</label>
+                    <input type="email" name="email" id="email"
+                           value="{{ customer.email if customer else '' }}"
+                           class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50">
+                </div>
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-1.5">Telefone</label>
+                    <input type="tel" name="phone" id="phone"
+                           value="{{ (customer.phone | phone_br) if customer else '' }}"
+                           placeholder="(00) 00000-0000"
+                           class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50">
+                </div>
+            </div>
+
+            <!-- Endereço -->
+            <div class="border-t border-gray-100 pt-5">
+                <p class="text-sm font-semibold text-gray-700 mb-3">Endereço</p>
+                <div class="grid grid-cols-1 sm:grid-cols-6 gap-4">
+                    <div class="sm:col-span-2">
+                        <label for="cep" class="block text-sm font-medium text-gray-700 mb-1.5">CEP</label>
+                        <input type="text" name="cep" id="cep" maxlength="9"
+                               value="{{ addr.get('cep', '') }}" placeholder="00000-000"
+                               class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm bg-gray-50">
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label for="street" class="block text-sm font-medium text-gray-700 mb-1.5">Endereço</label>
+                        <input type="text" name="street" id="street"
+                               value="{{ addr.get('street', '') }}" placeholder="Rua, avenida…"
+                               class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm bg-gray-50">
+                    </div>
+                    <div class="sm:col-span-1">
+                        <label for="number" class="block text-sm font-medium text-gray-700 mb-1.5">Número</label>
+                        <input type="text" name="number" id="number"
+                               value="{{ addr.get('number', '') }}"
+                               class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm bg-gray-50">
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label for="complement" class="block text-sm font-medium text-gray-700 mb-1.5">Complemento</label>
+                        <input type="text" name="complement" id="complement"
+                               value="{{ addr.get('complement', '') }}" placeholder="Sala, apto, bloco…"
+                               class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm bg-gray-50">
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label for="neighborhood" class="block text-sm font-medium text-gray-700 mb-1.5">Bairro</label>
+                        <input type="text" name="neighborhood" id="neighborhood"
+                               value="{{ addr.get('neighborhood', '') }}"
+                               class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm bg-gray-50">
+                    </div>
+                    <div class="sm:col-span-4">
+                        <label for="city" class="block text-sm font-medium text-gray-700 mb-1.5">Cidade</label>
+                        <input type="text" name="city" id="city"
+                               value="{{ addr.get('city', '') }}"
+                               class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm bg-gray-50">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="state" class="block text-sm font-medium text-gray-700 mb-1.5">UF</label>
+                        <select name="state" id="state"
+                                class="block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm bg-gray-50">
+                            <option value="">—</option>
+                            {% for uf in brazilian_states %}
+                            <option value="{{ uf }}" {% if addr.get('state') == uf %}selected{% endif %}>{{ uf }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="pt-5 border-t border-gray-100 flex justify-end">
+                <a href="{{ url_for('crm_clientes') }}"
+                   class="bg-white py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Cancelar
+                </a>
+                <button type="submit"
+                        class="ml-3 inline-flex justify-center py-2 px-5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    {{ 'Atualizar' if customer else 'Criar' }} Cliente
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const ACTIVE_TAB   = 'bg-indigo-600 text-white';
+    const INACTIVE_TAB = 'bg-white text-gray-600 hover:bg-gray-50';
+
+    function setPersonType(type) {
+        document.getElementById('person_type').value = type;
+
+        const isCpf = type === 'cpf';
+        document.getElementById('fields-cpf').classList.toggle('hidden', !isCpf);
+        document.getElementById('fields-cnpj').classList.toggle('hidden', isCpf);
+
+        document.getElementById('tab-cpf').className =
+            'px-5 py-2 text-sm font-medium transition-colors ' + (isCpf ? ACTIVE_TAB : INACTIVE_TAB);
+        document.getElementById('tab-cnpj').className =
+            'px-5 py-2 text-sm font-medium transition-colors border-l border-gray-300 ' + (isCpf ? INACTIVE_TAB : ACTIVE_TAB);
+
+        document.getElementById('name').required = isCpf;
+        document.getElementById('razao_social').required = !isCpf;
+
+        // Para PJ, o campo `name` carrega o nome fantasia enviado ao backend.
+        if (!isCpf) {
+            document.getElementById('name').value = document.getElementById('trade_name').value;
+        }
+    }
+
+    document.getElementById('trade_name').addEventListener('input', (e) => {
+        if (document.getElementById('person_type').value === 'cnpj') {
+            document.getElementById('name').value = e.target.value;
+        }
+    });
+
+    setPersonType('{{ person_type }}');
+
+    /* Máscaras de digitação */
+    function maskField(id, formatter) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => { el.value = formatter(el.value); });
+    }
+
+    const onlyDigits = (v) => (v || '').replace(/\D/g, '');
+
+    maskField('cpf', (v) => {
+        const d = onlyDigits(v).slice(0, 11);
+        return d.replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
+    });
+
+    maskField('cnpj', (v) => {
+        const d = onlyDigits(v).slice(0, 14);
+        return d.replace(/^(\d{2})(\d)/, '$1.$2')
+                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d)/, '.$1/$2')
+                .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+    });
+
+    maskField('phone', (v) => {
+        const d = onlyDigits(v).slice(0, 11);
+        if (d.length <= 10) return d.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d{1,4})$/, '$1-$2');
+        return d.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+    });
+
+    maskField('cep', (v) => onlyDigits(v).slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2'));
+</script>
+{% endblock %}

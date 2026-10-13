@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .hero-cta-btn {
+        min-width: 17.75rem;
+    }
+</style>
+<!-- Hero Carousel Section -->
+<section class="relative bg-luxury-black overflow-hidden">
+    <div class="carousel-container relative h-[560px] md:h-[620px]">
+        {% set hero_slides = [
+            {'img': 'banner1.jpg', 'tagline': 'Gemas garimpadas, lapidadas e selecionadas à mão no coração de Minas Gerais, fornecidas aos grandes mestres joalheiros há três gerações.'},
+            {'img': 'banner2.jpg', 'tagline': 'Cada pedra é escolhida uma a uma. Sem catálogo de fábrica, sem intermediários. Apenas curadoria de quem vive de gemas desde 1942.'},
+            {'img': 'banner3.jpg', 'tagline': 'Da mina à sua joia. Importação, exportação e lapidação própria para colecionadores e joalheiros exigentes.'}
+        ] %}
+        {% for slide in hero_slides %}
+        <div class="carousel-slide absolute inset-0 transition-opacity duration-1000 {{ 'opacity-100 pointer-events-auto z-[2]' if loop.first else 'opacity-0 pointer-events-none z-[1]' }}">
+            <img src="{{ url_for('static', filename='images/' ~ slide.img) }}" alt="Gemas preciosas brasileiras lapidadas à mão pela Katsumi Joias desde 1942" class="absolute inset-0 w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-luxury-black/85 via-luxury-black/35 to-luxury-black/45"></div>
+            <div class="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+                <div class="text-center text-white max-w-3xl">
+                    <p class="text-luxury-gold-light text-xs sm:text-sm font-semibold tracking-[0.25em] uppercase mb-4 drop-shadow">Tradição em pedras preciosas desde 1942</p>
+                    <p class="text-5xl md:text-7xl font-serif font-light mb-5 drop-shadow-2xl" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
+                        Katsumi Joias
+                    </p>
+                    <div class="w-20 h-px bg-luxury-gold mx-auto mb-6 shadow-lg"></div>
+                    <p class="text-base md:text-xl mb-8 leading-relaxed text-gray-100 drop-shadow-xl" style="text-shadow: 1px 1px 6px rgba(0,0,0,0.85);">
+                        {{ slide.tagline }}
+                    </p>
+                    <div class="relative z-10 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
+                        <a href="/products" class="hero-cta-btn inline-flex items-center justify-center px-6 py-3 bg-luxury-gold text-white font-medium rounded-lg border-2 border-luxury-gold shadow-lg transition-all duration-200 hover:bg-luxury-gold-dark hover:border-luxury-gold-dark hover:shadow-xl hover:-translate-y-0.5">
+                            Explorar Catálogo
+                            <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </a>
+                        <a href="/historia" class="hero-cta-btn inline-flex items-center justify-center px-6 py-3 border-2 border-white/80 text-white font-medium rounded-lg shadow-lg backdrop-blur-sm transition-all duration-200 hover:bg-luxury-gold hover:border-luxury-gold hover:text-white hover:shadow-xl hover:-translate-y-0.5">
+                            Nossa História
+                            <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Navigation Dots -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3 z-10">
+            <button onclick="goToSlide(0)" class="carousel-dot w-3 h-3 rounded-full bg-white opacity-50 transition-opacity duration-300"></button>
+            <button onclick="goToSlide(1)" class="carousel-dot w-3 h-3 rounded-full bg-white opacity-50 transition-opacity duration-300"></button>
+            <button onclick="goToSlide(2)" class="carousel-dot w-3 h-3 rounded-full bg-white opacity-50 transition-opacity duration-300"></button>
+        </div>
+
+        <!-- Navigation Arrows (higher on mobile to avoid CTAs) -->
+        <button onclick="previousSlide()" class="absolute left-3 md:left-4 top-[28%] md:top-1/2 md:-translate-y-1/2 text-white hover:text-luxury-gold transition-colors duration-200 z-10">
+            <svg class="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        <button onclick="nextSlide()" class="absolute right-3 md:right-4 top-[28%] md:top-1/2 md:-translate-y-1/2 text-white hover:text-luxury-gold transition-colors duration-200 z-10">
+            <svg class="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+    </div>
+</section>
+
+<!-- SEO H1 — único por página, fora do slider -->
+<section class="bg-luxury-cream border-b border-gray-200/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+        <h1 class="text-2xl md:text-3xl font-serif font-medium text-luxury-emerald">Gemas Brasileiras Lapidadas desde 1942</h1>
+    </div>
+</section>
+
+<!-- Trust / "desde 1942" seal strip -->
+<section class="bg-luxury-emerald border-t border-luxury-gold/25 overflow-hidden">
+    <!-- Mobile / tablet: horizontal auto-scroll bar -->
+    <div class="lg:hidden overflow-x-auto scrollbar-hide" id="trust-scroll-container">
+        <div id="trust-scroll-track" class="flex gap-8 py-6 px-6 w-max">
+            <div class="trust-item flex items-center gap-3 flex-shrink-0">
+                <div class="w-10 h-10 flex-shrink-0 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-serif text-luxury-gold-light text-sm font-semibold leading-tight whitespace-nowrap">Desde 1942</p>
+                    <p class="text-emerald-100/70 text-xs mt-0.5 tracking-wide whitespace-nowrap">duas gerações em gemas</p>
+                </div>
+            </div>
+            <div class="trust-item flex items-center gap-3 flex-shrink-0">
+                <div class="w-10 h-10 flex-shrink-0 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8l-9-4-9 4m18 0l-9 4m9-4v8l-9 4M3 8l9 4M3 8v8l9 4"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-serif text-luxury-gold-light text-sm font-semibold leading-tight whitespace-nowrap">Lapidação própria</p>
+                    <p class="text-emerald-100/70 text-xs mt-0.5 tracking-wide whitespace-nowrap">Da mina à sua joia</p>
+                </div>
+            </div>
+            <div class="trust-item flex items-center gap-3 flex-shrink-0">
+                <div class="w-10 h-10 flex-shrink-0 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-serif text-luxury-gold-light text-sm font-semibold leading-tight whitespace-nowrap">Curadoria à mão</p>
+                    <p class="text-emerald-100/70 text-xs mt-0.5 tracking-wide whitespace-nowrap">Cada pedra selecionada</p>
+                </div>
+            </div>
+            <div class="trust-item flex items-center gap-3 flex-shrink-0">
+                <div class="w-10 h-10 flex-shrink-0 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                    </svg>
+                </div>
+                <div>
+                <p class="font-serif text-luxury-gold-light text-sm font-semibold leading-tight whitespace-nowrap">Laudo Gemológico</p>
+                <p class="text-emerald-100/70 text-xs mt-0.5 tracking-wide whitespace-nowrap">Certificação independente opcional</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop: grid -->
+    <div class="hidden lg:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-4 gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 flex-shrink-0 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-serif text-luxury-gold-light text-sm font-semibold leading-tight">Desde 1942</p>
+                    <p class="text-emerald-100/70 text-xs mt-0.5 tracking-wide">duas gerações em gemas</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 flex-shrink-0 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8l-9-4-9 4m18 0l-9 4m9-4v8l-9 4M3 8l9 4M3 8v8l9 4"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-serif text-luxury-gold-light text-sm font-semibold leading-tight">Lapidação própria</p>
+                    <p class="text-emerald-100/70 text-xs mt-0.5 tracking-wide">Da mina à sua joia</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 flex-shrink-0 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-serif text-luxury-gold-light text-sm font-semibold leading-tight">Curadoria à mão</p>
+                    <p class="text-emerald-100/70 text-xs mt-0.5 tracking-wide">Cada pedra selecionada</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 flex-shrink-0 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                    </svg>
+                </div>
+                <div>
+                <p class="font-serif text-luxury-gold-light text-sm font-semibold leading-tight">Laudo Gemológico</p>
+                <p class="text-emerald-100/70 text-xs mt-0.5 tracking-wide">Certificação independente opcional</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Gemstone Categories Section -->
+<section class="py-12 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-serif font-medium text-luxury-black mb-2">
+                Explore por Tipo de Pedra
+            </h2>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
+            <!-- Kunzita -->
+            <a href="{{ 'Kunzita'|category_path }}" class="group">
+                <div class="relative aspect-square rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <img src="{{ url_for('static', filename='images/kunzita.png') }}" alt="Kunzita" class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 p-4 text-center bg-gradient-to-t from-black/60 to-transparent">
+                        <h3 class="text-white font-medium text-lg group-hover:text-luxury-gold transition-colors duration-200 drop-shadow-lg">Kunzita</h3>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- Esmeralda -->
+            <a href="{{ 'Esmeralda'|category_path }}" class="group">
+                <div class="relative aspect-square rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <img src="{{ url_for('static', filename='images/esmeralda.png') }}" alt="Esmeralda" class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 p-4 text-center bg-gradient-to-t from-black/60 to-transparent">
+                        <h3 class="text-white font-medium text-lg group-hover:text-luxury-gold transition-colors duration-200 drop-shadow-lg">Esmeralda</h3>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- Turmalina -->
+            <a href="{{ 'Turmalina'|category_path }}" class="group">
+                <div class="relative aspect-square rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <img src="{{ url_for('static', filename='images/turmalina.png') }}" alt="Turmalina" class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 p-4 text-center bg-gradient-to-t from-black/60 to-transparent">
+                        <h3 class="text-white font-medium text-lg group-hover:text-luxury-gold transition-colors duration-200 drop-shadow-lg">Turmalina</h3>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- Tanzanita -->
+            <a href="{{ 'Tanzanita'|category_path }}" class="group">
+                <div class="relative aspect-square rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <img src="{{ url_for('static', filename='images/tanzanita.png') }}" alt="Tanzanita" class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 p-4 text-center bg-gradient-to-t from-black/60 to-transparent">
+                        <h3 class="text-white font-medium text-lg group-hover:text-luxury-gold transition-colors duration-200 drop-shadow-lg">Tanzanita</h3>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- Topázio -->
+            <a href="{{ 'Topázio'|category_path }}" class="group">
+                <div class="relative aspect-square rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <img src="{{ url_for('static', filename='images/topazio.jpg') }}" alt="Topázio" class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 p-4 text-center bg-gradient-to-t from-black/60 to-transparent">
+                        <h3 class="text-white font-medium text-lg group-hover:text-luxury-gold transition-colors duration-200 drop-shadow-lg">Topázio</h3>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- Conjuntos (2+ pedras) -->
+            <a href="/products?numero_pedras_min=2" class="group">
+                <div class="relative aspect-square rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <img src="{{ url_for('static', filename='images/conjuntos.png') }}" alt="Conjuntos" class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 p-4 text-center bg-gradient-to-t from-black/60 to-transparent">
+                        <h3 class="text-white font-medium text-lg group-hover:text-luxury-gold transition-colors duration-200 drop-shadow-lg">Conjuntos</h3>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products Section -->
+<section class="py-16 bg-luxury-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-serif font-medium text-luxury-black mb-4">
+                Destaques da Coleção
+            </h2>
+            <p class="text-gray-600 max-w-2xl mx-auto mb-6">
+                Pedras selecionadas uma a uma pela nossa lapidação, com cor, pureza e calibragem conferidas à mão. As mesmas gemas que abastecem grandes joalherias, agora disponíveis diretamente para você.
+            </p>
+            <a href="/products" class="inline-flex items-center justify-center px-6 py-3 bg-luxury-gold text-white text-sm font-semibold rounded-md hover:bg-luxury-gold-dark transition-colors duration-200 shadow-sm">
+                Ver Catálogo Completo
+                <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+            {% for product in products %}
+            {% with show_description=false, card_extra_class='luxury-border' %}
+            {% include '_product_card.html' %}
+            {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% include '_historia_section.html' %}
+
+<script>
+// Carousel functionality
+let currentSlide = 0;
+const slides = document.querySelectorAll('.carousel-slide');
+const dots = document.querySelectorAll('.carousel-dot');
+let carouselInterval;
+
+function updateCarousel() {
+    slides.forEach((slide, index) => {
+        const isActive = index === currentSlide;
+        slide.style.opacity = isActive ? '1' : '0';
+        slide.style.pointerEvents = isActive ? 'auto' : 'none';
+        slide.style.zIndex = isActive ? '2' : '1';
+        dots[index].style.opacity = isActive ? '1' : '0.5';
+    });
+}
+
+function nextSlide() {
+    currentSlide = (currentSlide + 1) % slides.length;
+    updateCarousel();
+    resetCarouselInterval();
+}
+
+function previousSlide() {
+    currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+    updateCarousel();
+    resetCarouselInterval();
+}
+
+function goToSlide(index) {
+    currentSlide = index;
+    updateCarousel();
+    resetCarouselInterval();
+}
+
+function startCarousel() {
+    carouselInterval = setInterval(nextSlide, 8000);
+}
+
+function resetCarouselInterval() {
+    clearInterval(carouselInterval);
+    startCarousel();
+}
+
+// Initialize carousel
+document.addEventListener('DOMContentLoaded', function() {
+    updateCarousel();
+    startCarousel();
+    initTrustMarquee();
+});
+
+function initTrustMarquee() {
+    const container = document.getElementById('trust-scroll-container');
+    const track = document.getElementById('trust-scroll-track');
+    if (!container || !track) return;
+
+    // Duplicate items for seamless loop
+    track.innerHTML += track.innerHTML;
+    const halfWidth = track.scrollWidth / 2;
+
+    let paused = false;
+    let resumeTimer = null;
+
+    function pause() {
+        paused = true;
+        clearTimeout(resumeTimer);
+    }
+    function resume(delay) {
+        clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(function() { paused = false; }, delay || 1500);
+    }
+
+    container.addEventListener('touchstart', pause, { passive: true });
+    container.addEventListener('touchend', function() { resume(2000); }, { passive: true });
+    container.addEventListener('mousedown', pause);
+    container.addEventListener('mouseup', function() { resume(1500); });
+    container.addEventListener('mouseleave', function() { resume(500); });
+
+    function tick() {
+        if (!paused && halfWidth > 0) {
+            if (container.scrollLeft >= halfWidth - 1) {
+                container.scrollLeft = 0;
+            } else {
+                container.scrollLeft += 0.6;
+            }
+        }
+        requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+</script>
+{% endblock %}

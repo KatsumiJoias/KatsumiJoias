@@ -1,0 +1,187 @@
+{% extends "crm_base.html" %}
+
+{% block crm_content %}
+<div class="max-w-7xl mx-auto px-0 sm:px-4">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center gap-3 mb-1">
+            <div class="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
+                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Solicitações</h1>
+        </div>
+        <p class="text-sm text-gray-500 ml-14">Pedidos de busca enviados pelos clientes pelo formulário "O que procura?"</p>
+    </div>
+
+    {% if solicitacoes %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-700">{{ solicitacoes|length }} solicitaç{{ 'ão' if solicitacoes|length == 1 else 'ões' }}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nome</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contato</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">O que busca</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                    {% for s in solicitacoes %}
+                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="toggleDetail('detail-{{ s.id }}')">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ s.created_at_formatted }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <p class="text-sm font-semibold text-gray-900">{{ s.name }}</p>
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="text-sm text-gray-700">{{ s.email }}</p>
+                            {% if s.phone %}<p class="text-xs text-gray-500 mt-0.5">{{ s.phone }}</p>{% endif %}
+                        </td>
+                        <td class="px-6 py-4 max-w-xs">
+                            <p class="text-sm text-gray-700 truncate">{{ s.description }}</p>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if s.status == 'answered' or s.replies %}
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Respondida</span>
+                            {% else %}
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Em aberto</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if s.customer_id %}
+                            <a href="{{ url_for('edit_customer', customer_id=s.customer_id) }}"
+                               onclick="event.stopPropagation()"
+                               class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Ver cliente
+                            </a>
+                            {% else %}
+                            <span class="text-xs text-gray-400">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr id="detail-{{ s.id }}" class="hidden bg-amber-50/60">
+                        <td colspan="6" class="px-6 py-5" onclick="event.stopPropagation()">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-900 mb-2">Descrição completa</p>
+                                    <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed bg-white rounded-lg border border-amber-100 p-4">{{ s.description }}</p>
+
+                                    {% if s.replies %}
+                                    <div class="mt-5 space-y-4">
+                                        <p class="text-sm font-semibold text-gray-900">Respostas enviadas</p>
+                                        {% for reply in s.replies %}
+                                        <div class="bg-white rounded-lg border border-green-100 p-4">
+                                            <div class="flex items-center justify-between gap-2 mb-2">
+                                                <span class="text-xs font-semibold text-green-800 uppercase tracking-wide">Equipe Katsumi Joias</span>
+                                                <span class="text-xs text-gray-400">{{ reply.created_at }}</span>
+                                            </div>
+                                            {% if reply.message %}
+                                            <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ reply.message }}</p>
+                                            {% endif %}
+                                            {% if reply.images %}
+                                            <div class="flex flex-wrap gap-2 mt-3">
+                                                {% for img in reply.images %}
+                                                <a href="{{ img }}" target="_blank" rel="noopener noreferrer" class="block">
+                                                    <img src="{{ img }}" alt="Foto" class="w-24 h-24 object-cover rounded-md border border-gray-200 hover:opacity-90 transition-opacity">
+                                                </a>
+                                                {% endfor %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="bg-white rounded-lg border border-amber-200 p-5">
+                                    <p class="text-sm font-semibold text-gray-900 mb-1">Responder ao cliente</p>
+                                    <p class="text-xs text-gray-500 mb-4">A resposta aparecerá na área do cliente e um e-mail será enviado automaticamente.</p>
+                                    <form class="reply-form space-y-4" data-id="{{ s.id }}" onsubmit="submitReply(event, '{{ s.id }}')">
+                                        <div>
+                                            <label for="message-{{ s.id }}" class="block text-xs font-medium text-gray-700 mb-1">Mensagem</label>
+                                            <textarea id="message-{{ s.id }}" name="message" rows="5"
+                                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                                placeholder="Descreva o que encontrou, valores, prazos…"></textarea>
+                                        </div>
+                                        <div>
+                                            <label for="images-{{ s.id }}" class="block text-xs font-medium text-gray-700 mb-1">Fotos (opcional, até 5)</label>
+                                            <input id="images-{{ s.id }}" type="file" name="images" accept="image/*" multiple
+                                                class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-800 hover:file:bg-amber-100">
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <button type="submit"
+                                                class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50">
+                                                Enviar resposta
+                                            </button>
+                                            <p class="reply-msg text-sm text-gray-500"></p>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-16 text-center">
+        <div class="mx-auto w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-4">
+            <svg class="h-8 w-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">Nenhuma solicitação ainda</h3>
+        <p class="text-sm text-gray-500">As solicitações enviadas pelo formulário "O que procura?" aparecerão aqui.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleDetail(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden');
+}
+
+async function submitReply(event, solicitacaoId) {
+    event.preventDefault();
+    event.stopPropagation();
+    const form = event.target;
+    const btn = form.querySelector('[type=submit]');
+    const msgEl = form.querySelector('.reply-msg');
+    btn.disabled = true;
+    msgEl.textContent = 'Enviando…';
+    msgEl.className = 'reply-msg text-sm text-gray-500';
+
+    const fd = new FormData(form);
+    try {
+        const res = await fetch(`/crm/api/solicitacoes/${solicitacaoId}/reply`, {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Erro ao enviar resposta.');
+        msgEl.textContent = 'Resposta enviada! Cliente notificado por e-mail.';
+        msgEl.className = 'reply-msg text-sm text-green-600';
+        setTimeout(() => window.location.reload(), 900);
+    } catch (err) {
+        msgEl.textContent = err.message || 'Erro ao enviar.';
+        msgEl.className = 'reply-msg text-sm text-red-600';
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

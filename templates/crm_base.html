@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% set hide_navbar = true %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo/Title -->
+                <div class="flex items-center">
+                    <h1 class="text-lg md:text-xl font-bold text-gray-900">
+                        <span class="hidden sm:inline">Katsumi Joias Admin</span>
+                        <span class="sm:hidden">PP Admin</span>
+                    </h1>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button onclick="toggleMobileMenu()" class="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+                    <svg id="menu-icon" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <svg id="close-icon" class="h-6 w-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                
+                <!-- Desktop Navigation Links -->
+                <div class="hidden md:flex space-x-6 lg:space-x-8">
+                    <a href="{{ url_for('crm_dashboard') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
+                              {% if request.endpoint == 'crm_dashboard' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('crm_produtos') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
+                              {% if request.endpoint == 'crm_produtos' or request.endpoint == 'new_product' or request.endpoint == 'edit_product' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                        Produtos
+                    </a>
+                    <a href="{{ url_for('crm_clientes') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
+                              {% if request.endpoint == 'crm_clientes' or request.endpoint == 'new_customer' or request.endpoint == 'edit_customer' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                        Clientes
+                    </a>
+                    <a href="{{ url_for('crm_pedidos') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
+                              {% if request.endpoint in ['crm_pedidos','crm_order_detail','crm_new_order'] %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                        Pedidos
+                    </a>
+                    <a href="{{ url_for('crm_solicitacoes') }}"
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
+                              {% if request.endpoint == 'crm_solicitacoes' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                        Solicitações
+                    </a>
+                    <a href="{{ url_for('crm_logs') }}"
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
+                              {% if request.endpoint == 'crm_logs' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                        Logs
+                    </a>
+                    <a href="{{ url_for('crm_ajustes') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
+                              {% if request.endpoint in ['crm_ajustes','edit_setting','crm_cut_types','crm_categories','crm_roles','crm_newsletter','crm_exchange_rate','crm_frete','crm_vendedores'] %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                        Ajustes
+                    </a>
+                </div>
+                
+                <!-- Desktop Right Side Actions -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="{{ url_for('homepage') }}" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        Ver Site
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden md:hidden pb-3 pt-2 border-t border-gray-200">
+                <div class="flex flex-col space-y-1">
+                    <a href="{{ url_for('crm_dashboard') }}" 
+                       class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint == 'crm_dashboard' %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('crm_produtos') }}" 
+                       class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint == 'crm_produtos' or request.endpoint == 'new_product' or request.endpoint == 'edit_product' %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                        Produtos
+                    </a>
+                    <a href="{{ url_for('crm_clientes') }}" 
+                       class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint == 'crm_clientes' or request.endpoint == 'new_customer' or request.endpoint == 'edit_customer' %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                        Clientes
+                    </a>
+                    <a href="{{ url_for('crm_pedidos') }}" 
+                       class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint in ['crm_pedidos','crm_order_detail','crm_new_order'] %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                        Pedidos
+                    </a>
+                    <a href="{{ url_for('crm_solicitacoes') }}"
+                       class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint == 'crm_solicitacoes' %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                        Solicitações
+                    </a>
+                    <a href="{{ url_for('crm_logs') }}"
+                       class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint == 'crm_logs' %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                        Logs
+                    </a>
+                    <a href="{{ url_for('crm_ajustes') }}" 
+                       class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint in ['crm_ajustes','edit_setting','crm_cut_types','crm_categories','crm_roles','crm_newsletter','crm_exchange_rate','crm_frete','crm_vendedores'] %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                        Ajustes
+                    </a>
+                    <div class="pt-2 border-t border-gray-200 mt-2">
+                        <a href="{{ url_for('homepage') }}" 
+                           class="block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-indigo-50 transition-colors">
+                            Ver Site →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Flash Messages - Fixed at Top -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div id="flash-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
+                {% for category, message in messages %}
+                    <div class="alert-message mb-3 p-4 rounded-lg shadow-lg border {% if category == 'error' %}bg-red-50 border-red-200 text-red-800{% elif category == 'warning' %}bg-amber-50 border-amber-200 text-amber-800{% else %}bg-green-50 border-green-200 text-green-800{% endif %} animate-slide-down">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                {% if category == 'error' %}
+                                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                    </svg>
+                                {% elif category == 'warning' %}
+                                    <svg class="h-5 w-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                {% else %}
+                                    <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <p class="text-sm font-medium">{{ message }}</p>
+                            </div>
+                            <div class="ml-4 flex-shrink-0">
+                                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="inline-flex {% if category == 'error' %}text-red-400 hover:text-red-600{% elif category == 'warning' %}text-amber-500 hover:text-amber-700{% else %}text-green-400 hover:text-green-600{% endif %} focus:outline-none">
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-4 md:py-8">
+        {% block crm_content %}{% endblock %}
+    </div>
+</div>
+
+<style>
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+.animate-fade-out {
+    animation: fadeOut 0.3s ease-in forwards;
+}
+</style>
+
+<script>
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuIcon = document.getElementById('menu-icon');
+    const closeIcon = document.getElementById('close-icon');
+    
+    if (mobileMenu.classList.contains('hidden')) {
+        mobileMenu.classList.remove('hidden');
+        menuIcon.classList.add('hidden');
+        closeIcon.classList.remove('hidden');
+    } else {
+        mobileMenu.classList.add('hidden');
+        menuIcon.classList.remove('hidden');
+        closeIcon.classList.add('hidden');
+    }
+}
+
+function showFlashMessage(message, category) {
+    category = category || 'success';
+    let container = document.getElementById('flash-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'flash-container';
+        container.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4';
+        document.body.appendChild(container);
+    }
+    const isError = category === 'error';
+    const div = document.createElement('div');
+    div.className = 'alert-message mb-3 p-4 rounded-lg shadow-lg border animate-slide-down ' +
+        (isError ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800');
+    div.innerHTML = `
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                ${isError
+                    ? '<svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>'
+                    : '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
+                }
+            </div>
+            <div class="ml-3 flex-1"><p class="text-sm font-medium">${message}</p></div>
+            <div class="ml-4 flex-shrink-0">
+                <button onclick="this.closest('.alert-message').remove()"
+                        class="inline-flex ${isError ? 'text-red-400 hover:text-red-600' : 'text-green-400 hover:text-green-600'} focus:outline-none">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                </button>
+            </div>
+        </div>`;
+    container.appendChild(div);
+    setTimeout(function() {
+        div.classList.add('animate-fade-out');
+        setTimeout(function() {
+            div.remove();
+            if (container && container.children.length === 0) container.remove();
+        }, 300);
+    }, 5000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Get all alert messages
+    const alerts = document.querySelectorAll('.alert-message');
+    
+    // For each alert
+    alerts.forEach(function(alert) {
+        // After 5 seconds
+        setTimeout(function() {
+            // Add fade out animation
+            alert.classList.add('animate-fade-out');
+            
+            // After animation completes, remove the element
+            setTimeout(function() {
+                alert.remove();
+                
+                // If no more alerts, remove container
+                const container = document.getElementById('flash-container');
+                if (container && container.querySelectorAll('.alert-message').length === 0) {
+                    container.remove();
+                }
+            }, 300);
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}

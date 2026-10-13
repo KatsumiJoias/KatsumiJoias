@@ -1,0 +1,161 @@
+{% extends "crm_base.html" %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-semibold text-gray-900">Cotação do Dólar</h2>
+            <p class="mt-1 text-sm text-gray-600">Gerenciar taxa de câmbio USD → BRL</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- Back Button -->
+            <a href="{{ url_for('crm_ajustes') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-luxury-gold">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Voltar
+            </a>
+            <!-- Exchange Rate Increase Input -->
+            <form method="POST" action="{{ url_for('crm_update_exchange_rate_increase') }}" class="flex items-center gap-2">
+                <label for="increase" class="text-sm text-gray-700 whitespace-nowrap">Incremento (R$):</label>
+                <input type="number" 
+                       id="increase" 
+                       name="increase" 
+                       step="0.01" 
+                       min="0"
+                       value="{{ rate_increase if rate_increase is not none else '0.00' }}"
+                       class="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-luxury-gold focus:border-luxury-gold bg-gray-50"
+                       placeholder="0.00">
+                <button type="submit" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-luxury-gold">
+                    Salvar
+                </button>
+            </form>
+            
+            <!-- Update Exchange Rate Button -->
+            <form method="POST" action="{{ url_for('crm_update_exchange_rate') }}">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-luxury-gold hover:bg-luxury-gold-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-luxury-gold">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Atualizar Cotação
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if rate_data %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Taxa de Mercado Original -->
+        {% set market_rate = rate_data.market_rate if rate_data.market_rate is defined else rate_data.rate %}
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-green-900">Taxa de Mercado</p>
+                    <p class="mt-2 text-3xl font-bold text-green-700">R$ {{ "%.4f"|format(market_rate) }}</p>
+                    <p class="mt-1 text-xs text-green-600">Cotação da API</p>
+                </div>
+                <svg class="h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Taxa Usada no Site -->
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-purple-900">Taxa Usada no Site</p>
+                    <p class="mt-2 text-3xl font-bold text-purple-700">R$ {{ "%.4f"|format(rate_data.rate) }}</p>
+                    {% set applied_increase = rate_data.increase if rate_data.increase is defined else 0 %}
+                    <p class="mt-1 text-xs text-purple-600">{% if applied_increase > 0 %}Com incremento de R$ {{ "%.2f"|format(applied_increase) }}{% else %}Sem incremento{% endif %}</p>
+                </div>
+                <svg class="h-12 w-12 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Data da Cotação -->
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-blue-900">Data da Cotação</p>
+                    <p class="mt-2 text-2xl font-bold text-blue-700">
+                        {% if rate_data.date %}{{ rate_data.date }}{% else %}—{% endif %}
+                    </p>
+                    <p class="mt-1 text-xs text-blue-600">Fonte: Frankfurter / BCE</p>
+                </div>
+                <svg class="h-12 w-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações Adicionais -->
+    <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Informações da Atualização</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-600">Data da Cotação (BCE):</p>
+                <p class="text-base font-medium text-gray-900">{{ rate_data.date if rate_data.date else '—' }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Última Atualização no Sistema:</p>
+                <p class="text-base font-medium text-gray-900" id="system-update-date">{{ rate_data.updated_at[:19].replace('T', ' ') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div class="flex">
+            <svg class="h-5 w-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-yellow-800">Atualização Automática Diária</p>
+                <p class="mt-1 text-sm text-yellow-700">A cotação é atualizada automaticamente todos os dias às 08:00 (horário de Brasília) e também na primeira visita do dia ao site, caso a cotação ainda não tenha sido renovada.</p>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhuma cotação disponível</h3>
+        <p class="mt-1 text-sm text-gray-500">Clique em "Atualizar Cotação" para buscar a taxa de câmbio atual.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="mt-6 bg-white rounded-lg shadow-sm p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Como funciona?</h3>
+    <div class="space-y-3 text-sm text-gray-600">
+        <p>• A cotação é obtida da API <strong>Frankfurter</strong> (api.frankfurter.app), baseada nos dados do Banco Central Europeu — sem limite de requisições</p>
+        <p>• Clique em "Atualizar Cotação" para buscar a taxa de câmbio mais recente</p>
+        <p>• <strong>Incremento:</strong> Você pode adicionar um valor fixo (em reais) acima da cotação de mercado</p>
+        <p>• A <strong>Taxa Usada no Site</strong> é a cotação de mercado + incremento configurado</p>
+        <p>• Quando um cliente seleciona "BRL (R$)" na navbar, os preços são convertidos usando a taxa com incremento</p>
+        <p>• A informação sobre a cotação e data de atualização é exibida na página do produto</p>
+        <p>• <strong>Exemplo:</strong> Se a cotação é R$ 5,50 e o incremento é R$ 0,10, o site usará R$ 5,60</p>
+    </div>
+</div>
+
+{% if rate_data and rate_data.updated_at %}
+<script>
+    // Format the system update date as DD/MM/YYYY
+    document.addEventListener('DOMContentLoaded', function() {
+        const systemDateEl = document.getElementById('system-update-date');
+        if (systemDateEl) {
+            const date = new Date('{{ rate_data.updated_at }}');
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            systemDateEl.textContent = `${day}/${month}/${year}`;
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

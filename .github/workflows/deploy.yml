@@ -1,0 +1,138 @@
+# ============================================================================
+# GitHub Actions — Deploy to Google Cloud Run
+# ============================================================================
+#
+# Trigger: push to `main` branch
+#
+# Required GitHub Secrets (configure in Settings → Secrets and variables → Actions):
+#
+#   GCP_PROJECT_ID       — GCP project ID (e.g. "katsumijoias")
+#   GCP_SA_KEY           — Service Account JSON key with the following roles:
+#                            • roles/run.admin
+#                            • roles/iam.serviceAccountUser
+#                            • roles/artifactregistry.writer
+#                            (create at IAM & Admin → Service Accounts → Keys)
+#   GCP_REGION           — Cloud Run region (e.g. "southamerica-east1")
+#
+# Optional — if you prefer Workload Identity Federation instead of GCP_SA_KEY:
+#   WIF_PROVIDER         — Full provider name
+#                          (projects/<NUMBER>/locations/global/workloadIdentityPools/<POOL>/providers/<PROVIDER>)
+#   WIF_SERVICE_ACCOUNT  — Service account email for WIF
+#                          (e.g. github-deploy@katsumijoias.iam.gserviceaccount.com)
+#
+# ============================================================================
+
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION }}
+  SERVICE_NAME: katsumijoias-app
+  # Artifact Registry repository — create it once with:
+  #   gcloud artifacts repositories create docker-repo \
+  #     --repository-format=docker \
+  #     --location=southamerica-east1 \
+  #     --project=katsumijoias
+  AR_REPO: docker-repo
+  IMAGE: southamerica-east1-docker.pkg.dev/katsumijoias/docker-repo/katsumijoias-app
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    # Required for Workload Identity Federation (OIDC token)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      # ------------------------------------------------------------------
+      # 1. Checkout the repository
+      # ------------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------
+      # 2. Authenticate to Google Cloud
+      #    Uses Service Account Key by default.
+      #    To use Workload Identity Federation instead, uncomment the WIF
+      #    block below and comment out the SA Key block.
+      # ------------------------------------------------------------------
+
+      # --- Option A: Service Account Key (default) ---
+      - name: Authenticate to Google Cloud (SA Key)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # --- Option B: Workload Identity Federation (uncomment to use) ---
+      # - name: Authenticate to Google Cloud (WIF)
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+      #     service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      # ------------------------------------------------------------------
+      # 3. Set up the Google Cloud SDK (gcloud CLI)
+      # ------------------------------------------------------------------
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      # ------------------------------------------------------------------
+      # 4. Configure Docker to authenticate with Artifact Registry
+      # ------------------------------------------------------------------
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # ------------------------------------------------------------------
+      # 5. Build the Docker image
+      # ------------------------------------------------------------------
+      - name: Build Docker image
+        run: |
+          docker build \
+            --tag "${{ env.IMAGE }}:${{ github.sha }}" \
+            --tag "${{ env.IMAGE }}:latest" \
+            .
+
+      # ------------------------------------------------------------------
+      # 6. Push the Docker image to Artifact Registry
+      # ------------------------------------------------------------------
+      - name: Push Docker image
+        run: |
+          docker push "${{ env.IMAGE }}:${{ github.sha }}"
+          docker push "${{ env.IMAGE }}:latest"
+
+      # ------------------------------------------------------------------
+      # 7. Deploy to Cloud Run
+      #    Environment variables for the app are configured directly in
+      #    Cloud Run (console or gcloud), NOT in this workflow.
+      # ------------------------------------------------------------------
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+          # Cloud Run will use the env vars already set on the service.
+          # To set them here, add:
+          # env_vars: |
+          #   FLASK_SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }}
+
+      # ------------------------------------------------------------------
+      # 8. Show the deployed service URL
+      # ------------------------------------------------------------------
+      - name: Show service URL
+        run: |
+          echo "✅ Deployed successfully!"
+          echo "Service URL:"
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format="value(status.url)"

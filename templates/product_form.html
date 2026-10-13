@@ -1,0 +1,1223 @@
+{% extends "crm_base.html" %}
+
+{% block crm_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+
+<!-- Image Crop Modal -->
+<div id="crop-modal" class="fixed inset-0 bg-black/80 z-[9999] items-center justify-center p-4" style="display:none">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden" style="max-height:92vh">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
+            <h3 class="font-semibold text-gray-900 text-lg">Cortar imagem</h3>
+            <button type="button" id="crop-ratio-btn" onclick="toggleCropRatio()"
+                    class="text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors font-medium">
+                1:1 Quadrado
+            </button>
+        </div>
+        <div class="overflow-auto bg-gray-900 p-3 flex-1 min-h-0">
+            <img id="crop-image" src="" alt="Crop" class="block max-w-full mx-auto">
+        </div>
+        <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+            <p class="text-xs text-gray-500">Arraste para mover • Scroll para zoom</p>
+            <div class="flex gap-2">
+                <button type="button" onclick="cancelCrop()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" id="crop-confirm-btn" onclick="confirmCrop()"
+                        class="px-5 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Confirmar corte
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-0 sm:px-4">
+    <!-- Header -->
+    <div class="mb-4 md:mb-8">
+        <div class="flex flex-col gap-3 md:flex-row md:justify-between md:items-start">
+            <div class="flex-1">
+                <div class="flex items-center gap-2 md:gap-3 mb-2">
+                    <div class="p-1.5 md:p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+                        <svg class="h-5 w-5 md:h-6 md:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-xl md:text-3xl font-bold text-gray-900">{{ 'Editar' if product else 'Novo' }} Produto</h1>
+                    {% if not product %}
+                    <span class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full
+                        {% if sku_mode == 'existing' %}bg-amber-50 text-amber-700 border border-amber-200{% else %}bg-indigo-50 text-indigo-700 border border-indigo-200{% endif %}">
+                        {{ 'Produto já existente' if sku_mode == 'existing' else 'Produto novo' }}
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-sm text-gray-600 ml-9 md:ml-14">
+                    {% if product %}Atualize as informações
+                    {% elif sku_mode == 'existing' %}Preencha os dados e informe o SKU já usado internamente
+                    {% else %}Preencha os dados — o SKU é gerado automaticamente
+                    {% endif %}
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="{{ url_for('crm_produtos') }}" 
+                   class="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 border border-gray-300 rounded-lg shadow-sm text-xs md:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-150"
+                   title="Voltar para lista de produtos">
+                    <svg class="h-4 w-4 md:h-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    <span class="hidden sm:inline">Voltar</span>
+                </a>
+                {% if product %}
+                <a href="{{ url_for('product_detail', product_id=product.id) }}" 
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 border border-gray-300 rounded-lg shadow-sm text-xs md:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-150"
+                   title="Ver produto no site">
+                    <svg class="h-4 w-4 md:h-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span class="hidden sm:inline">Ver no site</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-6 p-4 rounded-lg border-l-4 {% if category == 'error' %}bg-red-50 border-red-500 text-red-800{% else %}bg-green-50 border-green-500 text-green-800{% endif %} flex items-start gap-3">
+                    <svg class="h-5 w-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        {% if category == 'error' %}
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        {% else %}
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        {% endif %}
+                    </svg>
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Form -->
+    <form method="POST" enctype="multipart/form-data" class="space-y-6" id="product-form">
+        
+        <!-- Informações da Gema (unified section) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                    <h2 class="text-lg font-semibold text-white">Informações da Gema</h2>
+                </div>
+            </div>
+            
+            <div class="p-6 space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="md:col-span-2">
+                        <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">Nome do Produto *</label>
+                        <input type="text" 
+                           name="name" 
+                           id="name" 
+                           value="{{ product.name if product else '' }}"
+                           required 
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 text-gray-900 bg-gray-50"
+                           placeholder="Preenchido automaticamente">
+                        <p id="name-hint" class="mt-1.5 text-xs text-purple-600 flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+                            Nome gerado automaticamente: <em>{Variante/Categoria} {Lapidação} {Comprimento}×{Largura}[×{Altura}]mm</em>
+                        </p>
+                        <p id="name-free-hint" class="mt-1.5 text-xs text-purple-600 hidden flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            Riviera: nome livre para editar
+                        </p>
+                    </div>
+
+                    <div>
+                        <label for="category" class="block text-sm font-semibold text-gray-700 mb-2">Categoria *</label>
+                        <select name="category" 
+                                id="category" 
+                                onchange="updateVariants()"
+                                required 
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                            <option value="">Selecione uma categoria</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}" {{ 'selected' if product and product.category == category else '' }}>
+                                {{ category }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="variant-container" style="display: none;">
+                        <label for="variant" class="block text-sm font-semibold text-gray-700 mb-2">Variante</label>
+                        <select name="variant" 
+                                id="variant"
+                                onchange="updateProductName()"
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                            <option value="">Nenhuma variante</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label for="color" class="block text-sm font-semibold text-gray-700 mb-2">Cor</label>
+                            <input type="text" 
+                                   name="color" 
+                                   id="color" 
+                                   value="{{ product.color if product and product.color else '' }}"
+                                   placeholder="Ex: Verde intenso, Azul royal"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                        </div>
+
+                        <div>
+                            <label for="carat_weight" class="block text-sm font-semibold text-gray-700 mb-2">Peso em Quilates</label>
+                            <input type="number" 
+                                   name="carat_weight" 
+                                   id="carat_weight" 
+                                   value="{{ (product.carat_weight|string).split()[0].replace(',', '.') if product and product.carat_weight else '' }}"
+                                   placeholder="Ex: 2.5"
+                                   step="any"
+                                   min="0"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                        </div>
+
+                        <div>
+                            <label for="cut" class="block text-sm font-semibold text-gray-700 mb-2">Lapidação</label>
+                            <select name="cut" 
+                                    id="cut"
+                                    onchange="updateProductName()"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                                <option value="">Selecione uma lapidação</option>
+                                {% for cut_type in cut_types %}
+                                <option value="{{ cut_type }}" {% if product and product.cut == cut_type %}selected{% endif %}>
+                                    {{ cut_type }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1.5 text-xs text-gray-500">
+                                <a href="{{ url_for('crm_cut_types') }}" target="_blank" class="text-purple-600 hover:text-purple-800 font-medium">
+                                    Gerenciar tipos de lapidação →
+                                </a>
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="numero_pedras" class="block text-sm font-semibold text-gray-700 mb-2">Número de Pedras *</label>
+                            <input type="number" 
+                                   name="numero_pedras" 
+                                   id="numero_pedras" 
+                                   value="{{ product.numero_pedras if product and product.numero_pedras else '' }}"
+                                   placeholder="Ex: 5"
+                                   min="1"
+                                   step="1"
+                                   required
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                        </div>
+
+                        <div class="flex items-center pt-8">
+                            <div class="relative flex items-start">
+                                <div class="flex h-5 items-center">
+                                    <input type="checkbox" 
+                                           name="riviera" 
+                                           id="riviera" 
+                                           {% if product and product.riviera %}checked{% endif %}
+                                           class="h-5 w-5 rounded text-purple-600 focus:ring-2 focus:ring-purple-500 border-gray-300 transition-all duration-150">
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label for="riviera" class="font-semibold text-gray-700 cursor-pointer">
+                                        Riviera
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-5">
+                    <p class="text-sm font-semibold text-gray-700 mb-4">Dimensões</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div>
+                            <label for="comprimento" class="block text-sm font-semibold text-gray-700 mb-2">Comprimento (mm)</label>
+                            <input type="number" 
+                                   name="comprimento" 
+                                   id="comprimento" 
+                                   value="{{ product.comprimento if product and product.comprimento else '' }}"
+                                   placeholder="Ex: 6.2"
+                                   step="any"
+                                   min="0"
+                                   oninput="updateProductName()"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                        </div>
+
+                        <div>
+                            <label for="largura" class="block text-sm font-semibold text-gray-700 mb-2">Largura (mm)</label>
+                            <input type="number" 
+                                   name="largura" 
+                                   id="largura" 
+                                   value="{{ product.largura if product and product.largura else '' }}"
+                                   placeholder="Ex: 4.1"
+                                   step="any"
+                                   min="0"
+                                   oninput="updateProductName()"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                        </div>
+
+                        <div>
+                            <label for="altura" class="block text-sm font-semibold text-gray-700 mb-2">Altura (mm)</label>
+                            <input type="number" 
+                                   name="altura" 
+                                   id="altura" 
+                                   value="{{ product.altura if product and product.altura else '' }}"
+                                   placeholder="Ex: 8.5"
+                                   step="any"
+                                   min="0"
+                                   oninput="updateProductName()"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status na loja: Ativo / Rascunho -->
+                <div class="border-t border-gray-100 pt-5">
+                    <div class="flex items-start gap-4">
+                        <div class="relative flex items-start">
+                            <div class="flex h-5 items-center">
+                                <input type="checkbox" 
+                                       name="active" 
+                                       id="active" 
+                                       value="on"
+                                       {% if product and product.get('active', False) %}checked{% endif %}
+                                       class="h-5 w-5 rounded text-purple-600 focus:ring-2 focus:ring-purple-500 border-gray-300 transition-all duration-150 product-active-toggle">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="active" class="font-semibold text-gray-700 cursor-pointer product-active-label">Ativo na loja</label>
+                                <p class="text-xs text-gray-500 mt-0.5">Produtos ativos aparecem no site. Rascunhos ficam apenas no CRM.</p>
+                            </div>
+                        </div>
+                        <div id="active-lock-message" class="hidden flex-1 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
+                            <span class="font-medium">Rascunho obrigatório:</span> adicione uma imagem principal para poder publicar o produto na loja.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Precificação -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h2 class="text-lg font-semibold text-white">Precificação</h2>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div>
+                        <label for="price" class="block text-sm font-semibold text-gray-700 mb-2">Preço por quilate ($) *</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 text-sm">$</span>
+                            </div>
+                            <input type="number" 
+                                   name="price" 
+                                   id="price" 
+                                   value="{{ product.price if product else '' }}"
+                                   step="0.01" 
+                                   required 
+                                   class="block w-full pl-7 rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all duration-150 bg-gray-50"
+                                   placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="discount" class="block text-sm font-semibold text-gray-700 mb-2">Desconto (%)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 text-sm">%</span>
+                            </div>
+                            <input type="number" 
+                                   name="discount" 
+                                   id="discount" 
+                                   value="{{ product.discount if product and product.discount else '' }}"
+                                   step="0.01" 
+                                   min="0"
+                                   max="100"
+                                   placeholder="0"
+                                   class="block w-full pr-8 rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all duration-150 bg-gray-50">
+                        </div>
+                        <p class="mt-1.5 text-xs text-gray-500">Opcional</p>
+                    </div>
+
+                    <div>
+                        <label for="sku" class="block text-sm font-semibold text-gray-700 mb-2">SKU *</label>
+                        <input type="text"
+                               name="sku"
+                               id="sku"
+                               value="{{ product.sku if product and product.sku else (suggested_sku or '') }}"
+                               placeholder="0000"
+                               required
+                               autocomplete="off"
+                               class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all duration-150 bg-gray-50">
+                        <p id="sku-hint" class="mt-1.5 text-xs text-gray-500">Código único do produto</p>
+                    </div>
+                </div>
+
+                {% if not product %}
+                <input type="hidden" name="sku_mode" id="sku_mode" value="{{ sku_mode }}">
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Especificações Adicionais -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                        <div>
+                            <h2 class="text-lg font-semibold text-white">Especificações Adicionais</h2>
+                            <p class="text-xs text-white/80">Informações complementares sobre o produto</p>
+                        </div>
+                    </div>
+                    <button type="button" 
+                            onclick="addSpecification()"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-all duration-150 backdrop-blur-sm">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Adicionar
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div id="specifications-container" class="space-y-4">
+                    {% if product and product.specifications %}
+                        {% for key, value in product.specifications.items() %}
+                        <div class="flex gap-3 items-start specification-row bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div class="flex-1">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Característica</label>
+                                <input type="text" 
+                                       name="spec_key[]" 
+                                       value="{{ key }}"
+                                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 transition-all duration-150 text-sm">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Valor</label>
+                                <input type="text" 
+                                       name="spec_value[]" 
+                                       value="{{ value }}"
+                                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 transition-all duration-150 text-sm">
+                            </div>
+                            <button type="button" 
+                                    onclick="removeSpecification(this)"
+                                    class="mt-6 inline-flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-150"
+                                    title="Remover">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% elif not product and default_specs %}
+                        {% for spec in default_specs %}
+                        <div class="flex gap-3 items-start specification-row bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div class="flex-1">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Característica</label>
+                                <input type="text" 
+                                       name="spec_key[]" 
+                                       value="{{ spec }}"
+                                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 transition-all duration-150 text-sm">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Valor</label>
+                                <input type="text" 
+                                       name="spec_value[]" 
+                                       value=""
+                                       placeholder="Digite o valor"
+                                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 transition-all duration-150 text-sm">
+                            </div>
+                            <button type="button" 
+                                    onclick="removeSpecification(this)"
+                                    class="mt-6 inline-flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-150"
+                                    title="Remover">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% if not product or not product.specifications %}
+                    <div class="text-center py-8 text-gray-400">
+                        <svg class="h-12 w-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-sm">Nenhuma especificação adicionada</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Imagens do Produto -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-teal-500 to-emerald-600 px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <h2 class="text-lg font-semibold text-white">Imagens &amp; Vídeo do Produto</h2>
+                </div>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Main Image -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Imagem Principal *</label>
+                    <div class="flex items-start gap-5">
+                        {% if product and product.main_image_url %}
+                        <div class="w-40 h-40 rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm flex-shrink-0" id="main-image-current">
+                            <img src="{{ product.main_image_url }}" 
+                                 alt="Imagem principal atual" 
+                                 class="w-full h-full object-cover">
+                        </div>
+                        {% endif %}
+                        <div class="flex-1">
+                            <div class="relative border-2 border-dashed border-gray-300 rounded-lg overflow-hidden text-center hover:border-teal-400 transition-colors duration-150 bg-gray-50" id="main-image-dropzone">
+                                <input type="file" 
+                                       id="main-image-input"
+                                       name="main_image" 
+                                       accept="image/*,.heic,.heif"
+                                       class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                <div id="main-image-placeholder" class="p-6">
+                                    <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="mt-2 text-sm text-gray-600">
+                                        <span class="font-medium text-teal-600">Clique para fazer upload</span> ou arraste e solte
+                                    </p>
+                                    <p class="text-xs text-gray-500 mt-1">PNG, JPG, WEBP, HEIC até 10MB</p>
+                                </div>
+                                <img id="main-image-preview" src="" alt="Preview" class="hidden w-full h-48 object-cover">
+                                <p id="main-image-filename" class="hidden text-xs text-teal-700 font-medium py-2 px-3 bg-teal-50"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Images -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Imagens Adicionais</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Image 2 -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-2">Imagem 2</label>
+                            {% if product and product.image_2_url %}
+                            <div class="mb-3 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                                <img src="{{ product.image_2_url }}" 
+                                     alt="Imagem 2 atual" 
+                                     class="w-full aspect-square object-cover">
+                            </div>
+                            {% endif %}
+                            <div class="relative border-2 border-dashed border-gray-300 rounded-lg overflow-hidden text-center hover:border-teal-400 transition-colors duration-150 bg-gray-50">
+                                <input type="file" 
+                                       id="img2-input"
+                                       name="additional_images" 
+                                       accept="image/*,.heic,.heif"
+                                       class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                <div id="img2-placeholder" class="p-4">
+                                    <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    <p class="mt-1 text-xs text-gray-600">Adicionar imagem</p>
+                                </div>
+                                <img id="img2-preview" src="" alt="Preview 2" class="hidden w-full aspect-square object-cover">
+                                <p id="img2-filename" class="hidden text-xs text-teal-700 font-medium py-2 px-3 bg-teal-50"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Image 3 -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-2">Imagem 3</label>
+                            {% if product and product.image_3_url %}
+                            <div class="mb-3 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                                <img src="{{ product.image_3_url }}" 
+                                     alt="Imagem 3 atual" 
+                                     class="w-full aspect-square object-cover">
+                            </div>
+                            {% endif %}
+                            <div class="relative border-2 border-dashed border-gray-300 rounded-lg overflow-hidden text-center hover:border-teal-400 transition-colors duration-150 bg-gray-50">
+                                <input type="file" 
+                                       id="img3-input"
+                                       name="additional_images" 
+                                       accept="image/*,.heic,.heif"
+                                       class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                <div id="img3-placeholder" class="p-4">
+                                    <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    <p class="mt-1 text-xs text-gray-600">Adicionar imagem</p>
+                                </div>
+                                <img id="img3-preview" src="" alt="Preview 3" class="hidden w-full aspect-square object-cover">
+                                <p id="img3-filename" class="hidden text-xs text-teal-700 font-medium py-2 px-3 bg-teal-50"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- YouTube Video Link -->
+                <div class="border-t border-gray-100 pt-6">
+                    <label for="youtube_url" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <span class="flex items-center gap-2">
+                            <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                            Link do Youtube
+                        </span>
+                    </label>
+                    <input type="url"
+                           name="youtube_url"
+                           id="youtube_url"
+                           value="{{ product.youtube_url if product and product.youtube_url else '' }}"
+                           placeholder="https://www.youtube.com/watch?v=... | https://youtu.be/... | https://www.youtube.com/shorts/..."
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500 transition-all duration-150 bg-gray-50">
+                    <p class="mt-1.5 text-xs text-gray-500">Suporta links de vídeo normal, encurtados (<code>youtu.be</code>) e Shorts. O vídeo aparecerá como miniatura extra na galeria.</p>
+                    {% if product and product.youtube_url %}
+                    <div class="mt-3 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
+                        <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                        Vídeo configurado: <a href="{{ product.youtube_url }}" target="_blank" class="underline hover:text-emerald-900 truncate max-w-xs">{{ product.youtube_url }}</a>
+                        <span class="text-gray-500 ml-1">(deixe o campo vazio para remover)</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50 rounded-xl p-4 md:p-6 border border-gray-200 gap-3">
+            <p class="text-xs md:text-sm text-gray-600 text-center sm:text-left">
+                <span class="font-medium text-gray-900">*</span> Campos obrigatórios
+            </p>
+            <div class="flex flex-col sm:flex-row gap-2 md:gap-3">
+                <a href="{{ url_for('crm_produtos') }}" 
+                   class="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 border border-gray-300 rounded-lg shadow-sm text-xs md:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-150">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Cancelar
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 border border-transparent shadow-sm text-xs md:text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    {{ 'Atualizar' if product else 'Criar' }} Produto
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Blocos abaixo ficam fora do formulário: possuem seus próprios forms -->
+    {% if edit_mode and sales_history %}
+    <!-- Sales History -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6 mt-6">
+            <div class="px-4 md:px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-yellow-50 to-amber-50">
+                <h3 class="text-base font-semibold text-gray-900">Histórico de vendas</h3>
+                <p class="text-xs text-gray-500 mt-1">Pedidos pagos que incluem este produto</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-100 text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Pedido</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">E-mail</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Data</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor item</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for sale in sales_history %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                {% if sale.order_id %}
+                                <a href="{{ url_for('crm_order_detail', order_id=sale.order_id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">#{{ sale.order_number or sale.order_id[:8]|upper }}</a>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-gray-900">{{ sale.customer_name or '—' }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ sale.customer_email or '—' }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ sale.sold_at[:10] if sale.sold_at else '—' }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right text-gray-900">
+                                {% if sale.item_amount_brl %}R$ {{ "%.2f"|format(sale.item_amount_brl|float)|replace('.', ',') }}{% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if edit_mode and related_orders %}
+        <!-- Shipping tracking -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+            <div class="px-4 md:px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                <h3 class="text-base font-semibold text-gray-900">Código de rastreio</h3>
+                <p class="text-xs text-gray-500 mt-1">Registre o rastreio do pedido. O cliente será avisado por e-mail e WhatsApp.</p>
+            </div>
+            <div class="p-4 md:p-6 space-y-5">
+                {% for order_id, order in related_orders.items() %}
+                <form method="POST" action="{{ url_for('crm_set_order_tracking', order_id=order_id) }}" class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                    <input type="hidden" name="return_to" value="{{ url_for('edit_product', product_id=product.id) }}">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">
+                                Pedido
+                                <a href="{{ url_for('crm_order_detail', order_id=order_id) }}" class="text-indigo-600 hover:text-indigo-800 font-mono">#{{ order_id[:8]|upper }}</a>
+                            </p>
+                            <p class="text-xs text-gray-500 mt-0.5">{{ order.get('customer_name', '—') }} · {{ order.get('customer_email', '—') }}</p>
+                            {% if order.get('customer_phone') %}
+                            <p class="text-xs text-gray-500">{{ order.customer_phone }}</p>
+                            {% endif %}
+                        </div>
+                        {% if order.get('tracking_code') %}
+                        <span class="inline-flex items-center self-start px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                            Rastreio registrado
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text"
+                               name="tracking_code"
+                               value="{{ order.get('tracking_code', '') }}"
+                               placeholder="Ex: AB123456789BR"
+                               class="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 font-mono text-sm uppercase"
+                               required>
+                        <button type="submit"
+                                class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-sm transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                            Salvar e notificar
+                        </button>
+                    </div>
+                    {% if order.get('tracking_set_at') %}
+                    <p class="text-xs text-gray-400 mt-2">
+                        Última atualização: {{ order.tracking_set_at[8:10] }}/{{ order.tracking_set_at[5:7] }}/{{ order.tracking_set_at[0:4] }}
+                        às {{ order.tracking_set_at[11:16] }}
+                    </p>
+                    {% endif %}
+                </form>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<script type="application/json" id="categories-data">{{ categories|tojson|safe }}</script>
+<script type="application/json" id="current-variant">{{ product.variant if product and product.variant else "" }}</script>
+<script type="application/json" id="edit-mode">{{ 'true' if product else 'false' }}</script>
+<script type="application/json" id="has-main-image">{{ 'true' if product and product.get('main_image_url') else 'false' }}</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script>
+function addSpecification() {
+    const container = document.getElementById('specifications-container');
+    const newRow = document.createElement('div');
+    newRow.className = 'flex gap-3 items-start specification-row bg-gray-50 p-4 rounded-lg border border-gray-200';
+    newRow.innerHTML = `
+        <div class="flex-1">
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Característica</label>
+            <input type="text" 
+                   name="spec_key[]" 
+                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 transition-all duration-150 text-sm">
+        </div>
+        <div class="flex-1">
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Valor</label>
+            <input type="text" 
+                   name="spec_value[]" 
+                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 transition-all duration-150 text-sm">
+        </div>
+        <button type="button" 
+                onclick="removeSpecification(this)"
+                class="mt-6 inline-flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-150"
+                title="Remover">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    `;
+    container.appendChild(newRow);
+}
+
+function removeSpecification(button) {
+    button.closest('.specification-row').remove();
+}
+
+function removeGalleryImage(button) {
+    button.closest('.relative').remove();
+}
+
+// Categories with variants data
+const categoriesDataElement = document.getElementById('categories-data');
+let categoriesData = {};
+try {
+    categoriesData = categoriesDataElement ? JSON.parse(categoriesDataElement.textContent) : {};
+} catch (e) {
+    console.error('Error parsing categories data:', e);
+}
+
+const currentVariantElement = document.getElementById('current-variant');
+let currentVariant = '';
+try {
+    currentVariant = currentVariantElement ? JSON.parse(currentVariantElement.textContent) : '';
+} catch (e) {
+    currentVariant = currentVariantElement ? currentVariantElement.textContent : '';
+}
+
+const editModeElement = document.getElementById('edit-mode');
+let isEditMode = false;
+try {
+    isEditMode = editModeElement ? JSON.parse(editModeElement.textContent) : false;
+} catch (e) {
+    isEditMode = false;
+}
+
+// ---- Auto product name ----
+function buildAutoName() {
+    const category = document.getElementById('category').value;
+    const variantEl = document.getElementById('variant');
+    const variant = variantEl ? variantEl.value : '';
+    const cut = document.getElementById('cut').value;
+    const comprimento = document.getElementById('comprimento').value.trim();
+    const largura = document.getElementById('largura').value.trim();
+    const altura = document.getElementById('altura').value.trim();
+
+    const parts = [];
+    if (category) parts.push(category); // categoria primeiro
+    if (variant) parts.push(variant);   // depois variante
+    if (cut) parts.push(cut);
+    if (comprimento && largura) {
+        let dims = comprimento + 'x' + largura;
+        if (altura) dims += 'x' + altura;
+        parts.push(dims + 'mm');
+    } else if (comprimento) {
+        parts.push(comprimento + 'mm');
+    }
+    return parts.join(' ');
+}
+
+// ---- Crop Modal ----
+let _cropper = null;
+let _cropInputId = null, _cropPlaceholderId = null, _cropPreviewId = null, _cropFilenameId = null;
+let _cropIsSquare = true;
+
+function _showCropLoadingState(placeholderId, message) {
+    const placeholder = document.getElementById(placeholderId);
+    if (!placeholder) return;
+    placeholder.dataset.originalHtml = placeholder.innerHTML;
+    placeholder.innerHTML = '<p class="text-sm text-teal-600 py-6 px-4 text-center font-medium">' + message + '</p>';
+}
+function _restorePlaceholder(placeholderId) {
+    const placeholder = document.getElementById(placeholderId);
+    if (placeholder && placeholder.dataset.originalHtml) {
+        placeholder.innerHTML = placeholder.dataset.originalHtml;
+        delete placeholder.dataset.originalHtml;
+    }
+}
+
+async function openCropModal(file, inputId, placeholderId, previewId, filenameId) {
+    _cropInputId = inputId;
+    _cropPlaceholderId = placeholderId;
+    _cropPreviewId = previewId;
+    _cropFilenameId = filenameId;
+
+    let displayFile = file;
+    const isHEIC = /\.(heic|heif)$/i.test(file.name);
+
+    // Convert HEIC → JPEG in browser so Cropper.js can display it
+    if (isHEIC) {
+        _showCropLoadingState(placeholderId, '⏳ Convertendo HEIC para exibição...');
+        try {
+            const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.95 });
+            const blob = Array.isArray(converted) ? converted[0] : converted;
+            const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+            displayFile = new File([blob], newName, { type: 'image/jpeg' });
+        } catch (e) {
+            console.warn('HEIC conversion failed, skipping crop:', e);
+            _restorePlaceholder(placeholderId);
+            // Show filename only
+            const placeholder = document.getElementById(placeholderId);
+            const filenameEl = document.getElementById(filenameId);
+            if (placeholder) placeholder.classList.add('hidden');
+            if (filenameEl) { filenameEl.textContent = '✓ ' + file.name; filenameEl.classList.remove('hidden'); }
+            return;
+        }
+        _restorePlaceholder(placeholderId);
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const cropImg = document.getElementById('crop-image');
+        cropImg.src = e.target.result;
+        cropImg.onload = function() {
+            document.getElementById('crop-modal').style.display = 'flex';
+            if (_cropper) { _cropper.destroy(); _cropper = null; }
+            _cropper = new Cropper(cropImg, {
+                aspectRatio: _cropIsSquare ? 1 : NaN,
+                viewMode: 1,
+                autoCropArea: 0.9,
+                responsive: true,
+                background: false,
+                movable: true,
+                zoomable: true,
+                rotatable: false,
+            });
+        };
+        cropImg.onerror = function() {
+            // Unexpected display failure — show filename
+            document.getElementById('crop-modal').style.display = 'none';
+            const placeholder = document.getElementById(placeholderId);
+            const preview = document.getElementById(previewId);
+            const filenameEl = document.getElementById(filenameId);
+            if (placeholder) placeholder.classList.add('hidden');
+            if (preview) preview.classList.add('hidden');
+            if (filenameEl) { filenameEl.textContent = '✓ ' + file.name; filenameEl.classList.remove('hidden'); }
+        };
+    };
+    reader.readAsDataURL(displayFile);
+}
+
+function toggleCropRatio() {
+    _cropIsSquare = !_cropIsSquare;
+    document.getElementById('crop-ratio-btn').textContent = _cropIsSquare ? '1:1 Quadrado' : 'Livre';
+    if (_cropper) _cropper.setAspectRatio(_cropIsSquare ? 1 : NaN);
+}
+
+function cancelCrop() {
+    if (_cropper) { _cropper.destroy(); _cropper = null; }
+    document.getElementById('crop-modal').style.display = 'none';
+    const input = document.getElementById(_cropInputId);
+    if (input) input.value = '';
+    if (_cropInputId === 'main-image-input') updateActiveToggleState(false);
+}
+
+function confirmCrop() {
+    if (!_cropper) return;
+    const btn = document.getElementById('crop-confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Processando...';
+
+    const canvas = _cropper.getCroppedCanvas({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
+    canvas.toBlob(function(blob) {
+        const input = document.getElementById(_cropInputId);
+        const origName = (input.files && input.files[0]) ? input.files[0].name : 'imagem.jpg';
+        const newName = origName.replace(/\.(heic|heif|png|webp|bmp|tiff?)$/i, '.jpg');
+
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(new File([blob], newName, { type: 'image/jpeg' }));
+            input.files = dt.files;
+        } catch (e) {
+            console.warn('DataTransfer not supported:', e);
+        }
+
+        // Show preview
+        const preview = document.getElementById(_cropPreviewId);
+        const placeholder = document.getElementById(_cropPlaceholderId);
+        const filenameEl = document.getElementById(_cropFilenameId);
+        const url = URL.createObjectURL(blob);
+        if (preview) { preview.src = url; preview.classList.remove('hidden'); }
+        if (placeholder) placeholder.classList.add('hidden');
+        if (filenameEl) filenameEl.classList.add('hidden');
+
+        // Close modal
+        _cropper.destroy(); _cropper = null;
+        document.getElementById('crop-modal').style.display = 'none';
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Confirmar corte';
+
+        if (_cropInputId === 'main-image-input') updateActiveToggleState(true);
+    }, 'image/jpeg', 0.95);
+}
+
+// ---- Image preview with crop ----
+function setupImagePreview(inputId, placeholderId, previewId, filenameId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.addEventListener('change', async function() {
+        const file = this.files && this.files[0];
+        if (!file) return;
+        await openCropModal(file, inputId, placeholderId, previewId, filenameId);
+    });
+}
+
+function updateProductName() {
+    const riviera = document.getElementById('riviera').checked;
+    const nameInput = document.getElementById('name');
+    const hint = document.getElementById('name-hint');
+    const freeHint = document.getElementById('name-free-hint');
+
+    if (riviera) {
+        nameInput.removeAttribute('readonly');
+        nameInput.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-500');
+        nameInput.classList.add('bg-gray-50');
+        if (hint) hint.classList.add('hidden');
+        if (freeHint) freeHint.classList.remove('hidden');
+    } else {
+        const autoName = buildAutoName();
+        if (autoName) nameInput.value = autoName;
+        nameInput.setAttribute('readonly', '');
+        nameInput.classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-500');
+        nameInput.classList.remove('bg-gray-50');
+        if (hint) hint.classList.remove('hidden');
+        if (freeHint) freeHint.classList.add('hidden');
+    }
+}
+
+function updateVariants() {
+    const categorySelect = document.getElementById('category');
+    const variantContainer = document.getElementById('variant-container');
+    const variantSelect = document.getElementById('variant');
+    const selectedCategory = categorySelect.value;
+    
+    // Clear current variants
+    variantSelect.innerHTML = '<option value="">Nenhuma variante</option>';
+    
+    if (!selectedCategory) {
+        variantContainer.style.display = 'none';
+        return;
+    }
+    
+    const categoryData = categoriesData[selectedCategory];
+    
+    if (categoryData && categoryData.variants && Array.isArray(categoryData.variants)) {
+        const variants = categoryData.variants;
+        
+        console.log('Found variants:', variants);
+        
+        if (variants.length > 0) {
+            // Show variant container
+            variantContainer.style.display = 'block';
+            
+            // Add variants to select
+            variants.forEach(variant => {
+                // Handle both string variants (old format) and object variants (new format)
+                const variantName = typeof variant === 'string' ? variant : variant.name;
+                const option = document.createElement('option');
+                option.value = variantName;
+                option.textContent = variantName;
+                if (variantName === currentVariant) {
+                    option.selected = true;
+                }
+                variantSelect.appendChild(option);
+            });
+        } else {
+            // Hide variant container if no variants
+            variantContainer.style.display = 'none';
+        }
+    } else {
+        console.log('No variants found for category:', selectedCategory);
+        variantContainer.style.display = 'none';
+    }
+    updateProductName();
+}
+
+// Status na loja: travar / habilitar toggle com base na imagem principal
+// autoCheck=true → marca o toggle automaticamente ao selecionar nova imagem
+function updateActiveToggleState(autoCheck = false) {
+    const toggle = document.getElementById('active');
+    const lockMessage = document.getElementById('active-lock-message');
+    const hasMainImageEl = document.getElementById('has-main-image');
+    let hasMainImage = false;
+    try {
+        hasMainImage = hasMainImageEl && JSON.parse(hasMainImageEl.textContent) === true;
+    } catch (e) {
+        hasMainImage = false;
+    }
+    const mainImageInput = document.getElementById('main-image-input');
+    if (mainImageInput && mainImageInput.files && mainImageInput.files.length > 0) {
+        hasMainImage = true;
+    }
+    if (!hasMainImage) {
+        toggle.checked = false;
+        toggle.disabled = true;
+        toggle.setAttribute('title', 'Adicione uma imagem principal para publicar na loja');
+        if (lockMessage) lockMessage.classList.remove('hidden');
+    } else {
+        toggle.disabled = false;
+        toggle.removeAttribute('title');
+        if (lockMessage) lockMessage.classList.add('hidden');
+        if (autoCheck) toggle.checked = true;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateVariants();        // also calls updateProductName() at its end
+    updateActiveToggleState();
+
+    // Riviera toggle drives name lock/unlock
+    const rivieraCheckbox = document.getElementById('riviera');
+    if (rivieraCheckbox) {
+        rivieraCheckbox.addEventListener('change', updateProductName);
+    }
+
+    // Set up previews for all image inputs
+    setupImagePreview('main-image-input', 'main-image-placeholder', 'main-image-preview', 'main-image-filename');
+    setupImagePreview('img2-input', 'img2-placeholder', 'img2-preview', 'img2-filename');
+    setupImagePreview('img3-input', 'img3-placeholder', 'img3-preview', 'img3-filename');
+
+    setupSkuControl();
+});
+
+/* ══ SKU: modo novo/existente + checagem de duplicidade em tempo real ══ */
+
+const ORIGINAL_SKU = {{ (product.sku if product and product.sku else '') | tojson }};
+let skuAvailable = true;
+let skuCheckTimer = null;
+
+function setSkuMode(mode) {
+    const input = document.getElementById('sku');
+    const hint  = document.getElementById('sku-hint');
+    if (!input) return;
+
+    if (mode === 'new') {
+        input.readOnly = true;
+        input.classList.add('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+        input.classList.remove('bg-gray-50');
+        hint.textContent = 'Gerado automaticamente. Será confirmado ao salvar.';
+        hint.className = 'mt-1.5 text-xs text-gray-500';
+        skuAvailable = true;
+        fetchNextSku();
+    } else {
+        input.readOnly = false;
+        input.classList.remove('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+        input.classList.add('bg-gray-50');
+        hint.textContent = 'Informe o SKU já usado internamente. Verificamos se está livre.';
+        hint.className = 'mt-1.5 text-xs text-gray-500';
+        input.value = '';
+        input.focus();
+        skuAvailable = false;
+    }
+}
+
+async function fetchNextSku() {
+    const input = document.getElementById('sku');
+    try {
+        const res  = await fetch('/crm/api/products/next-sku');
+        const data = await res.json();
+        if (data.sku) input.value = data.sku;
+    } catch (e) {
+        /* mantém o valor sugerido no carregamento da página */
+    }
+}
+
+async function checkSkuAvailability() {
+    const input = document.getElementById('sku');
+    const hint  = document.getElementById('sku-hint');
+    const sku   = (input.value || '').trim();
+
+    if (!sku) {
+        skuAvailable = false;
+        hint.textContent = 'Informe o SKU do produto.';
+        hint.className = 'mt-1.5 text-xs text-gray-500';
+        setSkuFieldState(null);
+        return;
+    }
+
+    hint.textContent = 'Verificando disponibilidade…';
+    hint.className = 'mt-1.5 text-xs text-gray-400';
+
+    try {
+        const params = new URLSearchParams({ sku: sku });
+        {% if product %}params.set('product_id', '{{ product.id }}');{% endif %}
+        const res  = await fetch('/crm/api/products/check-sku?' + params.toString());
+        const data = await res.json();
+
+        skuAvailable = !!data.available;
+        if (skuAvailable) {
+            hint.textContent = 'SKU disponível.';
+            hint.className = 'mt-1.5 text-xs text-green-600 font-medium';
+            setSkuFieldState(true);
+        } else {
+            const conflict = (data.product && data.product.name) ? ` (${data.product.name})` : '';
+            hint.textContent = `O SKU ${sku} já existe no sistema${conflict}. Escolha outro código.`;
+            hint.className = 'mt-1.5 text-xs text-red-600 font-medium';
+            setSkuFieldState(false);
+        }
+    } catch (e) {
+        skuAvailable = true;
+        hint.textContent = 'Não foi possível verificar agora. A validação ocorre ao salvar.';
+        hint.className = 'mt-1.5 text-xs text-amber-600';
+        setSkuFieldState(null);
+    }
+}
+
+function setSkuFieldState(ok) {
+    const input = document.getElementById('sku');
+    input.classList.remove('border-gray-300', 'border-red-400', 'border-green-400',
+                           'focus:border-green-500', 'focus:ring-green-500',
+                           'focus:border-red-500', 'focus:ring-red-500');
+    if (ok === true) {
+        input.classList.add('border-green-400', 'focus:border-green-500', 'focus:ring-green-500');
+    } else if (ok === false) {
+        input.classList.add('border-red-400', 'focus:border-red-500', 'focus:ring-red-500');
+    } else {
+        input.classList.add('border-gray-300', 'focus:border-green-500', 'focus:ring-green-500');
+    }
+}
+
+function setupSkuControl() {
+    const input = document.getElementById('sku');
+    const form  = document.getElementById('product-form');
+    if (!input) return;
+
+    input.addEventListener('input', () => {
+        skuAvailable = false;
+        clearTimeout(skuCheckTimer);
+        skuCheckTimer = setTimeout(checkSkuAvailability, 400);
+    });
+
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            if (input.readOnly) return;              // SKU automático é validado no servidor
+            const value = (input.value || '').trim();
+            if (value && value === ORIGINAL_SKU) return;  // SKU inalterado na edição
+            if (!skuAvailable) {
+                e.preventDefault();
+                const hint = document.getElementById('sku-hint');
+                if (!value) {
+                    hint.textContent = 'Informe o SKU do produto para salvar.';
+                    hint.className = 'mt-1.5 text-xs text-red-600 font-medium';
+                    setSkuFieldState(false);
+                }
+                hint.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                input.focus();
+            }
+        });
+    }
+
+    const mode = document.getElementById('sku_mode');
+    if (mode) {
+        setSkuMode(mode.value);
+    } else {
+        checkSkuAvailability();   // edição: valida o SKU já existente
+    }
+}
+</script>
+{% endblock %} 

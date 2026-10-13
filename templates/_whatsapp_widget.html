@@ -1,0 +1,162 @@
+{# Floating WhatsApp support widget — public site only #}
+{% if not request.path.startswith('/crm') %}
+<div id="wa-widget" class="fixed bottom-5 right-5 z-[80] flex flex-col items-end gap-3 pointer-events-none" aria-live="polite">
+
+    <!-- Chat panel -->
+    <div id="wa-panel"
+         class="pointer-events-auto w-[min(100vw-2rem,22rem)] bg-white rounded-2xl shadow-2xl border border-gray-200/80 overflow-hidden transform origin-bottom-right scale-95 opacity-0 invisible transition-all duration-200 ease-out"
+         role="dialog"
+         aria-labelledby="wa-panel-title"
+         aria-hidden="true">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-luxury-emerald to-[#1f5b40] px-4 py-3.5 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0 ring-2 ring-luxury-gold/40">
+                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.881 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p id="wa-panel-title" class="text-white font-serif text-sm tracking-wide">Katsumi Joias</p>
+                <p class="text-emerald-100/80 text-xs flex items-center gap-1.5 mt-0.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                    Atendimento · {{ support_whatsapp_display }}
+                </p>
+            </div>
+            <button type="button" id="wa-close" class="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors" aria-label="Fechar chat">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Chat body -->
+        <div class="bg-[#e5ddd5] px-4 py-4 space-y-3 max-h-[min(60vh,420px)] overflow-y-auto">
+            <div class="bg-white rounded-lg rounded-tl-none px-3.5 py-2.5 shadow-sm max-w-[90%] text-sm text-gray-700 leading-relaxed">
+                Olá! 👋 Somos especialistas em pedras preciosas desde 1942. Conte como podemos ajudar.
+            </div>
+
+            <form id="wa-form" class="space-y-3 pt-1">
+                <div>
+                    <label for="wa-name" class="block text-xs font-semibold text-gray-600 mb-1">Seu nome</label>
+                    <input type="text" id="wa-name" name="name" required maxlength="80" autocomplete="name"
+                           placeholder="Como podemos te chamar?"
+                           class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-luxury-gold focus:ring-luxury-gold/30 focus:ring-2 outline-none">
+                </div>
+                <div>
+                    <label for="wa-message" class="block text-xs font-semibold text-gray-600 mb-1">Sua solicitação</label>
+                    <textarea id="wa-message" name="message" required maxlength="1000" rows="3"
+                              placeholder="Ex: busco uma esmeralda gota de 3 ct..."
+                              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm resize-none focus:border-luxury-gold focus:ring-luxury-gold/30 focus:ring-2 outline-none"></textarea>
+                </div>
+                <button type="submit" id="wa-submit" disabled
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all bg-gray-300 text-gray-500 cursor-not-allowed opacity-70 shadow-none">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.881 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    Enviar no WhatsApp
+                </button>
+            </form>
+        </div>
+
+        <p class="text-[10px] text-center text-gray-400 py-2 bg-white border-t border-gray-100">
+            Resposta em horário comercial · Gemas lapidadas em Minas Gerais
+        </p>
+        <span class="hidden bg-[#25D366] hover:bg-[#1fb855] text-white cursor-pointer active:scale-[0.98] shadow-md opacity-100" aria-hidden="true"></span>
+    </div>
+
+    <!-- FAB -->
+    <button type="button" id="wa-toggle"
+            class="pointer-events-auto group relative w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
+            aria-label="Abrir chat de suporte no WhatsApp"
+            aria-expanded="false"
+            aria-controls="wa-panel">
+        <span class="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-20 group-hover:opacity-30"></span>
+        <svg id="wa-icon-open" class="w-7 h-7 relative" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.881 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        <svg id="wa-icon-close" class="w-6 h-6 relative hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+</div>
+
+<script>
+(function() {
+    const WA_NUMBER = {{ support_whatsapp_number | tojson }};
+    const panel = document.getElementById('wa-panel');
+    const toggle = document.getElementById('wa-toggle');
+    const closeBtn = document.getElementById('wa-close');
+    const form = document.getElementById('wa-form');
+    const nameInput = document.getElementById('wa-name');
+    const messageInput = document.getElementById('wa-message');
+    const submitBtn = document.getElementById('wa-submit');
+    const iconOpen = document.getElementById('wa-icon-open');
+    const iconClose = document.getElementById('wa-icon-close');
+    if (!panel || !toggle || !form) return;
+
+    let isOpen = false;
+
+    try {
+        const saved = localStorage.getItem('pp_wa_name');
+        if (saved && nameInput) nameInput.value = saved;
+    } catch (_) {}
+
+    function updateSubmitState() {
+        if (!submitBtn || !nameInput || !messageInput) return;
+        const ready = (nameInput.value || '').trim().length > 0 && (messageInput.value || '').trim().length > 0;
+        submitBtn.disabled = !ready;
+        submitBtn.classList.toggle('bg-gray-300', !ready);
+        submitBtn.classList.toggle('text-gray-500', !ready);
+        submitBtn.classList.toggle('cursor-not-allowed', !ready);
+        submitBtn.classList.toggle('opacity-70', !ready);
+        submitBtn.classList.toggle('shadow-none', !ready);
+        submitBtn.classList.toggle('bg-[#25D366]', ready);
+        submitBtn.classList.toggle('hover:bg-[#1fb855]', ready);
+        submitBtn.classList.toggle('text-white', ready);
+        submitBtn.classList.toggle('cursor-pointer', ready);
+        submitBtn.classList.toggle('active:scale-[0.98]', ready);
+        submitBtn.classList.toggle('shadow-md', ready);
+        submitBtn.classList.toggle('opacity-100', ready);
+    }
+
+    if (nameInput) nameInput.addEventListener('input', updateSubmitState);
+    if (messageInput) messageInput.addEventListener('input', updateSubmitState);
+    updateSubmitState();
+
+    function setOpen(open) {
+        isOpen = open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if (open) {
+            panel.classList.remove('invisible', 'opacity-0', 'scale-95');
+            panel.classList.add('opacity-100', 'scale-100');
+            iconOpen.classList.add('hidden');
+            iconClose.classList.remove('hidden');
+            toggle.classList.remove('bg-[#25D366]');
+            toggle.classList.add('bg-luxury-emerald');
+            setTimeout(function() { nameInput && nameInput.focus(); }, 200);
+        } else {
+            panel.classList.add('invisible', 'opacity-0', 'scale-95');
+            panel.classList.remove('opacity-100', 'scale-100');
+            iconOpen.classList.remove('hidden');
+            iconClose.classList.add('hidden');
+            toggle.classList.add('bg-[#25D366]');
+            toggle.classList.remove('bg-luxury-emerald');
+        }
+    }
+
+    toggle.addEventListener('click', function() { setOpen(!isOpen); });
+    if (closeBtn) closeBtn.addEventListener('click', function() { setOpen(false); });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isOpen) setOpen(false);
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = (nameInput.value || '').trim();
+        const message = (messageInput.value || '').trim();
+        if (!name || !message) return;
+
+        try { localStorage.setItem('pp_wa_name', name); } catch (_) {}
+
+        const body = 'Olá, meu nome é ' + name + '. Estou em busca de ' + message + ' e vim pelo site da Katsumi Joias.';
+        const url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(body);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setOpen(false);
+    });
+})();
+</script>
+{% endif %}

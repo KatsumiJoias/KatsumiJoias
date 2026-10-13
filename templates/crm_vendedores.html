@@ -1,0 +1,197 @@
+{% extends "crm_base.html" %}
+
+{% macro brl(value) %}R$ {{ '%.2f'|format(value or 0) | replace('.', ',') }}{% endmacro %}
+
+{% block crm_content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <a href="{{ url_for('crm_ajustes') }}" class="text-gray-400 hover:text-gray-600" title="Voltar para Ajustes">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Vendedores</h1>
+            </div>
+            <p class="text-sm text-gray-600 ml-8">Cadastre a equipe comercial e a comissão de cada um</p>
+        </div>
+        <button type="button" onclick="openSellerModal()"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all text-sm font-semibold">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Novo vendedor
+        </button>
+    </div>
+
+    <div class="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+        <p class="text-xs text-indigo-800">
+            A comissão informada aqui é copiada para o pedido no momento em que o vendedor é selecionado em
+            <span class="font-semibold">Criar pedido</span>. Alterar a comissão depois não altera pedidos já registrados.
+        </p>
+    </div>
+
+    {% if sellers %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vendedor</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Comissão</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Pedidos</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Faturado</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Recebido</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Comissão acum.</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                    {% for seller in sellers %}
+                    {% set st = stats.get(seller.id, {'orders': 0, 'billed': 0, 'received': 0, 'commission': 0}) %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center text-sm font-bold text-indigo-700">
+                                    {{ seller.name[:1] | upper }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                        {{ seller.name }}
+                                        {% if not seller.active %}
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Inativo</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="text-xs text-gray-500">{{ seller.email or 'Sem e-mail cadastrado' }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center text-sm font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
+                                {{ '%.2f'|format(seller.commission_pct or 0) | replace('.', ',') }}%
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right text-sm text-gray-700">{{ st.orders }}</td>
+                        <td class="px-6 py-4 text-right text-sm text-gray-700">{{ brl(st.billed) }}</td>
+                        <td class="px-6 py-4 text-right text-sm text-emerald-700 font-medium">{{ brl(st.received) }}</td>
+                        <td class="px-6 py-4 text-right text-sm text-indigo-700 font-medium">{{ brl(st.commission) }}</td>
+                        <td class="px-6 py-4 text-right whitespace-nowrap">
+                            <button type="button"
+                                    onclick="openSellerModal({{ {'id': seller.id, 'name': seller.name, 'email': seller.email or '', 'commission_pct': seller.commission_pct or 0, 'active': seller.active} | tojson | forceescape }})"
+                                    class="inline-flex items-center px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                                Editar
+                            </button>
+                            <form action="{{ url_for('crm_delete_vendedor', seller_id=seller.id) }}" method="POST" class="inline"
+                                  onsubmit="return confirm('Remover {{ seller.name }}? Pedidos já registrados mantêm o histórico.');">
+                                <button type="submit"
+                                        class="ml-1 inline-flex items-center px-3 py-1.5 border border-red-200 rounded-lg text-xs font-medium text-red-700 hover:bg-red-50 transition-colors">
+                                    Remover
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-16 px-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-100 to-violet-100 rounded-full mb-4">
+            <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum vendedor cadastrado</h3>
+        <p class="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
+            Cadastre os vendedores para poder atribuí-los aos pedidos internos e acompanhar comissões.
+        </p>
+        <button type="button" onclick="openSellerModal()"
+                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all font-semibold">
+            Cadastrar vendedor
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal cadastro/edição -->
+<div id="seller-modal" class="fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4" style="display:none">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h3 id="seller-modal-title" class="font-semibold text-gray-900 text-lg">Novo vendedor</h3>
+            <button type="button" onclick="closeSellerModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ url_for('crm_vendedores') }}">
+            <input type="hidden" name="seller_id" id="seller-id">
+            <div class="p-6 space-y-5">
+                <div>
+                    <label for="seller-name" class="block text-sm font-semibold text-gray-700 mb-1.5">Nome <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" id="seller-name" required
+                           class="block w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-2">
+                        <label for="seller-email" class="block text-sm font-semibold text-gray-700 mb-1.5">E-mail</label>
+                        <input type="email" name="email" id="seller-email" placeholder="Opcional"
+                               class="block w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500">Usado no futuro para dar acesso próprio ao vendedor.</p>
+                    </div>
+                    <div>
+                        <label for="seller-commission" class="block text-sm font-semibold text-gray-700 mb-1.5">Comissão (%)</label>
+                        <input type="text" name="commission_pct" id="seller-commission" inputmode="decimal" placeholder="0"
+                               class="block w-full rounded-lg border-gray-300 shadow-sm text-sm text-right focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="active" id="seller-active" checked
+                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-sm text-gray-700">Vendedor ativo (aparece na criação de pedidos)</span>
+                </label>
+            </div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                <button type="button" onclick="closeSellerModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openSellerModal(seller) {
+        document.getElementById('seller-modal-title').textContent = seller ? 'Editar vendedor' : 'Novo vendedor';
+        document.getElementById('seller-id').value          = seller ? seller.id : '';
+        document.getElementById('seller-name').value        = seller ? seller.name : '';
+        document.getElementById('seller-email').value       = seller ? seller.email : '';
+        document.getElementById('seller-commission').value  = seller ? String(seller.commission_pct).replace('.', ',') : '';
+        document.getElementById('seller-active').checked    = seller ? !!seller.active : true;
+
+        document.getElementById('seller-modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => document.getElementById('seller-name').focus(), 50);
+    }
+
+    function closeSellerModal() {
+        document.getElementById('seller-modal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('click', (e) => {
+        if (e.target.id === 'seller-modal') closeSellerModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeSellerModal();
+    });
+</script>
+{% endblock %}
