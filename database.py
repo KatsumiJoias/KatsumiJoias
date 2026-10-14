@@ -19,6 +19,23 @@ except ImportError:
 # Load environment variables
 load_dotenv()
 
+
+def _resolve_storage_bucket_name():
+    """Firebase Storage bucket; required for storage.bucket() at import time."""
+    explicit = (os.getenv('FIREBASE_STORAGE_BUCKET') or '').strip()
+    if explicit:
+        return explicit
+    project = (
+        (os.getenv('FIREBASE_PROJECT_ID') or '').strip()
+        or (os.getenv('GOOGLE_CLOUD_PROJECT') or '').strip()
+        or (os.getenv('GCP_PROJECT') or '').strip()
+        or 'katsumijoias'
+    )
+    return f'{project}.firebasestorage.app'
+
+
+_STORAGE_BUCKET_NAME = _resolve_storage_bucket_name()
+
 # Initialize Firebase Admin SDK
 try:
     # Try to get existing app
@@ -35,7 +52,7 @@ except ValueError:
             cred_dict = json.loads(firebase_credentials_json)
             cred = credentials.Certificate(cred_dict)
             firebase_app = firebase_admin.initialize_app(cred, {
-                'storageBucket': os.getenv("FIREBASE_STORAGE_BUCKET")
+                'storageBucket': _STORAGE_BUCKET_NAME,
             })
             print("Firebase inicializado via FIREBASE_CREDENTIALS_JSON")
         except json.JSONDecodeError as e:
@@ -46,12 +63,12 @@ except ValueError:
         # Use service account file path (for local development)
         cred = credentials.Certificate(firebase_credentials_path)
         firebase_app = firebase_admin.initialize_app(cred, {
-            'storageBucket': os.getenv("FIREBASE_STORAGE_BUCKET")
+            'storageBucket': _STORAGE_BUCKET_NAME,
         })
     else:
         # Use default credentials (for Cloud Run/GCP environments with default service account)
         firebase_app = firebase_admin.initialize_app(options={
-            'storageBucket': os.getenv("FIREBASE_STORAGE_BUCKET")
+            'storageBucket': _STORAGE_BUCKET_NAME,
         })
 
 # Initialize Firestore client (Firebase Console → Firestore; default database id is "(default)")
@@ -71,7 +88,7 @@ def _create_firestore_client():
 db = _create_firestore_client()
 
 # Initialize Storage bucket
-bucket = storage.bucket()
+bucket = storage.bucket(_STORAGE_BUCKET_NAME)
 
 def upload_image(file, filename, folder='product-images'):
     """

@@ -208,6 +208,24 @@ gcloud run deploy katsumijoias-app \
   --allow-unauthenticated
 ```
 
+### Variáveis de ambiente no Cloud Run (obrigatório)
+
+O workflow **não** copia o `.env`. No Console: **Cloud Run → katsumijoias-app → Edit → Variables & secrets**, ou use os mesmos nomes do `.env` local.
+
+Mínimo para subir:
+
+| Variável | Exemplo |
+|----------|---------|
+| `FLASK_SECRET_KEY` | string longa aleatória |
+| `FIREBASE_STORAGE_BUCKET` | `katsumijoias.firebasestorage.app` |
+| `FIREBASE_PROJECT_ID` | `katsumijoias` |
+| `FIREBASE_API_KEY` | do Firebase Console (app Web) |
+| `FIREBASE_AUTH_DOMAIN` | `katsumijoias.firebaseapp.com` |
+| `FIREBASE_MESSAGING_SENDER_ID` | do Console |
+| `FIREBASE_APP_ID` | do Console |
+
+No Cloud Run, o Admin SDK usa a **service account do serviço** (ADC) — não precisa de `FIREBASE_CREDENTIALS_PATH`. Garanta que essa SA tenha acesso Firestore/Storage (ou use secret `FIREBASE_CREDENTIALS_JSON`).
+
 ## Firebase
 
 ### Setup
