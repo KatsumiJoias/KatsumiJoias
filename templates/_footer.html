@@ -1,145 +1,106 @@
-<footer class="bg-luxury-emerald text-white">
-{% set logo_fallback = url_for('static', filename='images/logo.jpg') %}
+{% set wa_url = 'https://wa.me/' ~ (support_whatsapp_number or '5531911500029') %}
+<footer class="bg-black text-white">
     <!-- Newsletter -->
-    <div class="border-b border-white/10 bg-[#0a3327]">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-                <div class="max-w-xl">
-                    <h2 class="font-serif text-2xl lg:text-[1.75rem] text-white leading-snug mb-3">
-                        Gemas raras chegam primeiro por aqui
-                    </h2>
-                    <p class="text-sm text-white/65 leading-relaxed">
-                        Novas lapidações, peças únicas e guias de quem entende de pedra. Uma vez por semana, sem ruído.
-                    </p>
-                </div>
-                <div class="w-full lg:max-w-md flex-shrink-0">
-                    <form id="newsletter-form" class="flex flex-col sm:flex-row gap-2">
+    <section class="border-b border-white/15">
+        <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-20 lg:py-24 grid lg:grid-cols-2 gap-12 lg:gap-24 items-end">
+            <div>
+                <p class="brand-eyebrow text-white/50 mb-6">Newsletter</p>
+                <h2 class="brand-display text-3xl sm:text-4xl lg:text-5xl">Gemas raras<br>chegam primeiro</h2>
+                <p class="mt-6 text-sm text-white/60 leading-relaxed max-w-md">
+                    Novas lapidações, peças únicas e guias de quem entende de pedra. Uma vez por semana, sem ruído.
+                </p>
+            </div>
+            <div class="w-full">
+                <form id="newsletter-form" class="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-8">
+                    <label class="flex-1 block">
+                        <span class="sr-only">E-mail</span>
                         <input type="email"
                                id="newsletter-email"
                                name="email"
-                               placeholder="Seu melhor e-mail"
+                               placeholder="E-mail"
                                required
-                               class="flex-1 px-4 py-3 rounded-full bg-[#0E3B2E] text-white border border-white/20 placeholder:text-white/40 focus:outline-none focus:border-luxury-gold transition-colors text-sm">
-                        <button type="submit"
-                                class="px-6 py-3 bg-luxury-gold text-luxury-black rounded-full hover:bg-luxury-gold-light transition-colors font-semibold text-sm whitespace-nowrap">
-                            Quero receber
-                        </button>
-                    </form>
-                    <p id="newsletter-message" class="text-sm mt-2 hidden"></p>
-                    <p class="text-xs text-white/45 mt-2">Sem spam. Cancele quando quiser.</p>
-                </div>
+                               class="brand-input text-white border-white/50 focus:border-white transition-colors">
+                    </label>
+                    <button type="submit" class="brand-btn brand-btn--light">Quero receber</button>
+                </form>
+                <p id="newsletter-message" class="text-xs mt-3 hidden"></p>
+                <p class="text-[11px] text-white/40 mt-4 tracking-wide">Sem spam. Cancele quando quiser.</p>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Main columns -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-14">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
-            <!-- Brand -->
-            <div class="sm:col-span-2 lg:col-span-1">
-                <a href="/" class="inline-flex items-center gap-2.5 mb-4">
-                    <img src="{{ url_for('static', filename='images/logo.png') }}"
-                         alt=""
-                         aria-hidden="true"
-                         class="h-9 w-auto object-contain"
-                         onerror="this.onerror=null;this.src='{{ logo_fallback }}';">
-                    <span class="font-serif text-sm tracking-[0.14em]">KATSUMI JOIAS</span>
+    <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-16 lg:py-20">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8">
+            <div class="sm:col-span-2 lg:col-span-5">
+                <a href="/" class="inline-block leading-none">
+                    <span class="block text-xl tracking-[0.42em]">PAIXÃO PEDRAS</span>
+                    <span class="block mt-2 text-[9px] tracking-[0.5em] text-white/50 uppercase">Desde 1942</span>
                 </a>
-                <p class="text-[10px] tracking-[0.22em] text-luxury-gold-light uppercase mb-4">Gemas brasileiras · Lapidadas com paixão</p>
-                <p class="text-sm text-white/65 leading-relaxed mb-6">
-                    Selecionamos cada pedra com rigor gemológico e transparência total sobre origem e características, para quem exige o melhor do Brasil.
+                <p class="mt-8 text-sm text-white/55 leading-relaxed max-w-sm">
+                    Importação, exportação e lapidação própria. Cada pedra escolhida uma a uma, com transparência total sobre origem e características.
                 </p>
-                <div class="flex items-center gap-3">
-                    <!-- Social links will be added when profiles are created -->
+                <div class="mt-8 flex items-center gap-6">
+                    <a href="https://www.instagram.com/paixao_pedras/" target="_blank" rel="noopener noreferrer" class="text-[11px] tracking-[0.22em] uppercase text-white/70 hover:text-white transition-colors">Instagram</a>
+                    <a href="https://www.youtube.com/@paixaopedras" target="_blank" rel="noopener noreferrer" class="text-[11px] tracking-[0.22em] uppercase text-white/70 hover:text-white transition-colors">YouTube</a>
                 </div>
             </div>
 
-            <!-- Navegação -->
-            <div>
-                <h4 class="font-serif text-base text-white pb-2 mb-4 border-b border-luxury-gold/40">Navegação</h4>
-                <nav class="space-y-2.5">
-                    <a href="{{ 'Turmalina'|category_path }}" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Turmalinas</a>
-                    <a href="{{ 'Esmeralda'|category_path }}" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Esmeraldas</a>
-                    <a href="{{ 'Kunzita'|category_path }}" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Kunzitas</a>
-                    <a href="/products?numero_pedras_min=2" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Conjuntos</a>
-                    <a href="/products" class="block text-sm text-luxury-gold-light hover:text-white transition-colors pt-1 font-medium">Ver todas as pedras →</a>
+            <div class="lg:col-span-2">
+                <h4 class="brand-eyebrow text-white/50 mb-6">A Paixão Pedras</h4>
+                <nav class="space-y-3.5 text-[13px]">
+                    <a href="/historia" class="block text-white/80 hover:text-white transition-colors">Nossa História</a>
+                    <a href="/historia" class="block text-white/80 hover:text-white transition-colors">Lapidação e Origem</a>
+                    <a href="/guias/certificacao-gemologica" class="block text-white/80 hover:text-white transition-colors">Certificação Gemológica</a>
+                    <a href="/feiras" class="block text-white/80 hover:text-white transition-colors">Feiras</a>
+                    <a href="/guias" class="block text-white/80 hover:text-white transition-colors">Guias de Gemas</a>
+                    <a href="/o-que-procura" class="block text-white/80 hover:text-white transition-colors">Área do Joalheiro</a>
                 </nav>
             </div>
 
-            <!-- Institucional -->
-            <div>
-                <h4 class="font-serif text-base text-white pb-2 mb-4 border-b border-luxury-gold/40">Institucional</h4>
-                <nav class="space-y-2.5">
-                    <a href="/historia" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Nossa história</a>
-                    <a href="/guias/certificacao-gemologica" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Certificação Gemológica</a>
-                    <a href="/feiras" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Feiras</a>
-                    <a href="/guias" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Guias de gemas</a>
-                    <a href="/historia" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Lapidação e origem</a>
-                    <a href="/privacy-policy" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Política de privacidade</a>
+            <div class="lg:col-span-2">
+                <h4 class="brand-eyebrow text-white/50 mb-6">Informações</h4>
+                <nav class="space-y-3.5 text-[13px]">
+                    <a href="{{ wa_url }}" target="_blank" rel="noopener" class="block text-white/80 hover:text-white transition-colors">Fale Conosco</a>
+                    <a href="/guias" class="block text-white/80 hover:text-white transition-colors">Perguntas Frequentes</a>
+                    <a href="/account" class="block text-white/80 hover:text-white transition-colors">Envio e Rastreio</a>
+                    <a href="/terms-of-service" class="block text-white/80 hover:text-white transition-colors">Termos de Uso</a>
+                    <a href="/privacy-policy" class="block text-white/80 hover:text-white transition-colors">Política de Privacidade</a>
                 </nav>
             </div>
 
-            <!-- Atendimento -->
-            <div>
-                <h4 class="font-serif text-base text-white pb-2 mb-4 border-b border-luxury-gold/40">Atendimento</h4>
-                <nav class="space-y-2.5">
-                    <a href="/account" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Minha conta</a>
-                    <a href="/cart" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Carrinho</a>
-                    <a href="/o-que-procura" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Fale conosco</a>
-                    <a href="/guias" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Perguntas frequentes</a>
-                    <a href="/terms-of-service" class="block text-sm text-white/70 hover:text-luxury-gold-light transition-colors">Termos de uso</a>
-                </nav>
-            </div>
-        </div>
-    </div>
-
-    <!-- Trust badges + payments -->
-    <div class="border-t border-white/10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 flex-1">
-                    <div class="flex items-start gap-3">
-                        <div class="w-10 h-10 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light flex-shrink-0">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                        </div>
-                        <div>
-                <p class="text-sm font-semibold text-white">Certificação Gemológica</p>
-                <p class="text-xs text-white/55 mt-0.5 leading-snug">Laudo independente em cada pedra</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <div class="w-10 h-10 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light flex-shrink-0">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-white">Compra protegida</p>
-                            <p class="text-xs text-white/55 mt-0.5 leading-snug">Pagamento seguro e criptografado</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <div class="w-10 h-10 rounded-full border border-luxury-gold/40 flex items-center justify-center text-luxury-gold-light flex-shrink-0">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-white">Envio segurado</p>
-                            <p class="text-xs text-white/55 mt-0.5 leading-snug">Rastreio total para todo o Brasil</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="px-3 py-1.5 rounded border border-white/20 bg-white/5 text-[11px] font-medium text-white/70">Pix</span>
-                    <span class="px-3 py-1.5 rounded border border-white/20 bg-white/5 text-[11px] font-medium text-white/70">Visa</span>
-                    <span class="px-3 py-1.5 rounded border border-white/20 bg-white/5 text-[11px] font-medium text-white/70">Mastercard</span>
+            <div class="lg:col-span-3">
+                <h4 class="brand-eyebrow text-white/50 mb-6">Entre em contato</h4>
+                <div class="space-y-3.5 text-[13px] text-white/80">
+                    <a href="{{ wa_url }}" target="_blank" rel="noopener" class="block hover:text-white transition-colors">WhatsApp {{ support_whatsapp_display or '(31) 9115-0029' }}</a>
+                    <a href="mailto:contato@paixaopedras.com.br" class="block hover:text-white transition-colors">contato@paixaopedras.com.br</a>
+                    <p class="text-white/50">Brasil</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Copyright -->
-    <div class="border-t border-white/10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-white/45">
-            <p>&copy; {{ now().year }} Katsumi Joias. Todos os direitos reservados.</p>
-            <p>Feito no Brasil, terra das gemas ◊</p>
+    <!-- Trust + payments -->
+    <div class="border-t border-white/15">
+        <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 text-[10px] tracking-[0.22em] uppercase text-white/55">
+            <div class="flex flex-wrap items-center gap-x-8 gap-y-2">
+                <span>Certificação gemológica</span>
+                <span>Compra protegida</span>
+                <span>Envio segurado</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <span class="border border-white/25 px-2.5 py-1">Pix</span>
+                <span class="border border-white/25 px-2.5 py-1">Visa</span>
+                <span class="border border-white/25 px-2.5 py-1">Mastercard</span>
+                <span class="pl-2">Brasil · BRL</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="border-t border-white/15">
+        <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] text-white/40 tracking-wide">
+            <p>&copy; {{ now().year }} Paixão Pedras. Todos os direitos reservados.</p>
+            <p>Feito no Brasil, terra das gemas.</p>
         </div>
     </div>
 </footer>

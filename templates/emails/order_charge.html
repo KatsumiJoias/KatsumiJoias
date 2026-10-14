@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cobrança do pedido — Paixão Pedras</title>
+  <style>
+    @media only screen and (max-width: 620px) {
+      .container { width: 100% !important; }
+      .px { padding-left: 24px !important; padding-right: 24px !important; }
+    }
+    a { color: #1f5b40; }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f2ec;">
+
+  <div style="display:none; max-height:0; overflow:hidden;">
+    Cobrança do pedido #{{ order_number }} — {{ balance_brl }} com vencimento em {{ due_label }}.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f2ec">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+          <tr>
+            <td bgcolor="#1f5b40" style="padding:28px 40px; border-radius:6px 6px 0 0;" class="px" align="center">
+              <a href="{{ site_url }}/" target="_blank" style="text-decoration:none;">
+                <img src="{{ logo_url }}" width="160" alt="Paixão Pedras" style="display:block; width:160px; max-width:160px; height:auto; border:0;">
+              </a>
+              <p style="margin:14px 0 0 0; font-family:Georgia, serif; font-size:12px; letter-spacing:0.25em; text-transform:uppercase; color:#D9C18A;">
+                Tradição em pedras preciosas desde 1942
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td bgcolor="#ffffff" style="padding:44px 40px;" class="px">
+              <h1 style="margin:0 0 14px 0; font-family:Georgia, serif; font-size:26px; font-weight:normal; color:#1f5b40;" align="center">
+                {{ customer_name }}, segue a cobrança do seu pedido.
+              </h1>
+              <p style="margin:0 0 28px 0; font-family:Arial, sans-serif; font-size:15px; line-height:24px; color:#444444;" align="center">
+                Anexamos o romaneio do pedido <strong style="color:#1f5b40;">#{{ order_number }}</strong>
+                com o detalhamento das gemas e dos valores.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f7f4; border:1px solid #d4e4da; border-radius:8px;">
+                <tr>
+                  <td style="padding:24px 28px;" align="center">
+                    <p style="margin:0 0 8px 0; font-family:Arial, sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#b08d3e; font-weight:bold;">
+                      Valor a pagar
+                    </p>
+                    <p style="margin:0 0 4px 0; font-family:Georgia, serif; font-size:30px; color:#1f5b40;">
+                      {{ balance_brl }}
+                    </p>
+                    <p style="margin:0; font-family:Arial, sans-serif; font-size:13px; color:#5d5a50;">
+                      Vencimento em <strong style="color:#1f5b40;">{{ due_label }}</strong>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
+                <tr>
+                  <td style="border-top:1px solid #ece8de; padding-top:20px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="font-family:Arial, sans-serif; font-size:13px; line-height:22px; color:#5d5a50;">Total do pedido</td>
+                        <td align="right" style="font-family:Arial, sans-serif; font-size:13px; line-height:22px; color:#141210;">{{ total_brl }}</td>
+                      </tr>
+                      {% if has_partial_payment %}
+                      <tr>
+                        <td style="font-family:Arial, sans-serif; font-size:13px; line-height:22px; color:#5d5a50;">Pagamentos já recebidos</td>
+                        <td align="right" style="font-family:Arial, sans-serif; font-size:13px; line-height:22px; color:#141210;">− {{ paid_brl }}</td>
+                      </tr>
+                      {% endif %}
+                      <tr>
+                        <td style="font-family:Arial, sans-serif; font-size:13px; line-height:22px; color:#5d5a50;">Cotação registrada na venda</td>
+                        <td align="right" style="font-family:Arial, sans-serif; font-size:13px; line-height:22px; color:#141210;">US$ 1,00 = {{ exchange_rate_brl }}</td>
+                      </tr>
+                    </table>
+                    <p style="margin:12px 0 0 0; font-family:Arial, sans-serif; font-size:12px; line-height:19px; color:#8a877e;">
+                      A cotação foi travada na data da venda e vale para todas as parcelas deste pedido.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px; background-color:#fbf8f1; border:1px solid #ece2cc; border-radius:8px;">
+                <tr>
+                  <td style="padding:22px 26px;">
+                    <p style="margin:0 0 8px 0; font-family:Arial, sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#b08d3e; font-weight:bold;">
+                      Já efetuou o pagamento?
+                    </p>
+                    <p style="margin:0; font-family:Arial, sans-serif; font-size:14px; line-height:23px; color:#444444;">
+                      Responda a este e-mail com o comprovante. Assim que recebermos, damos baixa
+                      no seu saldo e confirmamos o registro.
+                    </p>
+                    <p style="margin:16px 0 0 0;">
+                      <a href="mailto:{{ reply_to_email }}?subject=Comprovante%20do%20pedido%20%23{{ order_number }}"
+                         style="display:inline-block; padding:12px 26px; background-color:#1f5b40; color:#ffffff; font-family:Arial, sans-serif; font-size:14px; font-weight:bold; text-decoration:none; border-radius:6px;">
+                        Enviar comprovante
+                      </a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:28px 0 0 0; font-family:Arial, sans-serif; font-size:14px; line-height:22px; color:#666666;" align="center">
+                Qualquer dúvida sobre esta cobrança, fale com a nossa equipe pelo
+                <a href="{{ whatsapp_url }}" target="_blank">WhatsApp</a>
+                ou responda a este e-mail. Será um prazer atender você.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td bgcolor="#143d2b" style="padding:32px 40px; border-radius:0 0 6px 6px;" class="px" align="center">
+              <p style="margin:0 0 10px 0; font-family:Georgia, serif; font-size:15px; color:#ffffff;">Paixão Pedras</p>
+              <p style="margin:0; font-family:Arial, sans-serif; font-size:11px; color:#6f9682;">
+                © {{ current_year }} Paixão Pedras. Todos os direitos reservados.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

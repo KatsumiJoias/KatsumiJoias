@@ -16,6 +16,15 @@
                 </div>
                 <p class="text-sm text-gray-600 ml-9 md:ml-14">Gerencie seu catálogo de produtos</p>
             </div>
+            <div class="flex items-center gap-2">
+            <button type="button" onclick="ZebraLabelUI.open()"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 bg-white text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 text-sm font-semibold"
+                    title="Imprimir etiquetas na Zebra GC420t">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+                <span>Etiquetas</span>
+            </button>
             <div class="relative">
                 <button type="button" onclick="toggleAddProductMenu(event)"
                         class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 text-sm font-semibold w-full md:w-auto">
@@ -40,14 +49,13 @@
                     </a>
                 </div>
             </div>
+            </div>
         </div>
     </div>
 
     <!-- Search bar -->
     <form method="GET" action="{{ url_for('crm_produtos') }}" class="mb-6">
         <input type="hidden" name="category" value="{{ filters.category or '' }}">
-        <input type="hidden" name="min_altura" value="{{ filters.min_altura or '' }}">
-        <input type="hidden" name="max_altura" value="{{ filters.max_altura or '' }}">
         <input type="hidden" name="min_comprimento" value="{{ filters.min_comprimento or '' }}">
         <input type="hidden" name="max_comprimento" value="{{ filters.max_comprimento or '' }}">
         <input type="hidden" name="min_largura" value="{{ filters.min_largura or '' }}">
@@ -80,7 +88,7 @@
                 <div class="flex items-center gap-2">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                     <span>Filtros</span>
-                    {% set n = [filters.search, filters.category, filters.status, filters.sold, filters.source, filters.min_altura, filters.max_altura, filters.min_comprimento, filters.max_comprimento, filters.min_largura, filters.max_largura, filters.min_peso, filters.max_peso, filters.cut, filters.numero_pedras, filters.riviera] | select | list | length %}
+                    {% set n = [filters.search, filters.category, filters.status, filters.sold, filters.source, filters.min_comprimento, filters.max_comprimento, filters.min_largura, filters.max_largura, filters.min_peso, filters.max_peso, filters.cut, filters.numero_pedras, filters.riviera] | select | list | length %}
                     {% if n > 0 %}<span class="inline-flex items-center justify-center h-5 w-5 rounded-full bg-indigo-600 text-white text-xs font-bold">{{ n }}</span>{% endif %}
                 </div>
                 <svg id="crm-filter-chevron" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -93,17 +101,33 @@
                 <form method="GET" action="{{ url_for('crm_produtos') }}" id="crm-filter-form" class="space-y-5">
                     {% if filters.search %}<input type="hidden" name="search" value="{{ filters.search }}">{% endif %}
                     <input type="hidden" name="sort_by" value="{{ filters.sort_by or '' }}">
+                    {# Classes aplicadas a todo campo com valor definido, para o usuário ver de relance o que está filtrando #}
+                    {% set on  = 'w-full rounded-lg shadow-sm border-2 border-indigo-500 bg-indigo-50 text-indigo-900 font-semibold focus:border-indigo-600 focus:ring-indigo-500' %}
+                    {% set off = 'w-full rounded-lg shadow-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500' %}
                     <div>
-                        <label for="crm_status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                        <select name="status" id="crm_status" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">Todos</option>
-                            <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Ativo</option>
-                            <option value="draft" {% if filters.status == 'draft' %}selected{% endif %}>Rascunho</option>
-                        </select>
+                        <span class="block text-sm font-medium text-gray-700 mb-2">Status</span>
+                        <input type="hidden" name="status" id="crm_status" value="{{ filters.status or '' }}">
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="setStatusFilter('')"
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all
+                                    {% if not filters.status %}bg-indigo-100 text-indigo-800 ring-2 ring-indigo-500{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                                Todos
+                            </button>
+                            <button type="button" onclick="setStatusFilter('active')"
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all
+                                    {% if filters.status == 'active' %}bg-emerald-100 text-emerald-800 ring-2 ring-emerald-500{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %}">
+                                Ativo
+                            </button>
+                            <button type="button" onclick="setStatusFilter('draft')"
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all
+                                    {% if filters.status == 'draft' %}bg-gray-300 text-gray-800 ring-2 ring-gray-500{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                                Rascunho
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label for="crm_sold" class="block text-sm font-medium text-gray-700 mb-2">Vendido</label>
-                        <select name="sold" id="crm_sold" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <select name="sold" id="crm_sold" onchange="handleCrmFilterImmediate()" class="{{ on if filters.sold else off }}">
                             <option value="">Todos</option>
                             <option value="yes" {% if filters.sold == 'yes' %}selected{% endif %}>Vendidos</option>
                             <option value="no" {% if filters.sold == 'no' %}selected{% endif %}>Não vendidos</option>
@@ -111,7 +135,7 @@
                     </div>
                     <div>
                         <label for="crm_source" class="block text-sm font-medium text-gray-700 mb-2">Origem da venda</label>
-                        <select name="source" id="crm_source" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <select name="source" id="crm_source" onchange="handleCrmFilterImmediate()" class="{{ on if filters.source else off }}">
                             <option value="">Todas</option>
                             {% for value, label in source_options.items() %}
                             <option value="{{ value }}" {% if filters.source == value %}selected{% endif %}>{{ label }}</option>
@@ -121,23 +145,15 @@
                     </div>
                     <div>
                         <label for="crm_category" class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
-                        <select name="category" id="crm_category" onchange="handleCrmCategoryChange()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <select name="category" id="crm_category" onchange="handleCrmCategoryChange()" class="{{ on if filters.category else off }}">
                             <option value="">Todas</option>
                             {% for cat in categories %}<option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-3">Altura (mm)</label>
-                        <div class="drs-wrap crm-drs" id="crm-altura-slider"><div class="drs-track-bg"></div><div class="drs-track-fill crm-fill" id="crm-altura-fill"></div><input type="range" id="crm-altura-r-min" step="0.1"><input type="range" id="crm-altura-r-max" step="0.1"></div>
-                        <div class="flex items-center gap-2 mt-2">
-                            <input type="number" id="crm-altura-i-min" name="min_altura" value="{{ filters.min_altura or '' }}" step="0.1" placeholder="Mín" class="w-full text-xs text-center rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1">
-                            <span class="text-gray-400 text-xs flex-shrink-0">–</span>
-                            <input type="number" id="crm-altura-i-max" name="max_altura" value="{{ filters.max_altura or '' }}" step="0.1" placeholder="Máx" class="w-full text-xs text-center rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1">
-                        </div>
-                    </div>
-                    <div>
                         <label for="crm-comprimento-range-select" class="block text-sm font-medium text-gray-700 mb-2">Comprimento (mm)</label>
-                        <select id="crm-comprimento-range-select" class="w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm">
+                        <select id="crm-comprimento-range-select"
+                                class="{{ on if (filters.min_comprimento or filters.max_comprimento) else off }} bg-gray-50 px-3 py-2 text-sm">
                             <option value="">Todos</option>
                         </select>
                         <input type="hidden" id="crm-comprimento-i-min" name="min_comprimento" value="{{ filters.min_comprimento or '' }}">
@@ -145,7 +161,8 @@
                     </div>
                     <div>
                         <label for="crm-largura-range-select" class="block text-sm font-medium text-gray-700 mb-2">Largura (mm)</label>
-                        <select id="crm-largura-range-select" class="w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm">
+                        <select id="crm-largura-range-select"
+                                class="{{ on if (filters.min_largura or filters.max_largura) else off }} bg-gray-50 px-3 py-2 text-sm">
                             <option value="">Todos</option>
                         </select>
                         <input type="hidden" id="crm-largura-i-min" name="min_largura" value="{{ filters.min_largura or '' }}">
@@ -153,7 +170,8 @@
                     </div>
                     <div>
                         <label for="crm-peso-range-select" class="block text-sm font-medium text-gray-700 mb-2">Peso (quilates)</label>
-                        <select id="crm-peso-range-select" class="w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2 text-sm">
+                        <select id="crm-peso-range-select"
+                                class="{{ on if (filters.min_peso or filters.max_peso) else off }} bg-gray-50 px-3 py-2 text-sm">
                             <option value="">Todos</option>
                         </select>
                         <input type="hidden" id="crm-peso-i-min" name="min_peso" value="{{ filters.min_peso or '' }}">
@@ -161,14 +179,14 @@
                     </div>
                     <div>
                         <label for="crm_cut" class="block text-sm font-medium text-gray-700 mb-2">Lapidação</label>
-                        <select name="cut" id="crm_cut" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <select name="cut" id="crm_cut" onchange="handleCrmFilterImmediate()" class="{{ on if filters.cut else off }}">
                             <option value="">Todas</option>
                             {% for cut_option in cuts %}<option value="{{ cut_option }}" {% if filters.cut == cut_option %}selected{% endif %}>{{ cut_option }}</option>{% endfor %}
                         </select>
                     </div>
                     <div>
                         <label for="crm_numero_pedras" class="block text-sm font-medium text-gray-700 mb-2">Número de Pedras</label>
-                        <select name="numero_pedras" id="crm_numero_pedras" onchange="handleCrmFilterImmediate()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <select name="numero_pedras" id="crm_numero_pedras" onchange="handleCrmFilterImmediate()" class="{{ on if filters.numero_pedras else off }} text-sm">
                             <option value="">Todos</option>
                             <option value="sem_pedras"{% if filters.numero_pedras == 'sem_pedras'%}selected{% endif %}>Sem pedras (0 / vazio)</option>
                             <option value="unico"     {% if filters.numero_pedras == 'unico'     %}selected{% endif %}>Único (1 pedra)</option>
@@ -177,9 +195,9 @@
                             <option value="conjunto"  {% if filters.numero_pedras == 'conjunto'  %}selected{% endif %}>Conjunto (4+ pedras)</option>
                         </select>
                     </div>
-                    <div class="flex items-center">
+                    <div class="flex items-center rounded-lg px-2 py-1.5 -mx-2 {{ 'bg-indigo-50 ring-2 ring-indigo-500' if filters.riviera else '' }}">
                         <input type="checkbox" name="riviera" id="crm_riviera" value="true" {% if filters.riviera %}checked{% endif %} onchange="handleCrmFilterImmediate()" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                        <label for="crm_riviera" class="ml-2 text-sm font-medium text-gray-700">Apenas Riviera</label>
+                        <label for="crm_riviera" class="ml-2 text-sm font-medium {{ 'text-indigo-900 font-semibold' if filters.riviera else 'text-gray-700' }}">Apenas Riviera</label>
                     </div>
                 </form>
             </div>
@@ -287,11 +305,11 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                             </a>
-                            <button type="button"
-                                    onclick="deleteProduct('{{ product.id }}', this)"
-                                    class="inline-flex items-center justify-center px-2.5 py-1.5 border border-red-200 bg-red-50 rounded-lg text-xs font-medium text-red-700 hover:bg-red-100 hover:border-red-300 transition-all duration-150 shadow-sm">
+                            <button type="button" title="Imprimir etiqueta"
+                                    onclick="printProductLabel('{{ product.sku }}')"
+                                    class="inline-flex items-center justify-center px-2.5 py-1.5 border border-gray-200 bg-gray-50 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:border-gray-300 transition-all duration-150 shadow-sm">
                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                                 </svg>
                             </button>
                         </div>
@@ -360,13 +378,13 @@
                             </svg>
                             <span>Editar</span>
                         </a>
-                        <button type="button"
-                                onclick="deleteProduct('{{ product.id }}', this)"
-                                class="inline-flex items-center gap-2 px-4 py-2 border border-red-200 bg-red-50 rounded-lg text-sm font-medium text-red-700 hover:bg-red-100 hover:border-red-300 transition-all duration-150 shadow-sm">
+                        <button type="button" title="Imprimir etiqueta na Zebra"
+                                onclick="printProductLabel('{{ product.sku }}')"
+                                class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:border-gray-300 transition-all duration-150 shadow-sm">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                             </svg>
-                            <span>Deletar</span>
+                            <span>Etiqueta</span>
                         </button>
                     </div>
                 </div>
@@ -399,7 +417,7 @@
 {% else %}
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="text-center py-16 px-6">
-        {% set has_filters = filters.search or filters.category or filters.min_altura or filters.max_altura or filters.min_comprimento or filters.max_comprimento or filters.min_largura or filters.max_largura or filters.min_peso or filters.max_peso or filters.cut or filters.numero_pedras or filters.riviera %}
+        {% set has_filters = filters.search or filters.category or filters.status or filters.sold or filters.source or filters.min_comprimento or filters.max_comprimento or filters.min_largura or filters.max_largura or filters.min_peso or filters.max_peso or filters.cut or filters.numero_pedras or filters.riviera %}
         <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full mb-4">
             <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -427,27 +445,15 @@
         </div>
     </div>
 </div>
-<style>
-.drs-wrap{position:relative;height:28px;display:flex;align-items:center;padding:0 2px}
-.drs-track-bg{position:absolute;width:100%;height:4px;background:#e5e7eb;border-radius:2px}
-.drs-track-fill{position:absolute;height:4px;border-radius:2px}
-.crm-fill{background:#6366f1}
-.drs-wrap input[type=range]{position:absolute;width:100%;pointer-events:none;-webkit-appearance:none;appearance:none;background:transparent;height:28px;margin:0;padding:0}
-.crm-drs input[type=range]::-webkit-slider-thumb{pointer-events:all;-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:white;border:2.5px solid #6366f1;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-.crm-drs input[type=range]::-moz-range-thumb{pointer-events:all;width:14px;height:14px;border-radius:50%;background:white;border:2.5px solid #6366f1;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-</style>
 <script type="application/json" id="crm-jinja-data">
 {
     "categoryOptions": {{ category_options | tojson }},
     "bounds": {
-        "altura":      {"min": {{ bounds.altura.min }},      "max": {{ bounds.altura.max }}},
         "comprimento": {"min": {{ bounds.comprimento.min }}, "max": {{ bounds.comprimento.max }}},
         "largura":     {"min": {{ bounds.largura.min }},     "max": {{ bounds.largura.max }}},
         "peso":        {"min": {{ bounds.peso.min }},        "max": {{ bounds.peso.max }}}
     },
     "filters": {
-        "min_altura":       "{{ filters.min_altura or '' }}",
-        "max_altura":       "{{ filters.max_altura or '' }}",
         "min_comprimento":  "{{ filters.min_comprimento or '' }}",
         "max_comprimento":  "{{ filters.max_comprimento or '' }}",
         "min_largura":      "{{ filters.min_largura or '' }}",
@@ -496,23 +502,6 @@ function _crmRebuildSelect(sel, items, labelFn, allLabel) {
     }
 }
 
-function _crmUpdateSliderBounds(field, newMin, newMax, step) {
-    var rMin = document.getElementById(field+'-r-min');
-    var rMax = document.getElementById(field+'-r-max');
-    var iMin = document.getElementById(field+'-i-min');
-    var iMax = document.getElementById(field+'-i-max');
-    if (!rMin || !rMax) return;
-    rMin.min = newMin; rMin.max = newMax; rMin.step = step;
-    rMax.min = newMin; rMax.max = newMax; rMax.step = step;
-    var curMinV = parseFloat(iMin.value);
-    var curMaxV = parseFloat(iMax.value);
-    if (isNaN(curMinV) || curMinV < newMin) { rMin.value = newMin; iMin.value = ''; }
-    else { rMin.value = curMinV; }
-    if (isNaN(curMaxV) || curMaxV > newMax) { rMax.value = newMax; iMax.value = ''; }
-    else { rMax.value = curMaxV; }
-    _drsFill(field, newMin, newMax);
-}
-
 function _crmUpdateCategoryDropdowns(category) {
     var cutSel    = document.getElementById('crm_cut');
     var pedrasSel = document.getElementById('crm_numero_pedras');
@@ -525,9 +514,7 @@ function _crmUpdateCategoryDropdowns(category) {
     _crmRebuildSelect(pedrasSel, opts.pedras, function(v){ return _crmPedrasLabels[v]; }, 'Todos');
 
     if (opts.bounds) {
-        var b = opts.bounds;
         var rb = opts.range_buckets || {};
-        _crmUpdateSliderBounds('crm-altura', b.altura.min, b.altura.max, 0.1);
         _crmUpdateRangeDropdownBounds('crm-comprimento', rb.comprimento || [], 'mm', 1, 2);
         _crmUpdateRangeDropdownBounds('crm-largura',     rb.largura || [],     'mm', 1, 2);
         _crmUpdateRangeDropdownBounds('crm-peso',        rb.peso || [],        'ct', 1, 2);
@@ -625,60 +612,8 @@ function _buildRangeBuckets(maxVal, unit, step, decimals) {
     return buckets;
 }
 
-// ---- Dual Range Slider (CRM) ----
-function _drsFill(field, bMin, bMax) {
-    const rMin = document.getElementById(field+'-r-min');
-    const rMax = document.getElementById(field+'-r-max');
-    const fill = document.getElementById(field+'-fill');
-    if (!rMin || !rMax || !fill) return;
-    const range = bMax - bMin;
-    if (range <= 0) { fill.style.left='0%'; fill.style.width='100%'; return; }
-    const lo = ((parseFloat(rMin.value) - bMin) / range) * 100;
-    const hi = ((parseFloat(rMax.value) - bMin) / range) * 100;
-    fill.style.left = lo + '%';
-    fill.style.width = Math.max(0, hi - lo) + '%';
-}
-function _drsSetup(field, bMin, bMax, curMin, curMax, step) {
-    const rMin = document.getElementById(field+'-r-min');
-    const rMax = document.getElementById(field+'-r-max');
-    const iMin = document.getElementById(field+'-i-min');
-    const iMax = document.getElementById(field+'-i-max');
-    if (!rMin || !rMax) return;
-    step = step || 0.1;
-    rMin.min = bMin; rMin.max = bMax; rMin.step = step;
-    rMax.min = bMin; rMax.max = bMax; rMax.step = step;
-    rMin.value = (curMin !== '') ? parseFloat(curMin) : bMin;
-    rMax.value = (curMax !== '') ? parseFloat(curMax) : bMax;
-    _drsFill(field, bMin, bMax);
-    rMin.addEventListener('input', function() {
-        let v = parseFloat(this.value), maxV = parseFloat(rMax.value);
-        if (v >= maxV) { v = maxV - step; this.value = v; }
-        iMin.value = (Math.abs(v - bMin) < step * 0.5) ? '' : +v.toFixed(2);
-        _drsFill(field, bMin, bMax);
-        handleCrmFilterChange();
-    });
-    rMax.addEventListener('input', function() {
-        let v = parseFloat(this.value), minV = parseFloat(rMin.value);
-        if (v <= minV) { v = minV + step; this.value = v; }
-        iMax.value = (Math.abs(v - bMax) < step * 0.5) ? '' : +v.toFixed(2);
-        _drsFill(field, bMin, bMax);
-        handleCrmFilterChange();
-    });
-    iMin.addEventListener('change', function() {
-        const v = parseFloat(this.value);
-        if (!isNaN(v) && v >= bMin && v < parseFloat(rMax.value)) { rMin.value = v; _drsFill(field, bMin, bMax); }
-        handleCrmFilterChange();
-    });
-    iMax.addEventListener('change', function() {
-        const v = parseFloat(this.value);
-        if (!isNaN(v) && v <= bMax && v > parseFloat(rMin.value)) { rMax.value = v; _drsFill(field, bMin, bMax); }
-        handleCrmFilterChange();
-    });
-}
 document.addEventListener('DOMContentLoaded', function() {
-    var b = _crmJinjaData.bounds, f = _crmJinjaData.filters;
     var allBuckets = (_crmJinjaData.categoryOptions && _crmJinjaData.categoryOptions['__all__'] && _crmJinjaData.categoryOptions['__all__'].range_buckets) || {};
-    _drsSetup('crm-altura', b.altura.min, b.altura.max, f.min_altura, f.max_altura, 0.1);
     _crmRangeDropdownSetup('crm-comprimento', allBuckets.comprimento || [], 'mm', 1, 2);
     _crmRangeDropdownSetup('crm-largura',     allBuckets.largura || [],     'mm', 1, 2);
     _crmRangeDropdownSetup('crm-peso',        allBuckets.peso || [],        'ct', 1, 2);
@@ -688,47 +623,6 @@ document.addEventListener('DOMContentLoaded', function() {
         _crmUpdateCategoryDropdowns(catSel.value);
     }
 });
-
-async function deleteProduct(productId, btn) {
-    if (!confirm('Tem certeza que deseja deletar este produto?')) return;
-
-    btn.disabled = true;
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<svg class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
-
-    try {
-        const res = await fetch(`/crm/product/${productId}/delete`, {
-            method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        const data = await res.json();
-        if (data.success) {
-            const li = document.querySelector(`li[data-product-id="${productId}"]`);
-            if (li) {
-                li.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-                li.style.opacity = '0';
-                li.style.transform = 'translateX(-8px)';
-                setTimeout(() => {
-                    li.remove();
-                    const countEl = document.getElementById('products-count');
-                    if (countEl) {
-                        const n = Math.max(0, (parseInt(countEl.textContent) || 1) - 1);
-                        countEl.textContent = n + ' produto' + (n !== 1 ? 's' : '');
-                    }
-                }, 260);
-            }
-            showFlashMessage('Produto deletado com sucesso!', 'success');
-        } else {
-            showFlashMessage('Erro ao deletar produto.', 'error');
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        }
-    } catch (e) {
-        showFlashMessage('Erro ao deletar produto. Tente novamente.', 'error');
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-    }
-}
 
 function applyCrmSort(value) {
     const url = new URL(window.location);
@@ -753,6 +647,11 @@ function toggleCrmFilters() {
     }
 }
 
+function setStatusFilter(value) {
+    document.getElementById('crm_status').value = value;
+    handleCrmFilterImmediate();
+}
+
 function toggleAddProductMenu(event) {
     event.stopPropagation();
     document.getElementById('add-product-menu').classList.toggle('hidden');
@@ -764,5 +663,17 @@ document.addEventListener('click', function (e) {
         menu.classList.add('hidden');
     }
 });
+
+function printProductLabel(sku) {
+    fetch('/crm/api/products/label-search?q=' + encodeURIComponent(sku))
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            var match = ((data && data.results) || []).find(function (p) { return p.sku === sku; });
+            ZebraLabelUI.open(match ? { product: match } : {});
+        })
+        .catch(function () { ZebraLabelUI.open(); });
+}
 </script>
+
+{% include 'partials/zebra_label_modal.html' %}
 {% endblock %}

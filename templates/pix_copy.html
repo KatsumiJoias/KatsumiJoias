@@ -3,44 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Copiar código PIX — Katsumi Joias</title>
-    <meta name="theme-color" content="#0E3B2E">
+    <title>Copiar código PIX — Paixão Pedras</title>
+    <meta name="theme-color" content="#000000">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>.font-serif{font-weight:400!important;letter-spacing:.06em}h1.font-serif,h2.font-serif,h3.font-serif{text-transform:uppercase}.rounded,.rounded-sm,.rounded-md,.rounded-lg,.rounded-xl,.rounded-2xl,.rounded-t-lg,.rounded-b-lg{border-radius:0!important}input,select,textarea,button{border-radius:0}</style>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .font-serif { font-family: 'Marcellus', serif; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        .font-serif { font-family: 'Helvetica Neue', Helvetica, Arial, serif; }
     </style>
 </head>
-<body class="bg-[#F4EFE6] min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white border border-[#e8e4dc] rounded-xl p-8 text-center shadow-sm">
+<body class="bg-[#F2F2F2] min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white border border-[#E5E5E5] rounded-xl p-8 text-center shadow-sm">
         <div id="state-loading">
-            <div class="w-10 h-10 border-2 border-[#B68C3F] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div class="w-10 h-10 border-2 border-[#111111] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p class="text-sm text-gray-600">Copiando código PIX…</p>
         </div>
         <div id="state-success" class="hidden">
-            <div class="w-12 h-12 rounded-full bg-[#f3f7f4] flex items-center justify-center mx-auto mb-4">
-                <svg class="w-6 h-6 text-[#0E3B2E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-12 h-12 rounded-full bg-[#F5F5F5] flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-[#000000]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                 </svg>
             </div>
-            <h1 class="font-serif text-xl text-[#141210] mb-2">Código copiado!</h1>
+            <h1 class="font-serif text-xl text-[#000000] mb-2">Código copiado!</h1>
             <p class="text-sm text-gray-600 mb-6 leading-relaxed">
                 Cole na área PIX do seu banco para concluir o pagamento.
             </p>
-            <a href="{{ success_url }}" class="inline-block w-full py-3 px-4 bg-[#B68C3F] text-white text-sm font-semibold rounded-lg hover:bg-[#8C6B2E] transition-colors">
+            <a href="{{ success_url }}" class="inline-block w-full py-3 px-4 bg-[#111111] text-white text-sm font-semibold rounded-lg hover:bg-[#3A3A3A] transition-colors">
                 Ver QR Code e detalhes
             </a>
         </div>
         <div id="state-manual" class="hidden">
-            <h1 class="font-serif text-xl text-[#141210] mb-2">Copiar código PIX</h1>
+            <h1 class="font-serif text-xl text-[#000000] mb-2">Copiar código PIX</h1>
             <p class="text-sm text-gray-600 mb-4">Toque no botão abaixo para copiar o código.</p>
-            <textarea id="pix-code-field" readonly rows="4" class="w-full text-xs font-mono p-3 border border-[#e8e4dc] rounded-lg bg-[#faf9f7] mb-4 text-gray-700">{{ pix_code }}</textarea>
-            <button type="button" id="manual-copy-btn" class="w-full py-3 px-4 bg-[#B68C3F] text-white text-sm font-semibold rounded-lg hover:bg-[#8C6B2E] transition-colors mb-3">
+            <textarea id="pix-code-field" readonly rows="4" class="w-full text-xs font-mono p-3 border border-[#E5E5E5] rounded-lg bg-[#FAFAFA] mb-4 text-gray-700">{{ pix_code }}</textarea>
+            <button type="button" id="manual-copy-btn" class="w-full py-3 px-4 bg-[#111111] text-white text-sm font-semibold rounded-lg hover:bg-[#3A3A3A] transition-colors mb-3">
                 Copiar código PIX
             </button>
-            <a href="{{ success_url }}" class="text-sm text-[#B68C3F] hover:underline">Ver QR Code e pagar →</a>
+            <a href="{{ success_url }}" class="text-sm text-[#111111] hover:underline">Ver QR Code e pagar →</a>
         </div>
     </div>
     <script>

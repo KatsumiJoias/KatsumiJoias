@@ -133,19 +133,37 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0 sm:justify-end">
-                    <span class="inline-flex items-center gap-1.5">
-                        <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                        {{ log.actor_email or 'sistema' }}
+                <div class="flex flex-col items-start sm:items-end gap-2 text-xs text-gray-500 flex-shrink-0 sm:justify-end">
+                    <div class="flex items-center gap-4 flex-wrap sm:justify-end">
+                        <span class="inline-flex items-center gap-1.5">
+                            <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            {{ log.actor_email or 'sistema' }}
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                            <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{ log.created_at_formatted or '—' }}
+                        </span>
+                    </div>
+                    {% if log.reverted_at %}
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        Revertida{% if log.reverted_by %} por {{ log.reverted_by }}{% endif %}
                     </span>
-                    <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-                        <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        {{ log.created_at_formatted or '—' }}
-                    </span>
+                    {% elif log.can_revert %}
+                    <form method="POST" action="{{ url_for('crm_log_revert', log_id=log.id) }}"
+                          onsubmit="return confirm('Reverter esta ação? A operação inversa será aplicada.');">
+                        <button type="submit"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            Reverter ação
+                        </button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
 

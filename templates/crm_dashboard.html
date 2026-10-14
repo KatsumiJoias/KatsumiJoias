@@ -9,52 +9,96 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
 {%- endmacro %}
 
 {% block crm_content %}
-<div class="mb-4 md:mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-        <h2 class="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p class="mt-1 text-sm text-gray-600">Visão geral de estoque, vendas e recebimentos</p>
-    </div>
-    <div class="flex items-center gap-2">
-        <a href="{{ url_for('crm_new_order') }}"
-           class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all text-sm font-semibold">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-            </svg>
-            Criar pedido
-        </a>
-    </div>
+<div class="mb-4 md:mb-6">
+    <h2 class="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h2>
+    <p class="mt-1 text-sm text-gray-600">Visão geral de estoque, vendas e recebimentos</p>
 </div>
 
-<!-- ── Linha 1: financeiro ── -->
+<!-- Filtros de período -->
+<form method="GET" action="{{ url_for('crm_dashboard') }}"
+      class="mb-5 bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5">
+    <div class="flex flex-col lg:flex-row lg:items-end gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 flex-1">
+            <div>
+                <label for="date_from" class="block text-xs font-medium text-gray-500 mb-1">De</label>
+                <input type="date" name="date_from" id="date_from" value="{{ filters.date_from }}"
+                       class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label for="date_to" class="block text-xs font-medium text-gray-500 mb-1">Até</label>
+                <input type="date" name="date_to" id="date_to" value="{{ filters.date_to }}"
+                       class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label for="source" class="block text-xs font-medium text-gray-500 mb-1">Origem do pedido</label>
+                <select name="source" id="source"
+                        class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">Todas</option>
+                    {% for key, label in source_options.items() %}
+                    <option value="{{ key }}" {% if filters.source == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit"
+                        class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                    Aplicar
+                </button>
+                <a href="{{ url_for('crm_dashboard') }}"
+                   class="px-4 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Limpar
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2">
+        <button type="button" onclick="setDashboardPreset('today')"
+                class="text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50">Hoje</button>
+        <button type="button" onclick="setDashboardPreset(7)"
+                class="text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50">Últimos 7 dias</button>
+        <button type="button" onclick="setDashboardPreset(30)"
+                class="text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50">Últimos 30 dias</button>
+        <button type="button" onclick="setDashboardPreset('month')"
+                class="text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50">Este mês</button>
+        <button type="button" onclick="setDashboardPreset('prev_month')"
+                class="text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50">Mês passado</button>
+    </div>
+    <p class="mt-3 text-xs text-gray-400">
+        Período selecionado: {{ period_days }} dia{{ 's' if period_days != 1 else '' }}
+        · {{ orders_period }} pedido{{ 's' if orders_period != 1 else '' }} no intervalo
+    </p>
+</form>
+
+<!-- ── Linha 1: financeiro (período) ── -->
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="flex items-start justify-between">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Faturado</p>
-            <span class="text-[10px] font-medium text-gray-400">total</span>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Faturado no período</p>
+            <span class="text-[10px] font-medium text-indigo-500">{{ period_days }}d</span>
         </div>
-        <p class="mt-2 text-2xl font-bold text-gray-900">{{ brl(total_billed) }}</p>
+        <p class="mt-2 text-2xl font-bold text-gray-900">{{ brl(revenue_period) }}</p>
         <p class="mt-1 text-xs text-gray-500">
-            Ticket médio {{ brl(avg_ticket) }} · {{ orders_30d }} pedido{{ 's' if orders_30d != 1 }} em 30 dias
+            Ticket médio {{ brl(avg_ticket_period) }} · {{ orders_period }} pedido{{ 's' if orders_period != 1 }}
         </p>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="flex items-start justify-between">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recebido</p>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recebido no período</p>
             <span class="w-2 h-2 rounded-full bg-emerald-500 mt-1"></span>
         </div>
-        <p class="mt-2 text-2xl font-bold text-emerald-600">{{ brl(total_received) }}</p>
+        <p class="mt-2 text-2xl font-bold text-emerald-600">{{ brl(received_period) }}</p>
         <div class="mt-3 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-            {% set pct = (total_received / total_billed * 100) if total_billed else 0 %}
-            <div class="h-full bg-emerald-500 rounded-full" style="width: {{ [pct, 100] | min }}%"></div>
+            {% set pct_period = (received_period / revenue_period * 100) if revenue_period else 0 %}
+            <div class="h-full bg-emerald-500 rounded-full" style="width: {{ [pct_period, 100] | min }}%"></div>
         </div>
-        <p class="mt-1.5 text-xs text-gray-500">{{ num(pct, 1) }}% do faturado</p>
+        <p class="mt-1.5 text-xs text-gray-500">{{ num(pct_period, 1) }}% do faturado no período</p>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="flex items-start justify-between">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Saldo devedor</p>
-            <span class="w-2 h-2 rounded-full bg-amber-500 mt-1"></span>
+            <span class="text-[10px] font-medium text-gray-400">atual</span>
         </div>
         <p class="mt-2 text-2xl font-bold text-amber-600">{{ brl(total_receivable) }}</p>
         <p class="mt-1 text-xs text-gray-500">
@@ -74,7 +118,20 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
     </div>
 </div>
 
-<!-- ── Linha 2: estoque, clientes, pedidos ── -->
+<!-- ── Gráfico: pedidos por dia ── -->
+<div class="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+        <div>
+            <h3 class="text-sm font-semibold text-gray-800">Pedidos por dia</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Quantidade e faturamento no período selecionado</p>
+        </div>
+    </div>
+    <div class="p-4 md:p-5">
+        <canvas id="orders-chart" height="80"></canvas>
+    </div>
+</div>
+
+<!-- ── Linha 2: estoque, clientes, pedidos (snapshot) ── -->
 <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Estoque ativo</p>
@@ -113,7 +170,7 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pedidos</p>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pedidos (total)</p>
         <p class="mt-2 text-2xl font-bold text-gray-900">{{ total_orders }}</p>
         <div class="mt-2 flex flex-wrap gap-2">
             <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
@@ -123,7 +180,8 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
                 Site {{ orders_website }}
             </span>
         </div>
-        <a href="{{ url_for('crm_pedidos') }}" class="mt-3 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver pedidos →</a>
+        <p class="mt-2 text-xs text-gray-400">Faturado histórico: {{ brl(total_billed) }}</p>
+        <a href="{{ url_for('crm_pedidos') }}" class="mt-2 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver pedidos →</a>
     </div>
 </div>
 
@@ -144,8 +202,23 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
             <span class="bg-white/20 text-white px-2.5 py-1 rounded-full font-medium">{{ unscheduled_count }} sem data</span>
             {% endif %}
             <span class="bg-white/20 text-white px-2.5 py-1 rounded-full font-medium">{{ upcoming_total }} total</span>
+            <form method="POST" action="{{ url_for('crm_send_due_charges') }}"
+                  onsubmit="return confirm('Enviar por e-mail as cobranças vencidas e as que vencem hoje?');">
+                <input type="hidden" name="return_to" value="{{ url_for('crm_dashboard') }}">
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 bg-white text-amber-700 px-3 py-1.5 rounded-full font-semibold hover:bg-amber-50 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    Enviar cobranças de hoje
+                </button>
+            </form>
         </div>
     </div>
+    <p class="px-5 py-3 bg-amber-50/60 border-b border-amber-100 text-xs text-amber-800">
+        Todos os dias às 8h enviamos automaticamente, por e-mail, o romaneio em PDF de cada
+        cobrança que vence no dia — cada vencimento é cobrado uma única vez.
+    </p>
 
     {% if upcoming_charges %}
     <div class="overflow-x-auto">
@@ -252,7 +325,7 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-800">Produção por vendedor</h3>
-            <a href="{{ url_for('crm_vendedores') }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Vendedores ({{ total_sellers }}) →</a>
+            <span class="text-xs text-gray-400">no período</span>
         </div>
         {% if seller_ranking %}
         <div class="overflow-x-auto">
@@ -279,17 +352,17 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
         </div>
         {% else %}
         <div class="px-5 py-8 text-center">
-            <p class="text-sm text-gray-400">Nenhum pedido atribuído a vendedor ainda.</p>
+            <p class="text-sm text-gray-400">Nenhum pedido atribuído a vendedor no período.</p>
             <a href="{{ url_for('crm_vendedores') }}" class="mt-2 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">Cadastrar vendedores →</a>
         </div>
         {% endif %}
     </div>
 </div>
 
-<!-- ── Últimos pedidos ── -->
+<!-- ── Pedidos do período ── -->
 <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-800">Últimos pedidos</h3>
+        <h3 class="text-sm font-semibold text-gray-800">Pedidos no período</h3>
         <a href="{{ url_for('crm_pedidos') }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver todos →</a>
     </div>
     {% if recent_orders %}
@@ -330,27 +403,14 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
         </table>
     </div>
     {% else %}
-    <p class="px-5 py-8 text-center text-sm text-gray-400">Nenhum pedido registrado ainda.</p>
+    <p class="px-5 py-8 text-center text-sm text-gray-400">Nenhum pedido no período selecionado.</p>
     {% endif %}
 </div>
 
 <!-- ── Ações rápidas ── -->
 <div class="mt-6 md:mt-8">
     <h3 class="text-base md:text-lg font-medium text-gray-900 mb-4">Ações Rápidas</h3>
-    <div class="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <a href="{{ url_for('crm_new_order') }}"
-           class="relative block p-4 md:p-6 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-indigo-500 hover:shadow-md transition-all duration-200">
-            <div class="flex items-center">
-                <svg class="h-7 w-7 md:h-8 md:w-8 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M12 11v6m-3-3h6"/>
-                </svg>
-                <div class="ml-3 md:ml-4">
-                    <h4 class="text-base md:text-lg font-medium text-gray-900">Criar Pedido</h4>
-                    <p class="mt-0.5 text-xs md:text-sm text-gray-500">Venda interna</p>
-                </div>
-            </div>
-        </a>
-
+    <div class="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <a href="{{ url_for('new_product') }}"
            class="relative block p-4 md:p-6 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-indigo-500 hover:shadow-md transition-all duration-200">
             <div class="flex items-center">
@@ -391,4 +451,99 @@ R$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X'
         </a>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const labels = {{ chart_labels | tojson }};
+    const counts = {{ chart_counts | tojson }};
+    const revenue = {{ chart_revenue | tojson }};
+    const ctx = document.getElementById('orders-chart');
+    if (!ctx || !labels.length) return;
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Pedidos',
+                    data: counts,
+                    backgroundColor: 'rgba(99, 102, 241, 0.65)',
+                    borderRadius: 4,
+                    yAxisID: 'y',
+                    order: 2,
+                },
+                {
+                    label: 'Faturado (R$)',
+                    data: revenue,
+                    type: 'line',
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    tension: 0.3,
+                    fill: true,
+                    yAxisID: 'y1',
+                    order: 1,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            if (ctx.dataset.yAxisID === 'y1') {
+                                return ' Faturado: R$ ' + (ctx.parsed.y || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                            }
+                            return ' ' + ctx.parsed.y + ' pedido(s)';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, precision: 0 },
+                    title: { display: true, text: 'Pedidos' },
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'R$' },
+                },
+            },
+        },
+    });
+})();
+
+function setDashboardPreset(preset) {
+    const fromInput = document.getElementById('date_from');
+    const toInput = document.getElementById('date_to');
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const fmt = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+    toInput.value = fmt(today);
+    let from = new Date(today);
+
+    if (preset === 'today') {
+        from = new Date(today);
+    } else if (preset === 'month') {
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (preset === 'prev_month') {
+        from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+        toInput.value = fmt(lastDay);
+    } else {
+        from.setDate(today.getDate() - (Number(preset) - 1));
+    }
+
+    fromInput.value = fmt(from);
+    fromInput.closest('form').submit();
+}
+</script>
 {% endblock %}

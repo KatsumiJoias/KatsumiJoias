@@ -2,112 +2,115 @@
 {% set px = header_prefix|default('main') %}
 {% set is_float = px == 'float' %}
 {% set header_id = 'floating-header' if is_float else 'main-header' %}
-{% set header_extra = 'navbar-float' if is_float else '' %}
-{% set logo_fallback = logo_fallback|default(url_for('static', filename='images/logo.jpg')) %}
+{% set header_extra = 'navbar-float' if is_float else 'border-b border-brand-line' %}
+{% set cur_path = request.path %}
 
-<header class="site-header bg-luxury-emerald text-white {{ header_extra }} z-30" id="{{ header_id }}">
-    {# ── Desktop: top brand row ── #}
-    <div class="hidden lg:block border-b border-white/10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
-            <a href="/" class="flex items-center gap-3 group">
-                <img src="{{ url_for('static', filename='images/logo.png') }}"
-                     alt=""
-                     aria-hidden="true"
-                     class="h-9 w-auto object-contain flex-shrink-0"
-                     onerror="this.onerror=null;this.src='{{ logo_fallback }}';">
-                <div>
-                    <span class="block font-serif text-[15px] tracking-[0.18em] text-white leading-tight">KATSUMI JOIAS</span>
-                    <span class="block text-[9px] tracking-[0.25em] text-luxury-gold-light uppercase mt-0.5">Gemas brasileiras · Lapidadas com paixão</span>
-                </div>
-            </a>
-
-            <div class="flex items-center gap-1">
+<header class="site-header bg-white text-black {{ header_extra }} z-30" id="{{ header_id }}">
+    {# ── Desktop: utilities + wordmark ── #}
+    <div class="hidden lg:block">
+        <div class="max-w-[1600px] mx-auto px-8 xl:px-12 {{ 'h-16' if is_float else 'h-20' }} grid grid-cols-3 items-center">
+            <div class="flex items-center gap-6">
                 <div class="relative">
-                    <button id="currency-button-{{ px }}" type="button" class="flex items-center gap-1.5 text-white/90 hover:text-white px-2 py-2 transition-colors duration-200">
-                        <span id="currency-code-{{ px }}" class="text-sm font-medium tracking-wide">BRL</span>
-                        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    <button id="currency-button-{{ px }}" type="button" class="flex items-center gap-1.5 text-[11px] tracking-[0.2em] uppercase hover:opacity-60 transition-opacity">
+                        <span id="currency-code-{{ px }}">BRL</span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div id="currency-dropdown-{{ px }}" class="hidden absolute right-0 mt-1 w-36 bg-white rounded-md shadow-xl z-50 border border-gray-100 overflow-hidden">
-                        <button type="button" onclick="setCurrency('USD')" class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream">
-                            <img src="https://flagcdn.com/w20/us.png" alt="USD" class="w-5 h-auto"><span>USD ($)</span>
+                    <div id="currency-dropdown-{{ px }}" class="hidden absolute left-0 mt-3 w-40 bg-white border border-black/10 z-50">
+                        <button type="button" onclick="setCurrency('USD')" class="w-full flex items-center gap-3 px-4 py-3 text-[11px] tracking-[0.16em] uppercase hover:bg-luxury-cream">
+                            <img src="https://flagcdn.com/w20/us.png" alt="USD" class="w-4 h-auto grayscale"><span>USD ($)</span>
                         </button>
-                        <button type="button" onclick="setCurrency('BRL')" class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream">
-                            <img src="https://flagcdn.com/w20/br.png" alt="BRL" class="w-5 h-auto"><span>BRL (R$)</span>
+                        <button type="button" onclick="setCurrency('BRL')" class="w-full flex items-center gap-3 px-4 py-3 text-[11px] tracking-[0.16em] uppercase hover:bg-luxury-cream">
+                            <img src="https://flagcdn.com/w20/br.png" alt="BRL" class="w-4 h-auto grayscale"><span>BRL (R$)</span>
                         </button>
                     </div>
                 </div>
-
-                <button type="button" onclick="toggleSearch()" class="text-white/90 hover:text-white p-2 transition-colors" title="Buscar produtos">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <button type="button" onclick="toggleSearch()" class="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase hover:opacity-60 transition-opacity" title="Buscar produtos">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <span>Buscar</span>
                 </button>
+            </div>
 
-                <a href="/account" id="user-button-{{ px }}" class="text-white/90 hover:text-white p-2 transition-colors">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <a href="/" class="justify-self-center text-center leading-none" aria-label="Paixão Pedras — página inicial">
+                <span class="block text-[20px] xl:text-[22px] tracking-[0.42em] pl-[0.42em] font-normal">PAIXÃO PEDRAS</span>
+                {% if not is_float %}
+                <span class="block mt-2 text-[9px] tracking-[0.5em] pl-[0.5em] text-brand-muted uppercase">Desde 1942</span>
+                {% endif %}
+            </a>
+
+            <div class="flex items-center justify-end gap-6">
+                <a href="/account" id="user-button-{{ px }}" class="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase hover:opacity-60 transition-opacity" title="Minha conta">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <span>Conta</span>
                 </a>
-
-                <button type="button" onclick="toggleCart()" id="cart-button-{{ px }}" class="relative text-white/90 hover:text-white p-2 transition-colors">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                    <span id="cart-count-{{ px }}" class="absolute -top-0.5 -right-0.5 bg-luxury-gold text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                <button type="button" onclick="toggleCart()" id="cart-button-{{ px }}" class="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase hover:opacity-60 transition-opacity">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                    <span>Carrinho</span>
+                    <span id="cart-count-{{ px }}" class="min-w-[1.25rem] h-5 px-1 bg-black text-white text-[10px] tracking-normal flex items-center justify-center hidden">0</span>
                 </button>
             </div>
         </div>
-    </div>
 
-    {# ── Desktop: nav row ── #}
-    <div class="hidden lg:block">
-        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center gap-8 py-3">
-                <div class="relative group">
-                    <button type="button" class="site-nav-link flex items-center gap-1.5 text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent group-hover:border-white/60">
-                        Catálogo
-                        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                    </button>
-                    <div class="absolute left-0 top-full pt-2 w-52 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                        <div class="bg-white rounded-md shadow-xl border border-gray-100 py-2">
-                            <a href="/products" class="block px-4 py-2 text-sm text-gray-800 hover:bg-luxury-cream hover:text-luxury-gold font-medium border-b border-gray-100 mb-1">Ver Todo o Catálogo</a>
-                            <a href="{{ 'Kunzita'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Kunzita</a>
-                            <a href="{{ 'Esmeralda'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Esmeralda</a>
-                            <a href="{{ 'Turmalina'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Turmalina</a>
-                            <a href="{{ 'Tanzanita'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Tanzanita</a>
-                            <a href="{{ 'Topázio'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Topázio</a>
-                            <a href="{{ 'Morganita'|category_path }}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Morganita</a>
-                            <a href="/products?numero_pedras_min=2" class="block px-4 py-2 text-sm text-gray-600 hover:bg-luxury-cream hover:text-luxury-gold">Conjuntos</a>
+        {# ── Desktop: nav row ── #}
+        <nav class="relative">
+            <ul class="flex items-center justify-center gap-10 xl:gap-12 h-11">
+                <li class="group">
+                    <a href="/products" class="brand-nav-link flex items-center gap-1.5 {{ 'is-active' if cur_path.startswith('/products') or cur_path.startswith('/pedras') }}">
+                        Gemas
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7"/></svg>
+                    </a>
+                    <div class="absolute left-0 right-0 top-full opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <div class="bg-white border-t border-b border-brand-line">
+                            <div class="max-w-5xl mx-auto px-8 py-10 grid grid-cols-4 gap-10">
+                                <div>
+                                    <p class="brand-eyebrow text-brand-muted mb-5">Catálogo</p>
+                                    <a href="/products" class="brand-link text-black">Ver todas as gemas</a>
+                                </div>
+                                <div class="col-span-2 grid grid-cols-2 gap-x-10 gap-y-3">
+                                    <a href="{{ 'Esmeralda'|category_path }}" class="text-[12px] tracking-[0.18em] uppercase hover:opacity-60">Esmeralda</a>
+                                    <a href="{{ 'Turmalina'|category_path }}" class="text-[12px] tracking-[0.18em] uppercase hover:opacity-60">Turmalina</a>
+                                    <a href="{{ 'Tanzanita'|category_path }}" class="text-[12px] tracking-[0.18em] uppercase hover:opacity-60">Tanzanita</a>
+                                    <a href="{{ 'Topázio'|category_path }}" class="text-[12px] tracking-[0.18em] uppercase hover:opacity-60">Topázio</a>
+                                    <a href="{{ 'Kunzita'|category_path }}" class="text-[12px] tracking-[0.18em] uppercase hover:opacity-60">Kunzita</a>
+                                    <a href="{{ 'Morganita'|category_path }}" class="text-[12px] tracking-[0.18em] uppercase hover:opacity-60">Morganita</a>
+                                </div>
+                                <a href="/products?numero_pedras_min=2" class="group/tile block">
+                                    <div class="aspect-[4/3] bg-black overflow-hidden">
+                                        <img src="{{ url_for('static', filename='images/conjuntos.jpg') }}" alt="Conjuntos" class="w-full h-full object-cover opacity-90 group-hover/tile:scale-105 transition-transform duration-700">
+                                    </div>
+                                    <p class="mt-3 text-[11px] tracking-[0.2em] uppercase">Conjuntos</p>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <a href="/historia" class="site-nav-link text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/60">Nossa História</a>
-                <a href="/guias/certificacao-gemologica" class="site-nav-link text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/60">Certificação</a>
-                <a href="/feiras" class="site-nav-link text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/60">Feiras</a>
-                <a href="/guias" class="site-nav-link text-sm text-white/90 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/60">Guias</a>
-            </div>
+                </li>
+                <li><a href="/products?numero_pedras_min=2" class="brand-nav-link">Conjuntos</a></li>
+                <li><a href="/o-que-procura" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/o-que-procura') }}">Área do Joalheiro</a></li>
+                <li><a href="/historia" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/historia') }}">Nossa História</a></li>
+                <li><a href="/guias/certificacao-gemologica" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/guias/certificacao') }}">Certificação</a></li>
+                <li><a href="/feiras" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/feiras') }}">Feiras</a></li>
+                <li><a href="/guias" class="brand-nav-link {{ 'is-active' if cur_path == '/guias' }}">Guias</a></li>
+            </ul>
         </nav>
     </div>
 
     {# ── Mobile: compact bar ── #}
-    <div class="lg:hidden px-4 py-3">
-        <div class="flex items-center justify-between gap-3">
-            <button type="button" id="{{ 'floating-' if is_float else '' }}mobile-menu-button" class="flex-shrink-0 text-white p-1 -ml-1" aria-label="Abrir menu">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    <div class="lg:hidden px-4 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-3">
+        <button type="button" id="{{ 'floating-' if is_float else '' }}mobile-menu-button" class="p-1 -ml-1" aria-label="Abrir menu">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M3 7h18M3 12h18M3 17h18"/></svg>
+        </button>
+
+        <a href="/" class="text-center min-w-0">
+            <span class="block text-[14px] tracking-[0.34em] pl-[0.34em] truncate">PAIXÃO PEDRAS</span>
+        </a>
+
+        <div class="flex items-center gap-1">
+            <button type="button" onclick="toggleSearch()" class="p-2" title="Buscar">
+                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </button>
-
-            <a href="/" class="flex items-center gap-2 min-w-0 flex-1 justify-center">
-                <img src="{{ url_for('static', filename='images/logo.png') }}"
-                     alt=""
-                     aria-hidden="true"
-                     class="h-7 w-auto object-contain flex-shrink-0"
-                     onerror="this.onerror=null;this.src='{{ logo_fallback }}';">
-                <span class="font-serif text-sm tracking-[0.14em] text-white truncate">KATSUMI JOIAS</span>
-            </a>
-
-            <div class="flex items-center gap-0.5 flex-shrink-0">
-                <button type="button" onclick="toggleSearch()" class="text-white p-2" title="Buscar">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                </button>
-                <button type="button" onclick="toggleCart()" class="relative text-white p-2">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                    <span id="cart-count-mobile{{ '-float' if is_float else '' }}" class="absolute top-0.5 right-0.5 bg-luxury-gold text-white text-[9px] font-bold rounded-full h-3.5 w-3.5 flex items-center justify-center hidden">0</span>
-                </button>
-            </div>
+            <button type="button" onclick="toggleCart()" class="relative p-2" aria-label="Carrinho">
+                <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                <span id="cart-count-mobile{{ '-float' if is_float else '' }}" class="absolute top-0.5 right-0 min-w-[14px] h-[14px] px-0.5 bg-black text-white text-[9px] flex items-center justify-center hidden">0</span>
+            </button>
         </div>
     </div>
 </header>

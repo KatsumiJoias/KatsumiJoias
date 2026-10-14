@@ -3,40 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedido Confirmado — Katsumi Joias</title>
+    <title>Pedido Confirmado — Paixão Pedras</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-    <meta name="theme-color" content="#0E3B2E">
+    <meta name="theme-color" content="#000000">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'luxury-gold': '#B68C3F',
-                        'luxury-gold-dark': '#8C6B2E',
-                        'luxury-gold-light': '#D9C18A',
-                        'luxury-black': '#141210',
-                        'luxury-gray': '#F4EFE6',
-                        'luxury-cream': '#FAF7F1',
-                        'luxury-emerald': '#0E3B2E',
-                        'pp-border': '#e8e4dc',
+                        'luxury-gold': '#111111',
+                        'luxury-gold-dark': '#3A3A3A',
+                        'luxury-gold-light': '#D4D4D4',
+                        'luxury-black': '#000000',
+                        'luxury-gray': '#F2F2F2',
+                        'luxury-cream': '#F7F7F7',
+                        'luxury-emerald': '#000000',
+                        'pp-border': '#E5E5E5',
                     },
                     fontFamily: {
-                        'serif': ['Marcellus', 'serif'],
-                        'sans': ['Inter', 'sans-serif'],
+                        'serif': ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+                        'sans': ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>.font-serif{font-weight:400!important;letter-spacing:.06em}h1.font-serif,h2.font-serif,h3.font-serif{text-transform:uppercase}.rounded,.rounded-sm,.rounded-md,.rounded-lg,.rounded-xl,.rounded-2xl,.rounded-t-lg,.rounded-b-lg{border-radius:0!important}input,select,textarea,button{border-radius:0}</style>
     <style>
         .section-card {
             background: #fff;
-            border: 1px solid #e8e4dc;
-            border-radius: 0.75rem;
+            border: 1px solid #E5E5E5;
+            border-radius: 0;
             padding: 1.5rem;
             margin-bottom: 1rem;
             box-shadow: 0 1px 2px rgba(20, 18, 16, 0.04);
@@ -45,10 +45,10 @@
             .section-card { padding: 1.75rem 2rem; }
         }
         .section-title {
-            font-family: 'Marcellus', serif;
+            font-family: 'Helvetica Neue', Helvetica, Arial, serif;
             font-size: 1.125rem;
             font-weight: 400;
-            color: #141210;
+            color: #000000;
             margin-bottom: 1.25rem;
         }
         .step-track {
@@ -80,15 +80,15 @@
             margin-bottom: 0.5rem;
         }
         .step-circle.active {
-            background: #B68C3F;
+            background: #111111;
             color: #fff;
         }
         .step-circle.done {
-            background: #0E3B2E;
+            background: #000000;
             color: #fff;
         }
         .step-circle.pending {
-            background: #e8e4dc;
+            background: #E5E5E5;
             color: #9ca3af;
         }
         .step-label {
@@ -97,25 +97,25 @@
             color: #6b7280;
             max-width: 6.5rem;
         }
-        .step-label.active { color: #141210; font-weight: 500; }
+        .step-label.active { color: #000000; font-weight: 500; }
         .step-line {
             flex: 1;
             height: 2px;
-            background: #e8e4dc;
+            background: #E5E5E5;
             min-width: 1.5rem;
             margin: 0 0.25rem 1.25rem;
         }
-        .step-line.done { background: #B68C3F; }
+        .step-line.done { background: #111111; }
         .pix-code-input {
             width: 100%;
             padding: 0.75rem 0.875rem;
-            border: 1px solid #d9d4cb;
-            border-radius: 0.375rem;
+            border: 1px solid #D4D4D4;
+            border-radius: 0;
             font-family: 'Courier New', monospace;
             font-size: 0.6875rem;
             line-height: 1.4;
             color: #374151;
-            background: #faf9f7;
+            background: #FAFAFA;
             word-break: break-all;
             resize: none;
             outline: none;
@@ -123,41 +123,41 @@
         .btn-copy-pix {
             width: 100%;
             padding: 0.875rem 1rem;
-            background: #B68C3F;
+            background: #111111;
             color: #fff;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 0;
             font-size: 0.875rem;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.15s;
         }
-        .btn-copy-pix:hover { background: #8C6B2E; }
+        .btn-copy-pix:hover { background: #3A3A3A; }
         .btn-outline-gold {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
             padding: 0.875rem 1.25rem;
-            border-radius: 0.5rem;
+            border-radius: 0;
             font-size: 0.875rem;
             font-weight: 500;
-            border: 1.5px solid #B68C3F;
-            color: #B68C3F;
+            border: 1.5px solid #111111;
+            color: #111111;
             background: #fff;
             text-decoration: none;
             transition: all 0.15s;
         }
-        .btn-outline-gold:hover { background: #FAF7F1; }
+        .btn-outline-gold:hover { background: #F7F7F7; }
         .btn-solid-emerald {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
+            border-radius: 0;
             font-size: 0.875rem;
             font-weight: 600;
-            background: #0E3B2E;
+            background: #000000;
             color: #fff;
             text-decoration: none;
             border: none;
@@ -165,28 +165,28 @@
         }
         .timer-bar {
             height: 3px;
-            background: #e8e4dc;
+            background: #E5E5E5;
             border-radius: 9999px;
             overflow: hidden;
             margin-top: 0.35rem;
         }
         .timer-fill {
             height: 100%;
-            background: #B68C3F;
+            background: #111111;
             transition: width 1s linear;
         }
         .order-item-row {
             display: flex;
             gap: 0.875rem;
             padding: 0.875rem 0;
-            border-bottom: 1px solid #f0ece4;
+            border-bottom: 1px solid #F2F2F2;
         }
         .order-item-row:last-child { border-bottom: none; }
         .item-thumb {
             width: 64px;
             height: 64px;
-            border-radius: 0.375rem;
-            background: #E4EBEF;
+            border-radius: 0;
+            background: #EBEBEB;
             flex-shrink: 0;
             overflow: hidden;
         }
@@ -200,15 +200,15 @@
             color: #6b7280;
         }
         .help-banner {
-            background: #0E3B2E;
+            background: #000000;
             color: #fff;
-            border-radius: 0.75rem;
+            border-radius: 0;
             padding: 1.25rem 1.5rem;
         }
         .boleto-barcode {
-            background: #faf9f7;
-            border: 1px solid #e8e4dc;
-            border-radius: 0.375rem;
+            background: #FAFAFA;
+            border: 1px solid #E5E5E5;
+            border-radius: 0;
             padding: 0.75rem;
             font-family: 'Courier New', monospace;
             font-size: 0.75rem;
@@ -236,10 +236,7 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
 <header class="bg-luxury-emerald text-white border-b border-white/10">
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
         <div class="flex items-center justify-between gap-4 h-16">
-            <a href="/" class="flex items-center gap-2 flex-shrink-0">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Katsumi Joias" class="h-8 w-auto object-contain">
-                <span class="hidden sm:inline font-serif text-sm tracking-[0.14em]">KATSUMI JOIAS</span>
-            </a>
+            <a href="/" class="flex-shrink-0 text-[13px] sm:text-[15px] tracking-[0.36em] text-white" aria-label="Paixão Pedras">PAIXÃO PEDRAS</a>
             {% if order %}
             <p class="text-xs sm:text-sm text-white/75 text-right truncate">
                 Pedido <strong class="text-white">#{{ order.id[:8].upper() }}</strong>
@@ -269,10 +266,21 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
     {% set ship_cost = (order.get('shipping_cost_brl') or 0) | float %}
     {% set grand_total = (order.get('amount_brl') or subtotal) | float %}
     {% set addr = order.get('shipping_address', {}) %}
+    {% set tracking = order.get('tracking_code') %}
 
     <!-- Status banner -->
     <div class="section-card text-center">
-        {% if is_paid %}
+        {% if tracking %}
+        <div class="w-12 h-12 rounded-full bg-luxury-emerald/10 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-luxury-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+        </div>
+        <h1 class="font-serif text-xl sm:text-2xl text-luxury-gold mb-2">Seu pedido está em trânsito.</h1>
+        <p class="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+            Despachamos com envio segurado. Acompanhe a entrega pelo código de rastreio abaixo.
+        </p>
+        {% elif is_paid %}
         <div class="w-12 h-12 rounded-full bg-luxury-emerald/10 flex items-center justify-center mx-auto mb-4">
             <svg class="w-6 h-6 text-luxury-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
@@ -303,27 +311,44 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
         {% endif %}
 
         <!-- Stepper -->
+        {% set check_svg %}<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>{% endset %}
         <div class="step-track mt-8 max-w-lg mx-auto">
             <div class="step-node">
-                <div class="step-circle {% if is_paid %}done{% elif is_pending %}active{% else %}pending{% endif %}">
-                    {% if is_paid %}
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                    {% else %}→{% endif %}
+                <div class="step-circle {% if is_paid or tracking %}done{% elif is_pending %}active{% else %}pending{% endif %}">
+                    {% if is_paid or tracking %}{{ check_svg }}{% else %}→{% endif %}
                 </div>
-                <span class="step-label {% if is_pending and not is_paid %}active{% endif %}">Pagamento {% if pm == 'pix' %}PIX{% elif pm == 'boleto' %}boleto{% else %}{{ pm }}{% endif %}</span>
+                <span class="step-label {% if is_pending and not is_paid %}active{% endif %}">Pagamento {% if pm == 'pix' %}PIX{% elif pm == 'boleto' %}boleto{% elif pm == 'internal' %}registrado{% else %}{{ pm }}{% endif %}</span>
             </div>
-            <div class="step-line {% if is_paid %}done{% endif %}"></div>
+            <div class="step-line {% if is_paid or tracking %}done{% endif %}"></div>
             <div class="step-node">
-                <div class="step-circle {% if is_paid %}active{% else %}pending{% endif %}">2</div>
-                <span class="step-label {% if is_paid %}active{% endif %}">Confirmação automática</span>
+                <div class="step-circle {% if tracking %}done{% elif is_paid %}active{% else %}pending{% endif %}">
+                    {% if tracking %}{{ check_svg }}{% else %}2{% endif %}
+                </div>
+                <span class="step-label {% if is_paid and not tracking %}active{% endif %}">Confirmação</span>
             </div>
-            <div class="step-line {% if is_paid %}done{% endif %}"></div>
+            <div class="step-line {% if tracking %}done{% endif %}"></div>
             <div class="step-node">
-                <div class="step-circle pending">3</div>
-                <span class="step-label">Envio segurado</span>
+                <div class="step-circle {% if tracking %}active{% else %}pending{% endif %}">3</div>
+                <span class="step-label {% if tracking %}active{% endif %}">Envio segurado</span>
             </div>
         </div>
     </div>
+
+    <!-- Rastreio -->
+    {% if tracking %}
+    <div class="section-card">
+        <h2 class="section-title">Rastreio da entrega</h2>
+        <div class="rounded-lg border border-luxury-emerald/20 bg-luxury-emerald/5 p-5 text-center">
+            <p class="text-[0.6875rem] font-semibold tracking-widest text-gray-500 uppercase mb-2">Código de rastreio</p>
+            <p class="font-mono text-lg sm:text-xl font-semibold text-luxury-black tracking-wider mb-1">{{ tracking }}</p>
+            {% if order.get('tracking_set_at') %}
+            <p class="text-xs text-gray-500 mb-4">Despachado em {{ order.tracking_set_at | datetime_br }}</p>
+            {% endif %}
+            <a href="https://rastreamento.correios.com.br/app/index.php" target="_blank" rel="noopener noreferrer"
+               class="btn-solid-emerald inline-block">Rastrear nos Correios</a>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- PIX payment -->
     {% if pm == 'pix' and not is_paid and not is_failed %}
@@ -349,8 +374,8 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
                     <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase mb-1">Valor a pagar</p>
                     <p class="text-2xl font-semibold text-luxury-emerald mb-3">{{ fmt_brl(grand_total) }}</p>
                     <p class="text-xs text-gray-500 leading-relaxed">
-                        Beneficiário: <strong class="text-gray-700">Katsumi Joias</strong><br>
-                        O nome pode aparecer como <em>Katsumi Joias Ltda</em> no app do banco.
+                        Beneficiário: <strong class="text-gray-700">Paixão Pedras</strong><br>
+                        O nome pode aparecer como <em>Paixão Gems Ltda</em> no app do banco.
                     </p>
                 </div>
 
@@ -414,7 +439,7 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
     <div class="section-card">
         <h2 class="section-title">Pagamento no cartão</h2>
         {% if is_paid %}
-        <div class="flex items-start gap-3 p-4 bg-[#f3f7f4] border border-[#d9e6dd] rounded-lg">
+        <div class="flex items-start gap-3 p-4 bg-[#F5F5F5] border border-[#E5E5E5] rounded-lg">
             <svg class="w-5 h-5 text-luxury-emerald flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>

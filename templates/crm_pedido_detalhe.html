@@ -79,7 +79,22 @@ US$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor total</p>
             <p class="mt-1.5 text-2xl font-bold text-gray-900">{{ brl(order.get('amount_brl')) }}</p>
             {% if order.get('amount_usd') %}
-            <p class="text-xs text-gray-400 mt-0.5">{{ usd(order.amount_usd) }} · cotação {{ brl(order.get('exchange_rate_used')) }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ usd(order.amount_usd) }}</p>
+            {% endif %}
+            {% if order.get('exchange_rate_used') %}
+            <div class="mt-3 flex items-start gap-2 rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-2">
+                <svg class="w-3.5 h-3.5 text-slate-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                <div>
+                    <p class="text-xs font-semibold text-slate-700">
+                        Cotação travada: US$ 1,00 = {{ brl(order.exchange_rate_used) }}
+                    </p>
+                    <p class="text-[11px] text-slate-500">
+                        Cobranças futuras deste pedido usam esta cotação, não a do dia.
+                    </p>
+                </div>
+            </div>
             {% endif %}
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -484,12 +499,42 @@ US$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X
                 <form method="POST" action="{{ url_for('crm_order_set_next_charge', order_id=order.id) }}" class="px-5 py-4 space-y-3">
                     <input type="date" name="next_charge_date" value="{{ order.get('next_charge_date', '') }}"
                            class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <p class="text-xs text-gray-500">Usada para alertar a equipe interna sobre a cobrança do saldo devedor.</p>
+                    <p class="text-xs text-gray-500">
+                        Na data escolhida, às 8h, o cliente recebe automaticamente o romaneio desta
+                        cobrança em PDF por e-mail.
+                    </p>
                     <button type="submit"
                             class="w-full px-4 py-2 rounded-lg text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 transition-colors">
                         Salvar data
                     </button>
                 </form>
+                <div class="px-5 pb-5 pt-0 space-y-2 border-t border-gray-100 mt-1">
+                    <p class="pt-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cobrança por e-mail</p>
+                    {% if order.get('charge_email_sent_at') %}
+                    <p class="text-xs text-emerald-700">
+                        Último envio: {{ order.charge_email_sent_at | datetime_br }}
+                        {% if order.get('charge_email_sent_for') %} · vencimento {{ order.charge_email_sent_for | date_br }}{% endif %}
+                    </p>
+                    {% else %}
+                    <p class="text-xs text-gray-500">Nenhuma cobrança enviada por e-mail ainda.</p>
+                    {% endif %}
+                    <div class="flex gap-2">
+                        <a href="{{ url_for('crm_order_charge_pdf', order_id=order.id) }}" target="_blank" rel="noopener"
+                           class="flex-1 text-center px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            Ver PDF
+                        </a>
+                        <form method="POST" action="{{ url_for('crm_order_send_charge', order_id=order.id) }}" class="flex-1"
+                              onsubmit="return confirm('Enviar a cobrança por e-mail para {{ order.get('customer_email') or 'o cliente' }}?');">
+                            <button type="submit" {% if not order.get('customer_email') %}disabled{% endif %}
+                                    class="w-full px-3 py-2 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                                Enviar agora
+                            </button>
+                        </form>
+                    </div>
+                    {% if not order.get('customer_email') %}
+                    <p class="text-xs text-amber-700">Cadastre o e-mail do cliente para habilitar o envio.</p>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
 
@@ -549,8 +594,7 @@ US$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X
                         <p class="text-sm font-mono text-emerald-900 mt-0.5">{{ order.tracking_code }}</p>
                         {% if order.get('tracking_set_at') %}
                         <p class="text-xs text-emerald-700 mt-1">
-                            Enviado ao cliente em {{ order.tracking_set_at[8:10] }}/{{ order.tracking_set_at[5:7] }}/{{ order.tracking_set_at[0:4] }}
-                            às {{ order.tracking_set_at[11:16] }}
+                            Enviado ao cliente em {{ order.tracking_set_at | datetime_br }}
                         </p>
                         {% endif %}
                         <a href="https://rastreamento.correios.com.br/app/index.php" target="_blank"

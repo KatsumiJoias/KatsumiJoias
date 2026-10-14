@@ -1,5 +1,6 @@
 {# Floating WhatsApp support widget — public site only #}
-{% if not request.path.startswith('/crm') %}
+{% set wa_floating_widget_show = false %}
+{% if wa_floating_widget_show and not request.path.startswith('/crm') %}
 <div id="wa-widget" class="fixed bottom-5 right-5 z-[80] flex flex-col items-end gap-3 pointer-events-none" aria-live="polite">
 
     <!-- Chat panel -->
@@ -16,7 +17,7 @@
                 </svg>
             </div>
             <div class="flex-1 min-w-0">
-                <p id="wa-panel-title" class="text-white font-serif text-sm tracking-wide">Katsumi Joias</p>
+                <p id="wa-panel-title" class="text-white font-serif text-sm tracking-wide">Paixão Pedras</p>
                 <p class="text-emerald-100/80 text-xs flex items-center gap-1.5 mt-0.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
                     Atendimento · {{ support_whatsapp_display }}
@@ -152,7 +153,7 @@
 
         try { localStorage.setItem('pp_wa_name', name); } catch (_) {}
 
-        const body = 'Olá, meu nome é ' + name + '. Estou em busca de ' + message + ' e vim pelo site da Katsumi Joias.';
+        const body = 'Olá, meu nome é ' + name + '. Estou em busca de ' + message + ' e vim pelo site da Paixão Pedras.';
         const url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(body);
         window.open(url, '_blank', 'noopener,noreferrer');
         setOpen(false);

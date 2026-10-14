@@ -3,39 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finalizar Compra — Katsumi Joias</title>
+    <title>Finalizar Compra — Paixão Pedras</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon-96x96.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
-    <meta name="theme-color" content="#1f5b40">
+    <meta name="theme-color" content="#262626">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'luxury-gold': '#B68C3F',
-                        'luxury-gold-dark': '#8C6B2E',
-                        'luxury-gold-light': '#D9C18A',
-                        'luxury-black': '#141210',
-                        'luxury-gray': '#F4EFE6',
-                        'luxury-cream': '#FAF7F1',
-                        'luxury-emerald': '#0E3B2E',
-                        'luxury-emerald-dark': '#0a3327',
-                        'pp-border': '#e8e4dc',
+                        'luxury-gold': '#111111',
+                        'luxury-gold-dark': '#3A3A3A',
+                        'luxury-gold-light': '#D4D4D4',
+                        'luxury-black': '#000000',
+                        'luxury-gray': '#F2F2F2',
+                        'luxury-cream': '#F7F7F7',
+                        'luxury-emerald': '#000000',
+                        'luxury-emerald-dark': '#000000',
+                        'pp-border': '#E5E5E5',
                     },
                     fontFamily: {
-                        'serif': ['Marcellus', 'serif'],
-                        'sans': ['Inter', 'sans-serif'],
+                        'serif': ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+                        'sans': ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>.font-serif{font-weight:400!important;letter-spacing:.06em}h1.font-serif,h2.font-serif,h3.font-serif{text-transform:uppercase}.rounded,.rounded-sm,.rounded-md,.rounded-lg,.rounded-xl,.rounded-2xl,.rounded-t-lg,.rounded-b-lg{border-radius:0!important}input,select,textarea,button{border-radius:0}</style>
     <style>
         * { box-sizing: border-box; }
 
@@ -48,18 +48,18 @@
         .form-input {
             width: 100%;
             padding: 0.7rem 0.875rem;
-            border: 1px solid #d9d4cb;
-            border-radius: 0.375rem;
+            border: 1px solid #D4D4D4;
+            border-radius: 0;
             font-size: 0.875rem;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             background: #fff;
             transition: border-color 0.15s, box-shadow 0.15s;
             outline: none;
-            color: #141210;
+            color: #000000;
         }
         .form-input:focus {
-            border-color: #B68C3F;
-            box-shadow: 0 0 0 3px rgba(182, 140, 63, 0.15);
+            border-color: #111111;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
         }
         .form-input.error { border-color: #ef4444; }
         .form-label {
@@ -79,17 +79,17 @@
         }
         .section-card {
             background: #fff;
-            border: 1px solid #e8e4dc;
-            border-radius: 0.75rem;
+            border: 1px solid #E5E5E5;
+            border-radius: 0;
             padding: 1.5rem 1.5rem 1.25rem;
             margin-bottom: 1rem;
             box-shadow: 0 1px 2px rgba(20, 18, 16, 0.04);
         }
         .section-title {
-            font-family: 'Marcellus', serif;
+            font-family: 'Helvetica Neue', Helvetica, Arial, serif;
             font-size: 1.25rem;
             font-weight: 400;
-            color: #141210;
+            color: #000000;
             margin-bottom: 1.25rem;
         }
         .payment-methods {
@@ -100,8 +100,8 @@
         }
         .payment-tab {
             padding: 1rem 0.75rem;
-            border: 1.5px solid #d9d4cb;
-            border-radius: 0.5rem;
+            border: 1.5px solid #D4D4D4;
+            border-radius: 0;
             background: #fff;
             cursor: pointer;
             text-align: center;
@@ -114,7 +114,7 @@
         .payment-tab .tab-label {
             font-size: 0.9375rem;
             font-weight: 600;
-            color: #141210;
+            color: #000000;
         }
         .payment-tab .tab-sub {
             font-size: 0.6875rem;
@@ -122,25 +122,25 @@
             line-height: 1.3;
         }
         .payment-tab.active {
-            border-color: #B68C3F;
-            background: #FAF7F1;
-            box-shadow: inset 0 0 0 1px rgba(182, 140, 63, 0.15);
+            border-color: #111111;
+            background: #F7F7F7;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
         }
-        .payment-tab:hover:not(.active) { background: #faf9f7; }
+        .payment-tab:hover:not(.active) { background: #FAFAFA; }
 
         .order-item {
             display: flex;
             align-items: flex-start;
             gap: 0.875rem;
             padding: 0.875rem 0;
-            border-bottom: 1px solid #f0ece4;
+            border-bottom: 1px solid #F2F2F2;
         }
         .order-item:last-child { border-bottom: none; }
         .item-img-wrap {
             width: 72px;
             height: 72px;
-            border-radius: 0.375rem;
-            background: #E4EBEF;
+            border-radius: 0;
+            background: #EBEBEB;
             flex-shrink: 0;
             overflow: hidden;
             display: flex;
@@ -153,20 +153,20 @@
         .btn-primary {
             width: 100%;
             padding: 1rem 1.25rem;
-            background: #B68C3F;
+            background: #111111;
             color: #fff;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 0;
             font-size: 0.9375rem;
             font-weight: 600;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
             letter-spacing: 0.01em;
         }
-        .btn-primary:hover:not(:disabled) { background: #8C6B2E; }
+        .btn-primary:hover:not(:disabled) { background: #3A3A3A; }
         .btn-primary:active:not(:disabled) { transform: scale(0.995); }
-        .btn-primary:disabled { background: #c4b08a; cursor: not-allowed; }
+        .btn-primary:disabled { background: #BDBDBD; cursor: not-allowed; }
 
         .spinner {
             display: inline-block;
@@ -192,9 +192,9 @@
         #pix-panel.active, #card-panel.active { display: block; }
 
         .pix-info {
-            background: #f3f7f4;
-            border: 1px solid #d9e6dd;
-            border-radius: 0.5rem;
+            background: #F5F5F5;
+            border: 1px solid #E5E5E5;
+            border-radius: 0;
             padding: 1rem 1.125rem;
         }
 
@@ -212,9 +212,9 @@
         .trust-badge span { font-size: 0.6875rem; color: #6b7280; line-height: 1.3; }
 
         .shipping-promo {
-            background: #0E3B2E;
+            background: #000000;
             color: #fff;
-            border-radius: 0.75rem;
+            border-radius: 0;
             padding: 1.25rem 1.375rem;
         }
 
@@ -229,12 +229,12 @@
             margin-top: 1rem;
         }
         .checkout-footer-links a { color: #6b7280; text-decoration: none; }
-        .checkout-footer-links a:hover { color: #141210; text-decoration: underline; }
+        .checkout-footer-links a:hover { color: #000000; text-decoration: underline; }
 
         .mobile-summary-header {
             display: flex; align-items: center; justify-content: space-between;
             cursor: pointer; padding: 1rem 1.25rem;
-            background: #FAF7F1; border-bottom: 1px solid #e8e4dc;
+            background: #F7F7F7; border-bottom: 1px solid #E5E5E5;
         }
         .mobile-summary-body { display: none; padding: 1rem 1.25rem; background: #fff; }
         .mobile-summary-body.open { display: block; }
@@ -259,12 +259,7 @@
 <header class="bg-luxury-emerald text-white border-b border-white/10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between gap-4 h-16 lg:h-[4.25rem]">
-            <a href="/" class="flex items-center gap-2 flex-shrink-0">
-                <img src="{{ url_for('static', filename='images/logo.png') }}"
-                     alt="Katsumi Joias"
-                     class="h-8 w-auto object-contain">
-                <span class="hidden sm:inline font-serif text-sm tracking-[0.14em] text-white">KATSUMI JOIAS</span>
-            </a>
+            <a href="/" class="flex-shrink-0 text-[13px] sm:text-[15px] tracking-[0.36em] text-white" aria-label="Paixão Pedras">PAIXÃO PEDRAS</a>
 
             <div class="hidden md:flex items-center gap-2">
                 <a href="/cart" class="breadcrumb-step hover:text-white transition-colors">Carrinho</a>
@@ -296,7 +291,7 @@
 </header>
 
 <!-- ───── MOBILE ORDER SUMMARY TOGGLE ───── -->
-<div class="lg:hidden" id="mobile-order-summary" style="border-bottom:1px solid #e8e4dc;">
+<div class="lg:hidden" id="mobile-order-summary" style="border-bottom:1px solid #E5E5E5;">
     <div class="mobile-summary-header" onclick="toggleMobileSummary()">
         <div class="flex items-center gap-2 text-sm font-medium text-luxury-emerald">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,7 +370,7 @@
                             <div class="relative">
                                 <input type="text" id="field-cep" name="cep" class="form-input" placeholder="00000-000" maxlength="9" required>
                                 <div id="cep-spinner" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
-                                    <div class="spinner" style="border-color:rgba(0,0,0,.15); border-top-color:#B68C3F; width:.9rem; height:.9rem;"></div>
+                                    <div class="spinner" style="border-color:rgba(0,0,0,.15); border-top-color:#111111; width:.9rem; height:.9rem;"></div>
                                 </div>
                             </div>
                             <div class="error-msg" id="err-cep">CEP inválido.</div>

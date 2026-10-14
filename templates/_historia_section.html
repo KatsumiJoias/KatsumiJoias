@@ -1,39 +1,18 @@
 <!-- Nossa História — credibilidade (shared) -->
-<section class="relative overflow-hidden bg-luxury-black">
-    <div class="absolute inset-0 md:hidden">
-        <img src="{{ url_for('static', filename='images/nossahistoria.jpg') }}"
-             alt=""
-             aria-hidden="true"
-             class="w-full h-full object-cover object-center opacity-70">
-        <div class="absolute inset-0 bg-gradient-to-r from-luxury-black via-luxury-black/75 to-luxury-black/35"></div>
-    </div>
-
-    <div class="hidden md:block absolute inset-y-0 right-0 w-1/2 lg:w-7/12">
-        <img src="{{ url_for('static', filename='images/nossahistoria.jpg') }}"
-             alt="Oficina de lapidação de gemas brasileiras — Katsumi Joias, tradição desde 1942"
-             class="w-full h-full object-cover object-center">
-        <div class="absolute inset-0 bg-gradient-to-r from-luxury-black via-luxury-black/35 to-transparent"></div>
-    </div>
-
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
-        <div class="max-w-xl">
-            <p class="text-luxury-gold text-sm font-semibold tracking-widest uppercase mb-3">Tradição desde 1942</p>
-            <h2 class="text-4xl md:text-5xl font-serif font-bold text-white leading-tight mb-6">
-                Uma história escrita<br>em pedras preciosas
-            </h2>
-            <p class="text-gray-200 text-lg leading-relaxed mb-4 drop-shadow">
-                Duas gerações dedicadas à lapidação e à curadoria das gemas mais belas — fornecendo aos grandes mestres joalheiros do Brasil desde a fundação por Wilson Alves Paixão.
-            </p>
-            <p class="text-gray-300 text-base leading-relaxed mb-10 drop-shadow">
-                Da mina à sua joia: importação, exportação e lapidação própria, com cada pedra selecionada à mão por quem vive de gemas há mais de oitenta anos.
-            </p>
-            <a href="/historia"
-               class="inline-flex items-center gap-3 px-8 py-4 bg-luxury-gold text-white font-semibold rounded-lg hover:bg-luxury-gold-dark transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform text-base">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Conheça nossa história
-            </a>
+<section class="bg-black text-white">
+    <div class="grid md:grid-cols-2">
+        <div class="flex items-center px-6 sm:px-12 lg:px-20 py-20 order-2 md:order-1">
+            <div class="max-w-md">
+                <p class="brand-eyebrow text-white/50 mb-6">Tradição desde 1942</p>
+                <h2 class="brand-display text-3xl lg:text-4xl">Uma história escrita em pedras preciosas</h2>
+                <p class="mt-8 text-[15px] text-white/65 leading-relaxed">
+                    Duas gerações dedicadas à lapidação e à curadoria das gemas mais belas — fornecendo aos grandes mestres joalheiros do Brasil desde a fundação por Wilson Alves Paixão.
+                </p>
+                <a href="/historia" class="brand-btn brand-btn--outline-light mt-10">Conheça nossa história</a>
+            </div>
+        </div>
+        <div class="aspect-[4/3] md:aspect-auto md:min-h-[36rem] overflow-hidden order-1 md:order-2">
+            <img src="{{ url_for('static', filename='images/nossahistoria.jpg') }}" alt="Oficina de lapidação de gemas brasileiras — Paixão Pedras, tradição desde 1942" loading="lazy" class="w-full h-full object-cover">
         </div>
     </div>
 </section>

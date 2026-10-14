@@ -334,6 +334,11 @@
                             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor total líquido</p>
                             <p id="sum-total-usd" class="mt-1 text-2xl font-bold text-gray-900">US$ 0,00</p>
                             <p id="sum-total-brl" class="text-sm font-medium text-gray-500">R$ 0,00</p>
+                            {% if exchange_rate %}
+                            <p class="mt-1.5 text-[11px] text-gray-400">
+                                Cotação travada no pedido: US$ 1 = R$ {{ "%.4f" | format(exchange_rate) | replace('.', ',') }}
+                            </p>
+                            {% endif %}
                         </div>
                         <div id="sum-commission-row" class="hidden flex justify-between text-gray-600 border-t border-gray-100 pt-3">
                             <span>Comissão</span>
@@ -593,6 +598,18 @@ function rowTotal(row) {
     return row.pricePerCarat * (row.ct || 1);
 }
 
+// Marca em vermelho a quantidade que excede o estoque disponível do produto
+function markStockField(field, over) {
+    if (!field) return;
+    field.classList.remove('border-red-400', 'focus:border-red-500', 'focus:ring-red-500',
+                           'border-gray-300', 'focus:border-purple-500', 'focus:ring-purple-500');
+    if (over) {
+        field.classList.add('border-red-400', 'focus:border-red-500', 'focus:ring-red-500');
+    } else {
+        field.classList.add('border-gray-300', 'focus:border-purple-500', 'focus:ring-purple-500');
+    }
+}
+
 function renderItems() {
     const wrapper = document.getElementById('items-wrapper');
     const empty   = document.getElementById('items-empty');
@@ -637,14 +654,14 @@ function renderItems() {
             </td>
             <td class="px-2 py-3 text-right">
                 ${partial ? `
-                <input type="text" inputmode="decimal" value="${row.ct}"
+                <input type="text" inputmode="decimal" value="${row.ct}" id="row-ct-${row.rowId}"
                        oninput="updateRow(${row.rowId}, 'ct', this.value)"
                        class="w-20 text-right rounded-lg shadow-sm text-sm bg-gray-50 ${overCt ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-purple-500 focus:ring-purple-500'}">
                 ` : `<span class="text-sm font-medium text-gray-900">${fmtCt(row.ct)}</span>`}
             </td>
             <td class="px-2 py-3 text-right">
                 ${partial ? `
-                <input type="number" min="0" step="1" value="${row.pedras}"
+                <input type="number" min="0" step="1" value="${row.pedras}" id="row-pedras-${row.rowId}"
                        oninput="updateRow(${row.rowId}, 'pedras', this.value)"
                        class="w-16 text-right rounded-lg shadow-sm text-sm bg-gray-50 ${overPedras ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-purple-500 focus:ring-purple-500'}">
                 ` : `<span class="text-sm text-gray-700">${row.pedras}</span>`}
@@ -655,7 +672,7 @@ function renderItems() {
                        class="w-24 text-right rounded-lg border-gray-300 shadow-sm text-sm bg-gray-50 focus:border-purple-500 focus:ring-purple-500">
             </td>
             <td class="px-2 py-3 text-right">
-                <span class="text-sm font-bold text-gray-900 whitespace-nowrap">${fmtMoney(rowTotal(row), 'US$')}</span>
+                <span id="row-total-${row.rowId}" class="text-sm font-bold text-gray-900 whitespace-nowrap">${fmtMoney(rowTotal(row), 'US$')}</span>
             </td>
             <td class="px-2 py-3 text-right">
                 <button type="button" onclick="removeItem(${row.rowId})"
@@ -697,6 +714,16 @@ function orderTotals() {
 function renderTotals() {
     const t = orderTotals();
     const carats = itemRows.reduce((acc, row) => acc + (row.ct || 0), 0);
+
+    // Atualiza o total de cada linha sem re-renderizar a tabela (não perde o foco do campo)
+    itemRows.forEach(row => {
+        const cell = document.getElementById('row-total-' + row.rowId);
+        if (cell) cell.textContent = fmtMoney(rowTotal(row), 'US$');
+        markStockField(document.getElementById('row-ct-' + row.rowId),
+                       row.ct > row.product.ct + 0.0001);
+        markStockField(document.getElementById('row-pedras-' + row.rowId),
+                       row.pedras > row.product.numero_pedras);
+    });
     const subtotal = t.subtotal;
     const totalUsd = t.totalUsd;
     const totalBrl = t.totalBrl;

@@ -1,0 +1,400 @@
+{#
+  Modal de impressão de etiquetas Zebra (GC420t via Zebra Browser Print).
+  Inclua o partial e chame ZebraLabelUI.open() — opcionalmente com um produto
+  já selecionado: ZebraLabelUI.open({ product: {...} }).
+#}
+<div id="zebra-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-gray-900/50" onclick="ZebraLabelUI.close()"></div>
+    <div class="relative min-h-screen flex items-start justify-center p-4 sm:items-center">
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-2xl">
+
+            <div class="flex items-start justify-between gap-3 px-6 py-4 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-800 to-gray-600 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-900">Imprimir etiquetas</h3>
+                        <p class="text-xs text-gray-500">Zebra GC420t via Zebra Browser Print</p>
+                    </div>
+                </div>
+                <button type="button" onclick="ZebraLabelUI.close()" class="text-gray-400 hover:text-gray-600" aria-label="Fechar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+
+                <div id="zebra-alert" class="hidden rounded-lg border px-4 py-3 text-sm"></div>
+
+                <!-- Impressora -->
+                <div>
+                    <div class="flex items-end justify-between gap-3 mb-1.5">
+                        <label for="zebra-printer" class="block text-sm font-semibold text-gray-700">Impressora</label>
+                        <button type="button" onclick="ZebraLabelUI.loadPrinters()"
+                                class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Procurar novamente</button>
+                    </div>
+                    <select id="zebra-printer"
+                            class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">Procurando impressoras…</option>
+                    </select>
+                </div>
+
+                <!-- Produtos -->
+                <div>
+                    <label for="zebra-search" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        Produtos a etiquetar
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="zebra-search" autocomplete="off"
+                               placeholder="Busque por SKU ou nome para adicionar…"
+                               class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <div id="zebra-search-results"
+                             class="hidden absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto"></div>
+                    </div>
+                    <div id="zebra-items" class="mt-3 space-y-2"></div>
+                    <p id="zebra-items-empty" class="mt-3 text-sm text-gray-400">
+                        Nenhum produto selecionado ainda.
+                    </p>
+                </div>
+
+                <!-- Etiqueta -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="zebra-width" class="block text-sm font-semibold text-gray-700 mb-1.5">Largura da etiqueta (mm)</label>
+                        <input type="number" id="zebra-width" min="20" max="120" step="1" value="38"
+                               class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="zebra-height" class="block text-sm font-semibold text-gray-700 mb-1.5">Altura da etiqueta (mm)</label>
+                        <input type="number" id="zebra-height" min="12" max="120" step="1" value="30"
+                               class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Prévia -->
+                <div>
+                    <p class="text-sm font-semibold text-gray-700 mb-1.5">Prévia da primeira etiqueta</p>
+                    <div id="zebra-preview"
+                         class="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-400">
+                        Selecione um produto para ver a prévia.
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+                <button type="button" onclick="ZebraLabelUI.copyZpl()"
+                        class="text-xs font-medium text-gray-500 hover:text-gray-800">Copiar ZPL</button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="ZebraLabelUI.close()"
+                            class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="button" id="zebra-print-btn" onclick="ZebraLabelUI.print()"
+                            class="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-sm disabled:opacity-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z"/>
+                        </svg>
+                        <span id="zebra-print-label">Imprimir</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/zebra-label-print.js') }}"></script>
+<script>
+var ZebraLabelUI = (function () {
+    var SIZE_KEY = 'zebraLabelSize38x30';
+    var items = [];
+    var printers = [];
+    var searchTimer = null;
+
+    function el(id) { return document.getElementById(id); }
+
+    function escapeHtml(value) {
+        var div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
+    }
+
+    function showAlert(message, kind) {
+        var box = el('zebra-alert');
+        var styles = {
+            error: 'bg-red-50 border-red-200 text-red-800',
+            warn: 'bg-amber-50 border-amber-200 text-amber-900',
+            success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+        };
+        box.className = 'rounded-lg border px-4 py-3 text-sm ' + (styles[kind] || styles.error);
+        box.textContent = message;
+        box.classList.remove('hidden');
+    }
+
+    function hideAlert() {
+        el('zebra-alert').classList.add('hidden');
+    }
+
+    function labelSize() {
+        return {
+            widthMm: parseFloat(el('zebra-width').value) || 38,
+            heightMm: parseFloat(el('zebra-height').value) || 30,
+        };
+    }
+
+    function persistSize() {
+        try { localStorage.setItem(SIZE_KEY, JSON.stringify(labelSize())); } catch (e) { /* ignore */ }
+        renderPreview();
+    }
+
+    function restoreSize() {
+        try {
+            var saved = JSON.parse(localStorage.getItem(SIZE_KEY) || 'null');
+            if (saved && saved.widthMm) el('zebra-width').value = saved.widthMm;
+            if (saved && saved.heightMm) el('zebra-height').value = saved.heightMm;
+        } catch (e) { /* ignore */ }
+    }
+
+    function renderItems() {
+        var wrapper = el('zebra-items');
+        el('zebra-items-empty').classList.toggle('hidden', items.length > 0);
+
+        wrapper.innerHTML = items.map(function (item, index) {
+            var p = item.product;
+            var dims = ZebraLabelPrint.formatDimensions(p) || 'sem dimensões cadastradas';
+            return '<div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">' +
+                '<div class="min-w-0 flex-1">' +
+                    '<p class="text-sm font-semibold text-gray-900 truncate">' + escapeHtml(p.name || '—') + '</p>' +
+                    '<p class="text-xs text-gray-500 truncate">' +
+                        '<span class="font-mono">' + escapeHtml(p.sku || 's/ SKU') + '</span> · ' +
+                        escapeHtml(dims) +
+                    '</p>' +
+                '</div>' +
+                '<div class="flex items-center gap-2">' +
+                    '<label class="text-xs text-gray-500" for="zebra-qty-' + index + '">Etiquetas</label>' +
+                    '<input type="number" min="1" max="200" step="1" id="zebra-qty-' + index + '" value="' + item.copies + '" ' +
+                           'oninput="ZebraLabelUI.setCopies(' + index + ', this.value)" ' +
+                           'class="w-16 text-right rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">' +
+                    '<button type="button" onclick="ZebraLabelUI.remove(' + index + ')" ' +
+                            'class="text-gray-300 hover:text-red-500" title="Remover">' +
+                        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>' +
+                        '</svg>' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        renderPreview();
+    }
+
+    function renderPreview() {
+        var box = el('zebra-preview');
+        if (!items.length) {
+            box.className = 'rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-400';
+            box.textContent = 'Selecione um produto para ver a prévia.';
+            return;
+        }
+        var size = labelSize();
+        var lines = ZebraLabelPrint.labelLines(items[0].product);
+        var total = items.reduce(function (acc, item) { return acc + item.copies; }, 0);
+
+        box.className = 'rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3';
+        var aspect = (size.widthMm / size.heightMm).toFixed(2);
+        box.innerHTML =
+            '<div class="mx-auto font-mono text-gray-800 border border-gray-200 rounded bg-white overflow-hidden" ' +
+                 'style="max-width:280px;aspect-ratio:' + aspect + '">' +
+                '<div class="h-full flex flex-col justify-center px-3 py-2 text-[11px] leading-snug" ' +
+                     'style="font-family: Helvetica, Arial, sans-serif">' +
+                    '<div class="h-2 mb-1" aria-hidden="true"></div>' +
+                    '<p class="leading-tight mb-0.5">' + escapeHtml(lines.title) + '</p>' +
+                    '<p class="text-base tracking-wide mb-1">' + escapeHtml(lines.sku) + '</p>' +
+                    '<p class="text-gray-700">' + escapeHtml(lines.weightDate) + '</p>' +
+                    '<p class="text-gray-700">' + escapeHtml(lines.priceLine) + '</p>' +
+                    '<p class="mt-0.5">' + escapeHtml(lines.totalLine) + '</p>' +
+                '</div>' +
+            '</div>' +
+            '<p class="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500">' +
+                size.widthMm + ' × ' + size.heightMm + ' mm · ' + total + ' etiqueta(s) · padrão da empresa 38×30 mm' +
+            '</p>';
+    }
+
+    function add(product) {
+        if (!product || !product.id) return;
+        var existing = items.find(function (item) { return item.product.id === product.id; });
+        if (existing) {
+            existing.copies += 1;
+        } else {
+            items.push({ product: product, copies: 1 });
+        }
+        renderItems();
+    }
+
+    function remove(index) {
+        items.splice(index, 1);
+        renderItems();
+    }
+
+    function setCopies(index, value) {
+        var copies = parseInt(value, 10);
+        if (!items[index]) return;
+        items[index].copies = isNaN(copies) || copies < 1 ? 1 : Math.min(copies, 200);
+        renderPreview();
+    }
+
+    function searchProducts(term) {
+        var box = el('zebra-search-results');
+        if (!term || term.length < 1) {
+            box.classList.add('hidden');
+            return;
+        }
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () {
+            fetch('/crm/api/products/label-search?q=' + encodeURIComponent(term))
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    var results = (data && data.results) || [];
+                    if (!results.length) {
+                        box.innerHTML = '<p class="px-3 py-2 text-sm text-gray-500">Nenhum produto encontrado.</p>';
+                    } else {
+                        box.innerHTML = results.map(function (product) {
+                            return '<button type="button" class="w-full text-left px-3 py-2 hover:bg-indigo-50 border-b border-gray-50 last:border-0" ' +
+                                   'data-product=\'' + JSON.stringify(product).replace(/'/g, '&#39;') + '\'>' +
+                                '<span class="block text-sm font-medium text-gray-900 truncate">' + escapeHtml(product.name) + '</span>' +
+                                '<span class="block text-xs text-gray-500 font-mono">' + escapeHtml(product.sku || 's/ SKU') + '</span>' +
+                            '</button>';
+                        }).join('');
+                        Array.prototype.forEach.call(box.querySelectorAll('button[data-product]'), function (btn) {
+                            btn.addEventListener('click', function () {
+                                add(JSON.parse(btn.getAttribute('data-product')));
+                                el('zebra-search').value = '';
+                                box.classList.add('hidden');
+                            });
+                        });
+                    }
+                    box.classList.remove('hidden');
+                })
+                .catch(function () {
+                    box.innerHTML = '<p class="px-3 py-2 text-sm text-red-600">Erro ao buscar produtos.</p>';
+                    box.classList.remove('hidden');
+                });
+        }, 220);
+    }
+
+    function selectedPrinter() {
+        var index = parseInt(el('zebra-printer').value, 10);
+        return isNaN(index) ? null : printers[index];
+    }
+
+    function loadPrinters() {
+        var select = el('zebra-printer');
+        select.innerHTML = '<option value="">Procurando impressoras…</option>';
+        return ZebraLabelPrint.listPrinters().then(function (found) {
+            printers = found;
+            select.innerHTML = found.map(function (printer, index) {
+                return '<option value="' + index + '">' + escapeHtml(ZebraLabelPrint.printerLabel(printer)) + '</option>';
+            }).join('');
+            hideAlert();
+        }).catch(function (err) {
+            printers = [];
+            select.innerHTML = '<option value="">Nenhuma impressora encontrada</option>';
+            showAlert(err.message || ZebraLabelPrint.INSTALL_HINT, 'error');
+        });
+    }
+
+    function currentZpl() {
+        return ZebraLabelPrint.buildBatchZpl(items, labelSize());
+    }
+
+    function print() {
+        hideAlert();
+        if (!items.length) {
+            showAlert('Adicione pelo menos um produto para imprimir.', 'warn');
+            return;
+        }
+        var printer = selectedPrinter();
+        if (!printer) {
+            showAlert(
+                'Selecione uma impressora. Se a lista está vazia, confirme que o Zebra Browser ' +
+                'Print está aberto e clique em "Procurar novamente".', 'warn');
+            return;
+        }
+
+        var button = el('zebra-print-btn');
+        var label = el('zebra-print-label');
+        button.disabled = true;
+        label.textContent = 'Imprimindo…';
+
+        ZebraLabelPrint.sendZpl(currentZpl(), printer).then(function () {
+            var total = items.reduce(function (acc, item) { return acc + item.copies; }, 0);
+            showAlert(total + ' etiqueta(s) enviada(s) para ' + ZebraLabelPrint.printerLabel(printer) + '.', 'success');
+        }).catch(function (err) {
+            showAlert(err.message || 'Não foi possível imprimir as etiquetas.', 'error');
+        }).finally(function () {
+            button.disabled = false;
+            label.textContent = 'Imprimir';
+        });
+    }
+
+    function copyZpl() {
+        if (!items.length) {
+            showAlert('Adicione pelo menos um produto para gerar o ZPL.', 'warn');
+            return;
+        }
+        var zpl = currentZpl();
+        var done = function () { showAlert('ZPL copiado para a área de transferência.', 'success'); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(zpl).then(done).catch(function () {
+                showAlert('Não foi possível copiar automaticamente. O ZPL está no console do navegador.', 'warn');
+                console.log(zpl);
+            });
+        } else {
+            console.log(zpl);
+            showAlert('Seu navegador não permite copiar automaticamente. O ZPL está no console.', 'warn');
+        }
+    }
+
+    function open(options) {
+        var opts = options || {};
+        hideAlert();
+        if (opts.reset !== false) items = [];
+        restoreSize();
+        if (opts.product) add(opts.product);
+        if (opts.products) opts.products.forEach(add);
+        renderItems();
+        el('zebra-modal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        loadPrinters();
+    }
+
+    function close() {
+        el('zebra-modal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        el('zebra-search-results').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        el('zebra-search').addEventListener('input', function (e) { searchProducts(e.target.value); });
+        el('zebra-width').addEventListener('change', persistSize);
+        el('zebra-height').addEventListener('change', persistSize);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !el('zebra-modal').classList.contains('hidden')) close();
+        });
+    });
+
+    return {
+        open: open,
+        close: close,
+        print: print,
+        copyZpl: copyZpl,
+        loadPrinters: loadPrinters,
+        setCopies: setCopies,
+        remove: remove,
+        add: add,
+    };
+})();
+</script>
