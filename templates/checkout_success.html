@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedido Confirmado — Paixão Pedras</title>
+    <title>Pedido Confirmado — Katsumi Joias</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
@@ -236,7 +236,7 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
 <header class="bg-luxury-emerald text-white border-b border-white/10">
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
         <div class="flex items-center justify-between gap-4 h-16">
-            <a href="/" class="flex-shrink-0 text-[13px] sm:text-[15px] tracking-[0.36em] text-white" aria-label="Paixão Pedras">PAIXÃO PEDRAS</a>
+            <a href="/" class="flex-shrink-0 text-[13px] sm:text-[15px] tracking-[0.36em] text-white" aria-label="Katsumi Joias">KATSUMI JOIAS</a>
             {% if order %}
             <p class="text-xs sm:text-sm text-white/75 text-right truncate">
                 Pedido <strong class="text-white">#{{ order.id[:8].upper() }}</strong>
@@ -374,8 +374,8 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
                     <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase mb-1">Valor a pagar</p>
                     <p class="text-2xl font-semibold text-luxury-emerald mb-3">{{ fmt_brl(grand_total) }}</p>
                     <p class="text-xs text-gray-500 leading-relaxed">
-                        Beneficiário: <strong class="text-gray-700">Paixão Pedras</strong><br>
-                        O nome pode aparecer como <em>Paixão Gems Ltda</em> no app do banco.
+                        Beneficiário: <strong class="text-gray-700">Katsumi Joias</strong><br>
+                        O nome pode aparecer como <em>Katsumi Joias Ltda</em> no app do banco.
                     </p>
                 </div>
 
