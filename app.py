@@ -5056,10 +5056,18 @@ def get_firebase_config():
         'appId': env_str('FIREBASE_APP_ID'),
     }
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Customer login page"""
-    return render_template('login.html', firebase_config=get_firebase_config())
+    """Customer login page (POST ignored — form handled by JS; avoids ?email= on reload)."""
+    initial_email = (request.values.get('email') or '').strip().lower()
+    if initial_email and not _is_valid_email(initial_email):
+        initial_email = ''
+    return render_template(
+        'login.html',
+        firebase_config=get_firebase_config(),
+        initial_email=initial_email,
+        error=None,
+    )
 
 @app.route('/login/finish')
 def login_finish():
