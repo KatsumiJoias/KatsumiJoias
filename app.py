@@ -5300,10 +5300,13 @@ def verify_auth():
         decoded_token = firebase_auth.verify_id_token(id_token)
         uid = decoded_token['uid']
         email = decoded_token.get('email')
-        
-        # Get user info from Firebase Auth to get display name
-        user_record = firebase_auth.get_user(uid)
-        display_name = user_record.display_name if user_record.display_name else ''
+        display_name = (decoded_token.get('name') or '').strip()
+        if not display_name:
+            try:
+                user_record = firebase_auth.get_user(uid)
+                display_name = (user_record.display_name or '').strip()
+            except Exception as profile_exc:
+                print(f'[Auth] get_user skipped: {profile_exc}')
         
         # Check if customer already exists using targeted Firestore queries
         existing_by_uid   = get_customer_by_firebase_uid(uid)
@@ -5362,6 +5365,14 @@ def verify_auth():
     except Exception as e:
         err = str(e)
         print(f"Verification error: {e}")
+        if 'INSUFFICIENT_PERMISSION' in err or 'insufficient permissions' in err.lower():
+            return jsonify({
+                'error': (
+                    'Servidor sem permissao no Firebase (katsumijoias-6cc8d). '
+                    'Use o secret FIREBASE_CREDENTIALS_JSON (account_service.json) no Cloud Run '
+                    'OU conceda IAM a service account do Run no projeto katsumijoias-6cc8d.'
+                )
+            }), 503
         if 'does not exist for project' in err:
             return jsonify({
                 'error': (

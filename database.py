@@ -63,9 +63,19 @@ def _admin_init_options():
 try:
     firebase_app = firebase_admin.get_app()
 except ValueError:
-    cred_dict = _parse_service_account_json(os.getenv('FIREBASE_CREDENTIALS_JSON'))
+    raw_json_env = os.getenv('FIREBASE_CREDENTIALS_JSON')
+    cred_dict = _parse_service_account_json(raw_json_env)
     cred_path = env_str('FIREBASE_CREDENTIALS_PATH')
     options = _admin_init_options()
+
+    if raw_json_env and not cred_dict:
+        preview = str(raw_json_env).strip()[:80]
+        print(
+            '[Firebase] ERRO: FIREBASE_CREDENTIALS_JSON esta definido mas nao e JSON valido '
+            f'(inicio={preview!r}...). Recrie o secret colando account_service.json inteiro.'
+        )
+    elif not cred_dict and not cred_path:
+        print('[Firebase] FIREBASE_CREDENTIALS_JSON nao definido no container (secret nao referenciado?).')
 
     if cred_dict:
         cred_project = (cred_dict.get('project_id') or '').strip()
