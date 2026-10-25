@@ -86,20 +86,17 @@ except ValueError:
 
 
 def _create_firestore_client():
-    """Always target the Firebase data project — never inherit Cloud Run's GCP project."""
-    project = gcp_project_id()
-    database_id = env_str('FIRESTORE_DATABASE_ID') or '(default)'
-    kwargs = {'app': firebase_app, 'project': project}
-    if database_id not in ('', '(default)'):
-        kwargs['database_id'] = database_id
+    """Use the Admin app's projectId (set at initialize_app). firebase-admin 6.5 has no project=."""
+    database_id = env_str('FIRESTORE_DATABASE_ID')
+    if database_id and database_id not in ('(default)',):
         try:
-            return firestore.client(**kwargs)
+            return firestore.client(app=firebase_app, database_id=database_id)
         except TypeError as exc:
             raise RuntimeError(
                 f'FIRESTORE_DATABASE_ID={database_id!r} requer firebase-admin>=6.2. '
                 'Ative o venv do projeto e rode: pip install -r requirements.txt'
             ) from exc
-    return firestore.client(app=firebase_app, project=project)
+    return firestore.client(app=firebase_app)
 
 
 db = _create_firestore_client()
