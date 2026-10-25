@@ -56,12 +56,13 @@ async function handleSuccessfulLogin(user) {
         body: JSON.stringify({ idToken }),
     });
 
+    const body = await response.json().catch(() => ({}));
     if (response.ok) {
         window.localStorage.removeItem(EMAIL_KEY);
         showMessage('Login realizado com sucesso! Redirecionando...', false);
         setTimeout(redirectAfterLogin, 1500);
     } else {
-        showMessage('Não foi possível verificar sua autenticação. Tente novamente.', true);
+        showMessage(body.error || 'Não foi possível verificar sua autenticação. Tente novamente.', true);
     }
 }
 

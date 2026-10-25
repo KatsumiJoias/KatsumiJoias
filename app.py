@@ -5225,7 +5225,14 @@ def send_login_link():
 
     token = str(uuid.uuid4())
     expires_at = utc_now() + timedelta(hours=1)
-    save_login_token(token, firebase_link, email, expires_at)
+    if not save_login_token(token, firebase_link, email, expires_at):
+        return jsonify({
+            'error': (
+                'Não foi possível registrar o link de login (Firestore). '
+                'No Cloud Run, configure FIREBASE_CREDENTIALS_JSON com o mesmo JSON do '
+                'account_service.json local (projeto katsumijoias-6cc8d).'
+            )
+        }), 503
 
     masked_link = f'{_site_url()}/auth/login?token={token}'
     if not email_service.send_login_link_email(email, masked_link):
@@ -5347,10 +5354,23 @@ def verify_auth():
             'uid': uid,
             'email': email
         }), 200
-        
+
+    except firebase_auth.InvalidIdTokenError:
+        return jsonify({'error': 'Sessão inválida. Tente entrar novamente.'}), 401
+    except firebase_auth.ExpiredIdTokenError:
+        return jsonify({'error': 'Sessão expirada. Tente entrar novamente.'}), 401
     except Exception as e:
+        err = str(e)
         print(f"Verification error: {e}")
-        return jsonify({'error': 'Unauthorized'}), 401
+        if 'does not exist for project' in err:
+            return jsonify({
+                'error': (
+                    'Firestore indisponível no servidor. Configure FIREBASE_CREDENTIALS_JSON '
+                    'no Cloud Run (account_service.json, projeto katsumijoias-6cc8d) e '
+                    'FIREBASE_PROJECT_ID=katsumijoias-6cc8d.'
+                )
+            }), 503
+        return jsonify({'error': 'Não foi possível verificar sua autenticação. Tente novamente.'}), 401
 
 @app.route('/api/account/data')
 @require_auth

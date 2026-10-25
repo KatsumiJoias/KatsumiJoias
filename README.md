@@ -263,9 +263,10 @@ Mínimo para subir:
 |----------|---------|
 | `FLASK_SECRET_KEY` | string longa aleatória |
 | `FIREBASE_STORAGE_BUCKET` | `katsumijoias.firebasestorage.app` |
-| `FIREBASE_PROJECT_ID` | `katsumijoias` |
+| `FIREBASE_CREDENTIALS_JSON` | JSON do `account_service.json` (**obrigatório** no Run) |
+| `FIREBASE_PROJECT_ID` | `katsumijoias-6cc8d` |
 | `FIREBASE_API_KEY` | do Firebase Console (app Web) |
-| `FIREBASE_AUTH_DOMAIN` | `katsumijoias.firebaseapp.com` |
+| `FIREBASE_AUTH_DOMAIN` | `katsumijoias-6cc8d.firebaseapp.com` |
 | `FIREBASE_MESSAGING_SENDER_ID` | do Console |
 | `FIREBASE_APP_ID` | do Console |
 
@@ -273,7 +274,8 @@ Para o **Crie sua jóia**, adicione também `OPENAI_API_KEY` e/ou `GEMINI_API_KE
 *secret* (Secret Manager → "Reference a secret" na mesma tela) — além de `IMAGE_PROVIDER_PRIMARY`,
 `OPENAI_IMAGE_MODEL` e `QUOTES_NOTIFY_EMAIL`.
 
-No Cloud Run, o Admin SDK usa a **service account do serviço** (ADC) — não precisa de `FIREBASE_CREDENTIALS_PATH`. Garanta que essa SA tenha acesso Firestore/Storage (ou use secret `FIREBASE_CREDENTIALS_JSON`).
+No Cloud Run, o Admin SDK **precisa** do secret **`FIREBASE_CREDENTIALS_JSON`** (conteúdo do `account_service.json`).  
+Firestore e seed estão no Firebase **`katsumijoias-6cc8d`**; o serviço Run pode estar no GCP **`katsumijoias`** — são projetos diferentes. Sem o JSON, o Run usa ADC de `katsumijoias` (sem banco Firestore) e login/catálogo falham. Detalhes: `docs/CLOUD_RUN_FIREBASE.md`.
 
 **Checklist pós-deploy (login e catálogo):**
 

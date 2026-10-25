@@ -1,5 +1,6 @@
 """Read environment variables with sane defaults (Cloud Run sometimes stores literal 'None')."""
 
+import json
 import os
 
 _EMPTY_MARKERS = frozenset({'', 'none', 'null', 'undefined'})
@@ -15,10 +16,29 @@ def env_str(key: str, default: str = '') -> str:
     return value
 
 
-def gcp_project_id(default: str = 'katsumijoias') -> str:
+def project_id_from_credentials_json() -> str:
+    raw = env_str('FIREBASE_CREDENTIALS_JSON')
+    if not raw:
+        return ''
+    try:
+        return (json.loads(raw).get('project_id') or '').strip()
+    except json.JSONDecodeError:
+        return ''
+
+
+def gcp_project_id(default: str = '') -> str:
+    """Firebase / Firestore project id (NOT necessarily the Cloud Run hosting GCP project)."""
     return (
         env_str('FIREBASE_PROJECT_ID')
-        or env_str('GOOGLE_CLOUD_PROJECT')
+        or project_id_from_credentials_json()
+        or default
+    )
+
+
+def cloud_run_gcp_project_id(default: str = 'katsumijoias') -> str:
+    """GCP project where Cloud Run is deployed (billing / ADC default)."""
+    return (
+        env_str('GOOGLE_CLOUD_PROJECT')
         or env_str('GCP_PROJECT')
         or default
     )

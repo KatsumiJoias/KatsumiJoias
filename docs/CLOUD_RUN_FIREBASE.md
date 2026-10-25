@@ -1,6 +1,39 @@
 # Cloud Run + Firebase — checklist de produção
 
-Use este roteiro na ordem. Cada etapa tem **como validar** antes de passar à próxima.
+## Projetos GCP vs Firebase (leia primeiro)
+
+Neste repositório há **dois IDs de projeto**:
+
+| O quê | ID | Uso |
+|-------|-----|-----|
+| **Hospedagem Cloud Run** | `katsumijoias` | Deploy Docker, URL `…491109262402…run.app`, billing |
+| **Firebase (Auth + Firestore + seed)** | `katsumijoias-6cc8d` | `account_service.json`, dados do catálogo, login |
+
+Localmente o `FIREBASE_CREDENTIALS_PATH=./account_service.json` aponta para **`katsumijoias-6cc8d`**.  
+No Cloud Run, **sem** `FIREBASE_CREDENTIALS_JSON`, o Admin SDK usa a service account padrão do projeto **`katsumijoias`**, onde **não existe** banco Firestore `(default)` — daí catálogo vazio, login 500/401 e logs `does not exist for project katsumijoias`.
+
+**Correção obrigatória em produção:** secret `FIREBASE_CREDENTIALS_JSON` = JSON completo do `account_service.json` (mesmo arquivo local).
+
+**Ajuste de secrets do app Web:**
+
+- `FIREBASE_PROJECT_ID` = `katsumijoias-6cc8d` (não `katsumijoias`)
+- `FIREBASE_AUTH_DOMAIN` = `katsumijoias-6cc8d.firebaseapp.com`
+
+O deploy continua no GCP `katsumijoias`; só o **Admin SDK / Firestore** usam credenciais do Firebase `katsumijoias-6cc8d`.
+
+### Criar o secret `FIREBASE_CREDENTIALS_JSON`
+
+1. Abra `account_service.json` local (nunca commitar no git).
+2. GCP → **Secret Manager** → **Create secret** → nome `FIREBASE_CREDENTIALS_JSON` → valor = conteúdo JSON **em uma linha** ou multiline.
+3. Cloud Run → **Edit** → **Variables & secrets** → **Reference a secret** → env var `FIREBASE_CREDENTIALS_JSON`.
+4. **Nova revisão** do serviço.
+
+Nos logs da revisão deve aparecer:  
+`[Firebase] Admin SDK credentials=json firestore_project='katsumijoias-6cc8d'`.
+
+---
+
+Use o roteiro abaixo na ordem. Cada etapa tem **como validar** antes de passar à próxima.
 
 ## A. Código no ar
 

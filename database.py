@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
-from env_utils import firebase_storage_bucket
+from env_utils import cloud_run_gcp_project_id, env_str, firebase_storage_bucket, project_id_from_credentials_json
 import uuid
 from werkzeug.utils import secure_filename
 import tempfile
@@ -78,6 +78,32 @@ def _create_firestore_client():
 
 
 db = _create_firestore_client()
+
+
+def _log_firebase_bootstrap():
+    cred_mode = 'adc'
+    if os.getenv('FIREBASE_CREDENTIALS_JSON'):
+        cred_mode = 'json'
+    elif os.getenv('FIREBASE_CREDENTIALS_PATH'):
+        cred_mode = 'file'
+    fs_project = getattr(db, 'project', None) or project_id_from_credentials_json() or '?'
+    print(f'[Firebase] Admin SDK credentials={cred_mode} firestore_project={fs_project!r}')
+    env_pid = env_str('FIREBASE_PROJECT_ID')
+    if env_pid and fs_project != '?' and env_pid != fs_project:
+        print(
+            f'[Firebase] AVISO: FIREBASE_PROJECT_ID={env_pid!r} != Firestore {fs_project!r} '
+            f'(ajuste o secret / .env para {fs_project!r}).'
+        )
+    if cred_mode == 'adc':
+        host_project = cloud_run_gcp_project_id()
+        if host_project and fs_project != '?' and host_project != fs_project:
+            print(
+                f'[Firebase] Cloud Run hospedado em GCP {host_project!r}, dados em {fs_project!r}. '
+                'Configure secret FIREBASE_CREDENTIALS_JSON (conteúdo do account_service.json).'
+            )
+
+
+_log_firebase_bootstrap()
 
 # Initialize Storage bucket
 bucket = storage.bucket(_STORAGE_BUCKET_NAME)
