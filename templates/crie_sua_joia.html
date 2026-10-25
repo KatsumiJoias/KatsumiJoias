@@ -1,0 +1,696 @@
+{% extends "base.html" %}
+
+{% block title %}{{ seo.title if seo else 'Crie sua jóia - Katsumi Joias' }}{% endblock %}
+
+{% block content %}
+<style>
+    .cj-step { border-bottom: 1px solid #ECECEC; padding: 1.5rem 0; }
+    .cj-step:first-child { padding-top: 0; }
+    .cj-step-title { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #6b6b6b; margin-bottom: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
+    .cj-step-title .num { width: 1.375rem; height: 1.375rem; border-radius: 9999px; border: 1px solid #111; color: #111; display: inline-flex; align-items: center; justify-content: center; font-size: 0.6875rem; letter-spacing: 0; }
+    .cj-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .cj-opt { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.95rem; border: 1px solid #DADADA; border-radius: 9999px; font-size: 0.8125rem; color: #111; background: #fff; cursor: pointer; transition: border-color .15s, background .15s, opacity .15s; user-select: none; }
+    .cj-opt:hover:not(.is-disabled) { border-color: #111; }
+    .cj-opt.is-selected { background: #111; border-color: #111; color: #fff; }
+    .cj-opt.is-disabled { opacity: 0.35; cursor: not-allowed; text-decoration: line-through; }
+    .cj-swatch { width: 0.875rem; height: 0.875rem; border-radius: 9999px; border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0; }
+    .cj-msg { font-size: 0.8125rem; border-radius: 0.375rem; padding: 0.625rem 0.875rem; }
+    .cj-msg-error { background: #FEF2F2; color: #991B1B; }
+    .cj-msg-warn { background: #FFFBEB; color: #92400E; }
+    .cj-preview { background: #F7F7F7; border: 1px solid #ECECEC; aspect-ratio: 1 / 1; border-radius: 0.5rem; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
+    .cj-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .cj-preview.is-selected { outline: 2px solid #111; outline-offset: 2px; }
+    .cj-shimmer { position: absolute; inset: 0; background: linear-gradient(110deg, #F2F2F2 8%, #FAFAFA 18%, #F2F2F2 33%); background-size: 200% 100%; animation: cjShimmer 1.4s linear infinite; }
+    @keyframes cjShimmer { to { background-position-x: -200%; } }
+    .cj-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.8rem 1.4rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; border-radius: 0.25rem; transition: background .15s, opacity .15s; }
+    .cj-btn-primary { background: #111; color: #fff; }
+    .cj-btn-primary:hover:not(:disabled) { background: #333; }
+    .cj-btn-outline { border: 1px solid #111; color: #111; background: #fff; }
+    .cj-btn-outline:hover:not(:disabled) { background: #F5F5F5; }
+    .cj-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cj-input { width: 100%; border: 1px solid #DADADA; border-radius: 0.375rem; padding: 0.7rem 0.85rem; font-size: 0.875rem; }
+    .cj-input:focus { outline: none; border-color: #111; }
+    .cj-history-item img { aspect-ratio: 1 / 1; object-fit: cover; }
+</style>
+
+<section class="bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 lg:pt-14">
+        <p class="text-[11px] tracking-[0.3em] uppercase text-neutral-500 mb-3">Ateliê Katsumi</p>
+        <h1 class="font-serif text-3xl lg:text-5xl text-black">Crie sua jóia</h1>
+        <p class="mt-4 max-w-2xl text-sm lg:text-base text-neutral-600 leading-relaxed">
+            Escolha o tipo de peça, o metal e as pedras. Em instantes você vê uma prévia ilustrativa
+            da sua ideia — e, se gostar, pede um orçamento para o nosso ateliê produzir.
+        </p>
+    </div>
+</section>
+
+<section class="bg-white pb-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+
+        <!-- Escolhas -->
+        <div class="lg:col-span-6 xl:col-span-5">
+            <div id="cj-steps">
+                <div class="cj-step">
+                    <p class="cj-step-title"><span class="num">1</span> Tipo de joia</p>
+                    <div class="cj-options" data-field="jewelry_type"></div>
+                </div>
+                <div class="cj-step">
+                    <p class="cj-step-title"><span class="num">2</span> Metal</p>
+                    <div class="cj-options" data-field="metal"></div>
+                </div>
+                <div class="cj-step">
+                    <p class="cj-step-title"><span class="num">3</span> Pedra</p>
+                    <div class="cj-options" data-field="stone"></div>
+                </div>
+                <div class="cj-step" data-stone-step>
+                    <p class="cj-step-title"><span class="num">4</span> Quantidade de pedras</p>
+                    <div class="cj-options" data-field="count"></div>
+                </div>
+                <div class="cj-step" data-stone-step>
+                    <p class="cj-step-title"><span class="num">5</span> Formato (lapidação)</p>
+                    <div class="cj-options" data-field="shape"></div>
+                </div>
+                <div class="cj-step" data-stone-step>
+                    <p class="cj-step-title"><span class="num">6</span> Tamanho das pedras</p>
+                    <div class="cj-options" data-field="size"></div>
+                </div>
+                <div class="cj-step">
+                    <p class="cj-step-title"><span class="num" data-num-accent>7</span> Detalhes e acabamento</p>
+                    <p class="text-xs text-neutral-500 mb-2">Detalhes em diamantes</p>
+                    <div class="cj-options mb-4" data-field="accent"></div>
+                    <p class="text-xs text-neutral-500 mb-2">Acabamento do metal</p>
+                    <div class="cj-options" data-field="finish"></div>
+                </div>
+                <div class="cj-step">
+                    <p class="cj-step-title"><span class="num" data-num-details>8</span> Conte mais (opcional)</p>
+                    <textarea id="cj-details" rows="3" maxlength="{{ catalog.max_details_chars }}" class="cj-input"
+                              placeholder="Ex.: aro fino e delicado, garras em formato de pétala, estilo vintage…"></textarea>
+                    <div class="flex justify-between mt-1.5 text-[11px] text-neutral-400">
+                        <span>Descreva só detalhes da peça. Sem nomes de marcas ou pessoas.</span>
+                        <span><span id="cj-details-count">0</span>/{{ catalog.max_details_chars }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cj-validation" class="space-y-2 mt-4"></div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <button type="button" id="cj-generate" class="cj-btn cj-btn-primary flex-1" disabled>
+                    Gerar {{ 'prévias' if images_per_generation > 1 else 'prévia' }}
+                </button>
+                <a href="{{ url_for('login', next=url_for('designer_page')) }}" id="cj-login" class="cj-btn cj-btn-outline flex-1 hidden">
+                    Entrar para gerar
+                </a>
+            </div>
+            <p id="cj-login-hint" class="hidden text-xs text-neutral-500 mt-2">
+                Para gerar as imagens e guardar suas criações, entre na sua conta — é rápido, só com e-mail. Suas escolhas ficam salvas.
+            </p>
+        </div>
+
+        <!-- Prévia -->
+        <div class="lg:col-span-6 xl:col-span-7">
+            <div class="lg:sticky lg:top-28">
+                <div id="cj-previews" class="grid {{ 'grid-cols-2' if images_per_generation > 1 else 'grid-cols-1 max-w-lg' }} gap-3">
+                    {% for i in range(images_per_generation) %}
+                    <button type="button" class="cj-preview" data-preview="{{ i }}" aria-label="Prévia {{ i + 1 }}">
+                        <div class="text-center px-6 text-neutral-400" data-placeholder>
+                            <svg class="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 3h12l4 6-10 12L2 9l4-6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2 9h20M12 21L8 9l4-6 4 6-4 12"/></svg>
+                            <p class="text-xs">Sua jóia aparece aqui</p>
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div id="cj-status" class="hidden mt-4 text-sm text-neutral-600 flex items-center gap-2">
+                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    <span id="cj-status-text">Criando sua jóia…</span>
+                </div>
+                <div id="cj-error" class="hidden mt-4 cj-msg cj-msg-error"></div>
+
+                <div id="cj-actions" class="hidden mt-5">
+                    <p class="text-xs text-neutral-500 mb-3" id="cj-select-hint">Toque na imagem que mais gostou para escolher.</p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button type="button" id="cj-open-quote" class="cj-btn cj-btn-primary flex-1">Pedir orçamento</button>
+                        <button type="button" id="cj-open-edit" class="cj-btn cj-btn-outline flex-1">Ajustar esta imagem</button>
+                        <button type="button" id="cj-retry" class="cj-btn cj-btn-outline flex-1 hidden">Tentar de novo</button>
+                    </div>
+
+                    <div id="cj-edit-box" class="hidden mt-4 border border-neutral-200 rounded-md p-4">
+                        <label for="cj-edit-text" class="text-xs font-semibold tracking-wider uppercase text-neutral-600">O que você quer mudar?</label>
+                        <textarea id="cj-edit-text" rows="2" maxlength="{{ catalog.max_edit_chars }}" class="cj-input mt-2"
+                                  placeholder="Ex.: deixe o aro mais fino; pedra um pouco maior; troque para ouro branco"></textarea>
+                        <div class="flex items-center justify-between mt-3 gap-3">
+                            <span class="text-[11px] text-neutral-400"><span id="cj-edit-count">0</span>/{{ catalog.max_edit_chars }}</span>
+                            <button type="button" id="cj-edit-submit" class="cj-btn cj-btn-primary">Aplicar ajuste</button>
+                        </div>
+                    </div>
+
+                    <form id="cj-quote-box" class="hidden mt-4 border border-neutral-200 rounded-md p-4 space-y-3">
+                        <p class="font-serif text-lg text-black">Pedir orçamento desta jóia</p>
+                        <p class="text-xs text-neutral-500">Nossa equipe analisa a peça, confirma o que é possível fabricar e envia o valor e o prazo.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="cj-quote-phone" class="text-xs text-neutral-600">WhatsApp</label>
+                                <input id="cj-quote-phone" type="tel" class="cj-input mt-1" placeholder="(11) 99999-9999">
+                            </div>
+                            <div>
+                                <label for="cj-quote-budget" class="text-xs text-neutral-600">Faixa de investimento (opcional)</label>
+                                <select id="cj-quote-budget" class="cj-input mt-1 bg-white">
+                                    <option value="">Prefiro não informar</option>
+                                    <option>Até R$ 3.000</option>
+                                    <option>R$ 3.000 a R$ 8.000</option>
+                                    <option>R$ 8.000 a R$ 20.000</option>
+                                    <option>Acima de R$ 20.000</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="cj-quote-notes" class="text-xs text-neutral-600">Observações (tamanho do aro, data, gravação…)</label>
+                            <textarea id="cj-quote-notes" rows="3" maxlength="1500" class="cj-input mt-1"></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" id="cj-quote-submit" class="cj-btn cj-btn-primary">Enviar pedido</button>
+                        </div>
+                    </form>
+
+                    <div id="cj-quote-done" class="hidden mt-4 cj-msg bg-neutral-100 text-neutral-800"></div>
+                </div>
+
+                <p class="mt-6 text-[11px] leading-relaxed text-neutral-500 border-t border-neutral-100 pt-4">
+                    <strong class="font-semibold text-neutral-700">Imagem ilustrativa.</strong>
+                    As prévias são geradas por inteligência artificial a partir das suas escolhas e servem apenas como
+                    referência visual. Proporções, cores das pedras, quantidade de detalhes e acabamento podem variar na peça real.
+                    A viabilidade, o valor e o prazo são confirmados pelo nosso ateliê no orçamento.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="cj-history-wrap" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
+        <div class="flex items-end justify-between mb-4">
+            <h2 class="font-serif text-2xl text-black">Suas criações</h2>
+            <a href="/account" class="text-xs tracking-wider uppercase text-neutral-500 hover:text-black">Ver em Minha conta →</a>
+        </div>
+        <div id="cj-history" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-3"></div>
+    </div>
+</section>
+
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    const CATALOG = {{ catalog | tojson }};
+    const IMAGES = {{ images_per_generation | int }};
+    const INITIAL_DESIGN = {{ initial_design_id | tojson }};
+    const STORAGE_KEY = 'katsumi_designer_choices_v1';
+
+    const firebaseApp = initializeApp({
+        apiKey: "{{ firebase_config.apiKey }}",
+        authDomain: "{{ firebase_config.authDomain }}",
+        projectId: "{{ firebase_config.projectId }}",
+        storageBucket: "{{ firebase_config.storageBucket }}",
+        messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+        appId: "{{ firebase_config.appId }}"
+    });
+    const auth = getAuth(firebaseApp);
+
+    const $ = (id) => document.getElementById(id);
+    const state = {
+        user: null,
+        choices: { jewelry_type: '', metal: '', stone: '', count: '', shape: '', size: '', accent: 'nenhum', finish: 'polido' },
+        valid: false,
+        design: null,
+        selectedIndex: 0,
+        pollTimer: null,
+        pollStarted: 0,
+        busy: false,
+    };
+
+    const byKey = (list) => Object.fromEntries(list.map(o => [o.key, o]));
+    const TYPES = byKey(CATALOG.jewelry_types);
+    const STONES = byKey(CATALOG.stones);
+    const SIZE_RANK = Object.fromEntries(CATALOG.sizes.map(s => [s.key, s.rank]));
+
+    function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+
+    // ── Regras locais (espelham o servidor; o servidor é quem decide) ──
+    function optionDisabled(field, key) {
+        const c = state.choices;
+        const type = TYPES[c.jewelry_type];
+        const stone = STONES[c.stone];
+        if (field === 'count' && type) return !type.counts.includes(key) || key === '0';
+        if (field === 'shape') {
+            if (stone && stone.kind === 'pearl') return !CATALOG.pearl_shapes.includes(key);
+            if (type && type.shapes) return !type.shapes.includes(key);
+        }
+        if (field === 'size') {
+            if (type && SIZE_RANK[key] > SIZE_RANK[type.max_size]) return true;
+            if (c.count === 'pave') return key !== 'pequena';
+            if ((c.count === '3' || c.count === '5') && key === 'grande') return true;
+        }
+        if (field === 'accent' && type) {
+            if (!type.accents.includes(key)) return true;
+            if (key === 'halo' && c.count && c.count !== '1') return true;
+        }
+        if (field === 'stone' && key === 'nenhuma' && type && !type.counts.includes('0')) return true;
+        return false;
+    }
+
+    function hasStone() {
+        return state.choices.stone && state.choices.stone !== 'nenhuma';
+    }
+
+    function fixInvalidSelections() {
+        const c = state.choices;
+        if (!hasStone()) {
+            c.count = ''; c.shape = ''; c.size = '';
+            if (c.accent === 'halo') c.accent = 'nenhum';
+        }
+        for (const field of ['stone', 'count', 'shape', 'size', 'accent']) {
+            if (c[field] && optionDisabled(field, c[field])) c[field] = field === 'accent' ? 'nenhum' : '';
+        }
+        if (hasStone() && !c.count) {
+            const type = TYPES[c.jewelry_type];
+            if (type) c.count = type.counts.find(k => k !== '0') || '';
+        }
+    }
+
+    function optionsFor(field) {
+        switch (field) {
+            case 'jewelry_type': return CATALOG.jewelry_types;
+            case 'metal': return CATALOG.metals;
+            case 'stone': return CATALOG.stones;
+            case 'count': return CATALOG.counts.filter(o => o.key !== '0');
+            case 'shape': return CATALOG.shapes;
+            case 'size': return CATALOG.sizes;
+            case 'accent': return CATALOG.accents;
+            case 'finish': return CATALOG.finishes;
+        }
+        return [];
+    }
+
+    function renderOptions() {
+        document.querySelectorAll('.cj-options[data-field]').forEach(box => {
+            const field = box.dataset.field;
+            box.innerHTML = optionsFor(field).map(o => {
+                const selected = state.choices[field] === o.key;
+                const disabled = optionDisabled(field, o.key);
+                const swatch = o.swatch && field !== 'jewelry_type' ? `<span class="cj-swatch" style="background:${o.swatch}"></span>` : '';
+                return `<button type="button" class="cj-opt${selected ? ' is-selected' : ''}${disabled ? ' is-disabled' : ''}"
+                            data-key="${o.key}" ${disabled ? 'aria-disabled="true"' : ''}>${swatch}${escapeHTML(o.label)}</button>`;
+            }).join('');
+        });
+        const showStone = hasStone();
+        document.querySelectorAll('[data-stone-step]').forEach(el => el.classList.toggle('hidden', !showStone));
+        document.querySelector('[data-num-accent]').textContent = showStone ? '7' : '4';
+        document.querySelector('[data-num-details]').textContent = showStone ? '8' : '5';
+    }
+
+    document.querySelectorAll('.cj-options[data-field]').forEach(box => {
+        box.addEventListener('click', (e) => {
+            const btn = e.target.closest('.cj-opt');
+            if (!btn || btn.classList.contains('is-disabled')) return;
+            state.choices[box.dataset.field] = btn.dataset.key;
+            fixInvalidSelections();
+            renderOptions();
+            persistChoices();
+            scheduleValidate();
+        });
+    });
+
+    function persistChoices() {
+        try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ choices: state.choices, details: $('cj-details').value }));
+        } catch (e) {}
+    }
+
+    function restoreChoices() {
+        try {
+            const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null');
+            if (saved && saved.choices) {
+                Object.assign(state.choices, saved.choices);
+                $('cj-details').value = saved.details || '';
+                $('cj-details-count').textContent = $('cj-details').value.length;
+            }
+        } catch (e) {}
+    }
+
+    // ── Validação no servidor ──
+    let validateTimer = null;
+    function scheduleValidate() {
+        clearTimeout(validateTimer);
+        validateTimer = setTimeout(validate, 250);
+    }
+
+    async function validate() {
+        const box = $('cj-validation');
+        const c = state.choices;
+        if (!c.jewelry_type || !c.metal || !c.stone) {
+            state.valid = false;
+            box.innerHTML = '';
+            updateGenerateButton();
+            return;
+        }
+        try {
+            const res = await fetch('/api/designer/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ choices: c }),
+            });
+            const data = await res.json();
+            state.valid = !!data.ok;
+            const msgs = [];
+            (data.errors || []).forEach(m => msgs.push(`<div class="cj-msg cj-msg-error">${escapeHTML(m)}</div>`));
+            (data.warnings || []).forEach(m => msgs.push(`<div class="cj-msg cj-msg-warn">${escapeHTML(m)}</div>`));
+            box.innerHTML = msgs.join('');
+        } catch (e) {
+            state.valid = false;
+        }
+        updateGenerateButton();
+    }
+
+    function updateGenerateButton() {
+        const loggedIn = !!state.user;
+        $('cj-generate').classList.toggle('hidden', !loggedIn);
+        $('cj-login').classList.toggle('hidden', loggedIn);
+        $('cj-login-hint').classList.toggle('hidden', loggedIn);
+        $('cj-generate').disabled = !state.valid || state.busy;
+    }
+
+    $('cj-details').addEventListener('input', () => {
+        $('cj-details-count').textContent = $('cj-details').value.length;
+        persistChoices();
+    });
+    $('cj-edit-text').addEventListener('input', () => { $('cj-edit-count').textContent = $('cj-edit-text').value.length; });
+
+    // ── API autenticada ──
+    async function api(path, options = {}) {
+        if (!state.user) throw new Error('Entre na sua conta para continuar.');
+        const token = await state.user.getIdToken();
+        const res = await fetch(path, {
+            ...options,
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...(options.headers || {}) },
+        });
+        let data = {};
+        try { data = await res.json(); } catch (e) {}
+        if (res.status === 401 && data.login_url) {
+            window.location.href = data.login_url;
+            throw new Error(data.error || 'Faça login.');
+        }
+        if (!res.ok) throw new Error(data.error || (res.status === 429 ? 'Muitas tentativas. Aguarde um pouco.' : 'Algo deu errado. Tente novamente.'));
+        return data;
+    }
+
+    // ── Prévias ──
+    function showError(msg) {
+        $('cj-error').textContent = msg || '';
+        $('cj-error').classList.toggle('hidden', !msg);
+    }
+
+    function setBusy(busy, text) {
+        state.busy = busy;
+        $('cj-status').classList.toggle('hidden', !busy);
+        if (text) $('cj-status-text').textContent = text;
+        $('cj-edit-submit').disabled = busy;
+        $('cj-open-edit').disabled = busy;
+        updateGenerateButton();
+    }
+
+    function renderDesign() {
+        const d = state.design;
+        const boxes = document.querySelectorAll('[data-preview]');
+        boxes.forEach((box, i) => {
+            const img = d ? (d.images || []).find(x => x.index === i) : null;
+            box.classList.toggle('hidden', !!(d && d.kind === 'edit' && i > 0));
+            box.classList.toggle('is-selected', !!(d && img && img.url && state.selectedIndex === i && imagesReady().length > 1));
+            if (!d) return;
+            if (img && img.url) {
+                box.innerHTML = `<img src="${escapeHTML(img.url)}" alt="Prévia ilustrativa da sua jóia">`;
+            } else if (img && img.status === 'failed') {
+                box.innerHTML = `<p class="text-xs text-neutral-400 px-6 text-center">Esta variação não pôde ser gerada.</p>`;
+            } else {
+                box.innerHTML = `<div class="cj-shimmer"></div>`;
+            }
+        });
+
+        const ready = imagesReady();
+        const done = d && !['queued', 'running'].includes(d.status);
+        $('cj-actions').classList.toggle('hidden', !(done && (ready.length || d.status === 'failed')));
+        $('cj-retry').classList.toggle('hidden', !(done && ['failed', 'partial'].includes(d.status)));
+        $('cj-open-quote').classList.toggle('hidden', !ready.length);
+        $('cj-open-edit').classList.toggle('hidden', !ready.length);
+        $('cj-select-hint').classList.toggle('hidden', ready.length < 2);
+        if (d && d.quote_id) {
+            $('cj-open-quote').classList.add('hidden');
+            $('cj-quote-box').classList.add('hidden');
+            $('cj-quote-done').classList.remove('hidden');
+            $('cj-quote-done').innerHTML = 'Orçamento solicitado para esta criação. Acompanhe em <a href="/account" class="underline">Minha conta</a>.';
+        } else {
+            $('cj-quote-done').classList.add('hidden');
+        }
+        if (done) {
+            showError(d.status === 'failed' ? (d.error_message || 'Não conseguimos gerar as imagens agora.') :
+                      d.status === 'partial' ? 'Uma das variações não pôde ser gerada — você pode tentar de novo.' : '');
+        }
+    }
+
+    function imagesReady() {
+        return state.design ? (state.design.images || []).filter(i => i.url) : [];
+    }
+
+    document.querySelectorAll('[data-preview]').forEach(box => {
+        box.addEventListener('click', () => {
+            const i = parseInt(box.dataset.preview, 10);
+            const img = state.design && (state.design.images || []).find(x => x.index === i);
+            if (!img || !img.url) return;
+            state.selectedIndex = i;
+            renderDesign();
+        });
+    });
+
+    function loadDesignIntoForm(d) {
+        if (d.choices && Object.keys(d.choices).length) {
+            Object.assign(state.choices, d.choices);
+            renderOptions();
+            persistChoices();
+            scheduleValidate();
+        }
+    }
+
+    function startPolling(design) {
+        state.design = design;
+        const firstReady = imagesReady()[0];
+        state.selectedIndex = firstReady ? firstReady.index : 0;
+        renderDesign();
+        clearTimeout(state.pollTimer);
+        if (!['queued', 'running'].includes(design.status)) {
+            setBusy(false);
+            return;
+        }
+        state.pollStarted = Date.now();
+        setBusy(true, design.kind === 'edit' ? 'Aplicando seu ajuste…' : 'Criando sua jóia… isso leva cerca de 30 segundos.');
+        poll();
+    }
+
+    async function poll() {
+        if (!state.design) return;
+        let delay = 2500;
+        try {
+            const data = await api(`/api/designer/designs/${state.design.id}`);
+            state.design = data.design;
+            const ready = imagesReady();
+            if (ready.length && !ready.find(i => i.index === state.selectedIndex)) state.selectedIndex = ready[0].index;
+            renderDesign();
+            if (!['queued', 'running'].includes(state.design.status)) {
+                setBusy(false);
+                loadHistory();
+                return;
+            }
+        } catch (e) {
+            delay = 5000;
+        }
+        if (Date.now() - state.pollStarted > 6 * 60 * 1000) {
+            setBusy(false);
+            showError('A criação está demorando mais que o normal. Ela aparecerá em “Suas criações” assim que ficar pronta.');
+            return;
+        }
+        state.pollTimer = setTimeout(poll, delay);
+    }
+
+    $('cj-generate').addEventListener('click', async () => {
+        if (!state.valid || state.busy) return;
+        showError('');
+        $('cj-edit-box').classList.add('hidden');
+        $('cj-quote-box').classList.add('hidden');
+        setBusy(true, 'Enviando…');
+        state.design = { id: null, status: 'queued', images: [], kind: 'generate' };
+        renderDesign();
+        try {
+            const data = await api('/api/designer/generate', {
+                method: 'POST',
+                body: JSON.stringify({ choices: state.choices, details: $('cj-details').value }),
+            });
+            history.replaceState(null, '', `?criacao=${encodeURIComponent(data.design.id)}`);
+            startPolling(data.design);
+        } catch (e) {
+            state.design = null;
+            renderDesign();
+            setBusy(false);
+            showError(e.message);
+        }
+    });
+
+    $('cj-retry').addEventListener('click', async () => {
+        if (!state.design || state.busy) return;
+        showError('');
+        try {
+            const data = await api(`/api/designer/designs/${state.design.id}/retry`, { method: 'POST' });
+            startPolling(data.design);
+        } catch (e) {
+            showError(e.message);
+        }
+    });
+
+    $('cj-open-edit').addEventListener('click', () => {
+        $('cj-quote-box').classList.add('hidden');
+        $('cj-edit-box').classList.toggle('hidden');
+        if (!$('cj-edit-box').classList.contains('hidden')) $('cj-edit-text').focus();
+    });
+
+    $('cj-edit-submit').addEventListener('click', async () => {
+        const instruction = $('cj-edit-text').value.trim();
+        if (!instruction || !state.design || state.busy) return;
+        showError('');
+        setBusy(true, 'Enviando ajuste…');
+        try {
+            const data = await api(`/api/designer/designs/${state.design.id}/edit`, {
+                method: 'POST',
+                body: JSON.stringify({ instruction, image_index: state.selectedIndex }),
+            });
+            $('cj-edit-text').value = '';
+            $('cj-edit-count').textContent = '0';
+            $('cj-edit-box').classList.add('hidden');
+            history.replaceState(null, '', `?criacao=${encodeURIComponent(data.design.id)}`);
+            startPolling(data.design);
+        } catch (e) {
+            setBusy(false);
+            showError(e.message);
+        }
+    });
+
+    $('cj-open-quote').addEventListener('click', () => {
+        $('cj-edit-box').classList.add('hidden');
+        $('cj-quote-box').classList.toggle('hidden');
+    });
+
+    $('cj-quote-phone').addEventListener('input', function () {
+        let v = this.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+        else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4,5})(\d{0,4})$/, '($1) $2-$3');
+        else if (v.length > 2) v = v.replace(/^(\d{2})(\d+)$/, '($1) $2');
+        this.value = v;
+    });
+
+    $('cj-quote-box').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!state.design) return;
+        const phone = $('cj-quote-phone').value.replace(/\D/g, '');
+        if (phone.length < 10) {
+            showError('Informe seu WhatsApp com DDD para recebermos o orçamento.');
+            return;
+        }
+        showError('');
+        const btn = $('cj-quote-submit');
+        btn.disabled = true;
+        btn.textContent = 'Enviando…';
+        try {
+            const data = await api('/api/designer/quotes', {
+                method: 'POST',
+                body: JSON.stringify({
+                    design_id: state.design.id,
+                    image_index: state.selectedIndex,
+                    phone,
+                    budget: $('cj-quote-budget').value,
+                    notes: $('cj-quote-notes').value,
+                }),
+            });
+            state.design.quote_id = data.quote.id;
+            renderDesign();
+            $('cj-quote-done').innerHTML = `Pedido de orçamento <strong>#${escapeHTML(data.quote.number)}</strong> enviado! ` +
+                'Nossa equipe vai analisar a peça e responder pelo WhatsApp. Você também acompanha em <a href="/account" class="underline">Minha conta</a>.';
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Enviar pedido';
+        }
+    });
+
+    // ── Histórico ──
+    async function loadHistory() {
+        if (!state.user) return;
+        try {
+            const data = await api('/api/designer/my-designs');
+            const list = (data.designs || []).filter(d => (d.images || []).some(i => i.url)).slice(0, 16);
+            $('cj-history-wrap').classList.toggle('hidden', !list.length);
+            $('cj-history').innerHTML = list.map(d => {
+                const img = d.images.find(i => i.url);
+                return `<button type="button" class="cj-history-item text-left" data-design="${escapeHTML(d.id)}">
+                            <img src="${escapeHTML(img.url)}" alt="" class="w-full rounded-md border border-neutral-200 hover:border-black transition-colors">
+                            <span class="block text-[11px] text-neutral-500 mt-1 truncate">${escapeHTML((d.labels || {}).jewelry_type || '')}${d.kind === 'edit' ? ' · ajuste' : ''}</span>
+                        </button>`;
+            }).join('');
+        } catch (e) {}
+    }
+
+    $('cj-history').addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-design]');
+        if (!btn || state.busy) return;
+        await openDesign(btn.dataset.design);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    async function openDesign(id) {
+        try {
+            const data = await api(`/api/designer/designs/${encodeURIComponent(id)}`);
+            history.replaceState(null, '', `?criacao=${encodeURIComponent(id)}`);
+            loadDesignIntoForm(data.design);
+            $('cj-quote-box').classList.add('hidden');
+            $('cj-edit-box').classList.add('hidden');
+            startPolling(data.design);
+        } catch (e) {
+            showError(e.message);
+        }
+    }
+
+    // ── Init ──
+    restoreChoices();
+    fixInvalidSelections();
+    renderOptions();
+    scheduleValidate();
+    updateGenerateButton();
+
+    onAuthStateChanged(auth, async (user) => {
+        state.user = user || null;
+        updateGenerateButton();
+        if (!user) return;
+        loadHistory();
+        if (INITIAL_DESIGN) openDesign(INITIAL_DESIGN);
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch('/api/account/data', { headers: { Authorization: 'Bearer ' + token } });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.phone && !$('cj-quote-phone').value) {
+                    $('cj-quote-phone').value = data.phone;
+                    $('cj-quote-phone').dispatchEvent(new Event('input'));
+                }
+            }
+        } catch (e) {}
+    });
+</script>
+{% endblock %}

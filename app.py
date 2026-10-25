@@ -84,6 +84,11 @@ import pagarme as pagarme_client
 import email_service
 import whatsapp_service
 import seo
+import product_types
+from product_types import PRODUCT_TYPE_JOIA, PRODUCT_TYPE_GEMA, is_joia
+import jewelry_designer
+import designer_service
+import image_generation
 
 # Load environment variables
 load_dotenv()
@@ -245,13 +250,70 @@ def set_security_headers(response):
     return response
 
 # Add datetime to template context
+_nav_categories_cache = {'data': None, 'ts': 0}
+_NAV_CATEGORIES_TTL = 120
+
+
+def _invalidate_nav_categories_cache():
+    _nav_categories_cache['data'] = None
+    _nav_categories_cache['ts'] = 0
+    _category_kind_cache['data'] = None
+    _category_kind_cache['ts'] = 0
+
+
+def get_nav_jewelry_types():
+    """Tipos de joia exibidos no menu 'Jóias' (definidos em CRM › Ajustes › Categorias)."""
+    now = time.time()
+    if _nav_categories_cache['data'] is not None and now - _nav_categories_cache['ts'] < _NAV_CATEGORIES_TTL:
+        return _nav_categories_cache['data']
+    try:
+        items = product_types.categories_of_kind(get_product_categories(), PRODUCT_TYPE_JOIA)
+        data = [
+            {
+                'name': name,
+                'slug': seo.category_slug(name),
+                'url': seo.category_path(name, kind=PRODUCT_TYPE_JOIA),
+                'image_url': cat.get('image_url') or '',
+                'description': cat.get('description') or '',
+            }
+            for name, cat in items if cat.get('show_in_nav', True)
+        ]
+    except Exception as e:
+        print(f"[nav] Error loading jewelry types: {e}")
+        data = []
+    _nav_categories_cache['data'] = data
+    _nav_categories_cache['ts'] = now
+    return data
+
+
 @app.context_processor
 def inject_now():
+    path = request.path or ''
+    is_public = not path.startswith(('/crm', '/api/', '/static/'))
     return {
         'now': datetime.now,
         'support_whatsapp_number': whatsapp_service.SUPPORT_WHATSAPP_NUMBER,
         'support_whatsapp_display': whatsapp_service.SUPPORT_WHATSAPP_DISPLAY,
+        'nav_jewelry_types': get_nav_jewelry_types() if is_public else [],
     }
+
+
+@app.template_filter('datetime_br')
+def datetime_br_filter(value):
+    if not value:
+        return ''
+    if isinstance(value, str):
+        return value
+    return format_datetime_brt(value)
+
+
+@app.template_filter('brl')
+def brl_filter(value):
+    try:
+        amount = float(value or 0)
+    except (ValueError, TypeError):
+        return 'R$ 0,00'
+    return 'R$ ' + f'{amount:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
 
 
 def _site_url():
@@ -294,6 +356,22 @@ def product_image_alt_filter(product):
 @app.template_filter('category_path')
 def category_path_filter(category_name):
     return seo.category_path(category_name)
+
+
+@app.template_global('has_endpoint')
+def has_endpoint(endpoint):
+    """Templates escondem ações cujo backend ainda não existe (ex.: cobrança por e-mail)."""
+    return endpoint in app.view_functions
+
+
+@app.template_filter('is_joia')
+def is_joia_filter(product):
+    return is_joia(product or {})
+
+
+@app.template_filter('jewelry_summary')
+def jewelry_summary_filter(product):
+    return product_types.jewelry_summary(product or {})
 
 # Translations for specifications
 SPEC_TRANSLATIONS = {
@@ -348,6 +426,7 @@ def get_product_categories():
                         if isinstance(cat_data['variants'][0], str):
                             # Convert old format to new format
                             cat_data['variants'] = [{'name': v, 'description': ''} for v in cat_data['variants']]
+                product_types.normalize_category(categories[cat_name])
             return categories
         elif isinstance(categories_setting['value'], list):
             # Legacy list format — convert in memory without overwriting Firestore
@@ -376,6 +455,28 @@ def save_product_categories(categories):
         'value': categories
     }
     update_setting('product_categories', setting_data)
+    _invalidate_nav_categories_cache()
+
+
+_category_kind_cache = {'data': None, 'ts': 0}
+
+
+def _category_kind_map():
+    """{nome da categoria: 'joia'|'gema'} com cache curto."""
+    now = time.time()
+    if _category_kind_cache['data'] is not None and now - _category_kind_cache['ts'] < _NAV_CATEGORIES_TTL:
+        return _category_kind_cache['data']
+    try:
+        data = {name: product_types.category_kind(cat) for name, cat in get_product_categories().items()}
+    except Exception as e:
+        print(f"[categories] Error loading kinds: {e}")
+        data = {}
+    _category_kind_cache['data'] = data
+    _category_kind_cache['ts'] = now
+    return data
+
+
+seo.set_category_kind_resolver(lambda name: _category_kind_map().get(name))
 
 def get_default_specifications():
     """Get default specifications from settings or return default."""
@@ -396,7 +497,9 @@ def get_price_increase_rate():
     return 0
 
 def _product_total_price(p):
-    """Calculate total product price (price_per_carat * carat_weight)."""
+    """Preço total comparável em US$ (gemas: price/ct × ct; joias: price_brl convertido)."""
+    if is_joia(p):
+        return product_types.base_total_usd(p, _current_exchange_rate())
     price = float(p.get('price', 0))
     cw_raw = str(p.get('carat_weight', '') or '').strip()
     if cw_raw:
@@ -410,12 +513,16 @@ def _product_total_price(p):
     return price * carat
 
 def _apply_price_markup(products, rate):
-    """Apply price increase percentage to product prices for front-end display."""
-    if not rate:
-        return products
-    factor = 1 + rate / 100
+    """
+    Prepara o preço de exibição: aplica o markup nas gemas (US$/ct) e converte o preço
+    fixo das joias (R$) para o equivalente em US$ usado pelo front.
+    """
+    factor = 1 + rate / 100 if rate else 1.0
+    exchange_rate = None
     for p in products:
-        p['price'] = round(p.get('price', 0) * factor, 2)
+        if is_joia(p) and exchange_rate is None:
+            exchange_rate = _current_exchange_rate()
+        product_types.apply_display_price(p, exchange_rate or 0.0, factor)
     return products
 
 def get_cut_types():
@@ -628,7 +735,8 @@ def homepage():
             product['specifications'] = translate_specifications(product['specifications'])
         product['display_description'] = get_product_display_description(product, _categories_data)
 
-    products.sort(key=_product_total_price, reverse=True)
+    # Jewelry-first: joias em destaque (uma por tipo), gemas completam a vitrine
+    products.sort(key=lambda p: (0 if is_joia(p) else 1, -_product_total_price(p)))
 
     seen_categories = set()
     featured_products = []
@@ -648,6 +756,7 @@ def homepage():
                     break
 
     _apply_price_markup(featured_products, get_price_increase_rate())
+    has_gem_products = any(not is_joia(p) for p in products)
 
     site = _site_url()
     page_seo = _basic_page_seo(
@@ -660,6 +769,7 @@ def homepage():
 
     return render_template('homepage.html',
                          products=featured_products,
+                         has_gem_products=has_gem_products,
                          firebase_config=get_firebase_config(),
                          seo=page_seo)
 
@@ -784,7 +894,9 @@ def _price_bucket_label(lo, hi, unit_suffix=''):
 
 
 def _product_price_ct_brl(product, markup_factor, exchange_rate):
-    """Effective price per carat in BRL (after markup and discount)."""
+    """Effective price per carat in BRL (after markup and discount). Joias não têm preço/ct."""
+    if is_joia(product):
+        return 0.0
     price_usd = float(product.get('price', 0) or 0) * markup_factor
     discount = float(product.get('discount') or 0)
     if discount:
@@ -794,6 +906,8 @@ def _product_price_ct_brl(product, markup_factor, exchange_rate):
 
 def _product_total_brl_calc(product, markup_factor, exchange_rate):
     """Total display price in BRL (price/ct × carat × markup × exchange_rate, after discount)."""
+    if is_joia(product):
+        return product_types.final_total_brl(product, exchange_rate)
     price_usd = float(product.get('price', 0) or 0) * markup_factor
     cw_raw = str(product.get('carat_weight', '') or '').strip()
     if cw_raw:
@@ -871,10 +985,10 @@ def _build_category_filter_options(product_list, pedras_order, pedras_key_fn, ma
 
 @app.route('/o-que-procura')
 def oqueprocura_page():
-    """Página 'O que você procura?' com formulário de solicitação."""
+    """Página 'Fale com um especialista' com formulário de solicitação."""
     page_seo = _basic_page_seo(
-        f'Encomende sua Gema | {seo.BRAND}',
-        'Não encontrou a pedra ideal? Conte o que procura e nossa equipe gemológica busca ou lapida a gema perfeita para você.',
+        f'Joias sob medida e pedras especiais | {seo.BRAND}',
+        'Conte o que você procura — uma joia sob medida, um diamante ou uma pedra preciosa específica — e nossa equipe desenvolve a proposta ideal para você.',
         path='/o-que-procura',
     )
     return render_template('oqueprocura.html', firebase_config=get_firebase_config(), seo=page_seo)
@@ -882,244 +996,29 @@ def oqueprocura_page():
 
 @app.route('/historia')
 def historia_page():
-    """Página institucional 'Nossa História' (tradição desde 1942)."""
+    """Página institucional 'Nossa História'."""
     page_seo = _basic_page_seo(
-        f'Nossa História | Gemas desde 1942 | {seo.BRAND}',
-        'duas gerações lapidando gemas brasileiras em Minas Gerais. Conheça a história da Katsumi Joias desde a fundação por Wilson Alves Paixão.',
+        f'Nossa História | {seo.BRAND}',
+        'KATSUMI — a arte de transformar histórias em joias eternas. Conheça a trajetória, a essência e o compromisso por trás de cada criação.',
         path='/historia',
         og_image=f'{_site_url()}/static/images/nossahistoria.jpg',
     )
     return render_template('historia.html', seo=page_seo)
 
 
+# Páginas descontinuadas (feiras, guias, certificação, conjuntos) — 301 para manter SEO
 @app.route('/feiras')
-def feiras_page():
-    """Página institucional 'Feiras' — presença em eventos do setor."""
-    page_seo = _basic_page_seo(
-        f'Feiras e Eventos | {seo.BRAND}',
-        'Onde encontrar a Katsumi Joias em feiras de gemas e joalheria no Brasil e no exterior.',
-        path='/feiras',
-    )
-    return render_template('feiras.html', seo=page_seo)
-
-
-# ---------------------------------------------------------------------------
-# Guias / conteúdo educativo (SEO)
-# ---------------------------------------------------------------------------
-GUIDES = {
-    'como-escolher-pedra-preciosa': {
-        'title': 'Como escolher uma pedra preciosa',
-        'subtitle': 'Os critérios que realmente importam na hora de comprar uma gema.',
-        'read_min': 6,
-        'banner_image': 'images/como-escolher.png',
-        'intro': 'Comprar uma pedra preciosa é diferente de comprar qualquer outro produto: duas gemas do mesmo tipo podem ter valores radicalmente distintos. Entender o que está por trás desse valor protege o seu investimento e garante que você leve para casa exatamente o que deseja. Reunimos aqui, em linguagem simples, os critérios que nós mesmos usamos há gerações ao selecionar cada pedra.',
-        'sections': [
-            {'h': 'Cor: o critério número um', 'p': [
-                'Na maioria das gemas coloridas, a cor responde pela maior parte do valor. Avaliamos três aspectos: o matiz (a cor em si), a saturação (a intensidade) e o tom (quão clara ou escura a pedra é).',
-                'Em geral, as cores mais vivas e saturadas, sem serem escuras demais a ponto de “fechar” o brilho, são as mais valorizadas. Uma esmeralda verde-intensa ou uma turmalina Paraíba elétrica valem muito mais do que exemplares apagados.',
-                'Na Katsumi Joias, cada pedra do catálogo traz fotos em luz natural e descrição das características principais — use-as como ponto de partida, mas saiba que o brilho real só se revela completamente nas mãos.'
-            ]},
-            {'h': 'Pureza: as inclusões', 'p': [
-                'Inclusões são pequenas marcas naturais formadas dentro da pedra. Elas não são defeitos — são a impressão digital da gema e provam que ela é natural. O que avaliamos é se as inclusões comprometem o brilho ou a resistência.',
-                'Vale lembrar que cada espécie tem um padrão próprio: esmeraldas quase sempre têm o chamado “jardim” de inclusões, enquanto uma água-marinha costuma ser bem mais limpa. Pedras sem inclusão visível à olho nu são raras e, por isso, mais caras — mas nem sempre são a melhor escolha estética ou emocional.'
-            ]},
-            {'h': 'Lapidação: o que liberta o brilho', 'p': [
-                'A lapidação é onde a técnica encontra a arte. Uma boa lapidação distribui a luz de forma uniforme, sem zonas apagadas (“janelas”) nem áreas escuras. É justamente o ofício que cultivamos desde 1942.',
-                'Proporção, simetria e acabamento determinam quanto da beleza natural da pedra realmente aparece aos olhos. Uma gema de cor excepcional mal lapidada perde metade do seu encanto — e do seu valor.'
-            ]},
-            {'h': 'Quilate: tamanho não é tudo', 'p': [
-                'O quilate (ct) mede o peso, não o tamanho aparente. Pedras mais densas parecem menores para o mesmo peso. E o preço por quilate cresce de forma não linear: uma gema de 5 ct rara vale muito mais do que cinco gemas de 1 ct.',
-                'Ao comparar opções no catálogo, observe também as medidas em milímetros (comprimento, largura e, quando aplicável, peso em ct) — elas ajudam a visualizar como a pedra se comportará na joia.'
-            ]},
-            {'h': 'Origem e confiança', 'p': [
-                'Saber de onde vem a pedra e em quem confiar faz toda a diferença. Trabalhamos com gemas garimpadas e lapidadas por nós no coração de Minas Gerais, com calibragem conferida à mão — as mesmas que abastecem grandes joalherias.',
-                'Para quem deseja documentação formal, oferecemos certificação gemológica independente opcional, contratada diretamente no carrinho. Veja nosso guia sobre <a href="/guias/certificacao-gemologica">como adquirir um laudo gemológico</a>.'
-            ]},
-        ],
-    },
-    'cuidados-com-gemas': {
-        'title': 'Cuidados com suas gemas',
-        'subtitle': 'Como limpar, guardar e preservar suas pedras preciosas por gerações.',
-        'read_min': 5,
-        'banner_image': 'images/cuidados-gema.png',
-        'intro': 'Uma pedra preciosa pode durar várias vidas — desde que receba os cuidados certos. Cada gema tem uma dureza e uma sensibilidade próprias. Veja como mantê-las tão deslumbrantes quanto no primeiro dia, seja solta ou montada em joia.',
-        'sections': [
-            {'h': 'Limpeza do dia a dia', 'p': [
-                'Para a maioria das gemas, água morna, sabão neutro e uma escova de cerdas macias resolvem. Enxágue bem e seque com um pano que não solte fiapos.',
-                'Evite produtos de limpeza domésticos, que podem conter substâncias agressivas, e nunca use limpadores ultrassônicos sem antes confirmar que a pedra suporta — esmeraldas, opalas e outras gemas tratadas ou porosas podem ser danificadas.',
-                'Pedras soltas recém-adquiridas podem ser limpas antes do primeiro uso ou montagem. Joias montadas pedem cuidado extra para não molhar partes metálicas sensíveis ou colas de engaste.'
-            ]},
-            {'h': 'Entenda a dureza', 'p': [
-                'A escala de Mohs mede a resistência ao risco. Diamantes (10) e safiras (9) são muito resistentes; já gemas como a tanzanita ou a opala são mais delicadas e pedem cuidado redobrado contra impactos.',
-                'Guarde pedras de durezas diferentes separadas: uma gema mais dura pode riscar uma mais macia se ficarem em contato. Um estojo com compartimentos individuais é o investimento mais simples e eficaz.'
-            ]},
-            {'h': 'Como guardar', 'p': [
-                'O ideal é guardar cada peça individualmente, em saquinhos de tecido macio ou em compartimentos forrados. Mantenha longe de calor e de variações bruscas de temperatura, que podem afetar gemas sensíveis como quartzo ou ametista.',
-                'Evite exposição prolongada ao sol direto — algumas pedras, como kunzita ou ametista, podem desbotar com o tempo.'
-            ]},
-            {'h': 'No dia a dia', 'p': [
-                'Coloque suas joias por último, depois de perfume, cremes e maquiagem. Retire-as para atividades físicas, limpeza doméstica ou ao entrar no mar e na piscina — cloro e sal podem corroer metais e danificar tratamentos de superfície.',
-                'Impactos contra superfícies duras são a principal causa de lascas em gemas lapidadas. Mesmo safiras e rubis, apesar da dureza, podem quebrar se receberem um golpe na direção errada.'
-            ]},
-            {'h': 'Revisão periódica', 'p': [
-                'Em joias, verifique de tempos em tempos as cravações e fechos. Um especialista consegue reapertar engastes e devolver o brilho original com uma limpeza profissional.',
-                'Se comprou uma gema solta conosco e pretende montá-la, consulte um ourives de confiança — ele saberá qual tipo de engaste preserva melhor a integridade da pedra.'
-            ]},
-        ],
-    },
-    'certificacao-gemologica': {
-        'title': 'Certificação gemológica independente',
-        'subtitle': 'Laudo técnico de autenticidade: o que é, o que garante e como contratar junto com a sua compra.',
-        'read_min': 6,
-        'banner_image': 'images/certificacao.png',
-        'intro': 'Comprar uma gema de alto valor exige confiança além da palavra do vendedor. Para oferecer essa camada extra de segurança, a Katsumi Joias disponibiliza certificação gemológica independente opcional em qualquer pedra do catálogo. O laudo é emitido por laboratório especializado, com análise técnica realizada por gemólogos credenciados — documentando autenticidade, origem e características com precisão científica.',
-        'sections': [
-            {'h': 'O que é um laudo gemológico?', 'p': [
-                'Um laudo gemológico é um relatório técnico emitido por um laboratório independente, separado do vendedor. O documento analisa a pedra com instrumentação profissional — microscópio, refratômetro, espectroscópio e outros equipamentos — e registra os resultados por escrito, assinado por gemólogos com formação reconhecida internacionalmente.',
-                'É o mesmo padrão exigido por joalheiros de alto padrão, leiloeiros e seguradoras em transações de valor. O laudo não pertence à Katsumi Joias: é um documento independente que acompanha a gema para onde ela for.',
-            ]},
-            {'h': 'O que o certificado garante?', 'p': [
-                'O laudo gemológico identifica o material (natural ou sintético), descreve cor, pureza, lapidação, dimensões e peso estimado, e registra eventuais tratamentos detectados. Para pedras coloridas como turmalinas, esmeraldas, tanzanitas e kunzitas, a análise confirma a autenticidade e documenta as características que determinam o valor.',
-                'O certificado pode ser apresentado em revendas, montagens em joia, seguros e inventários. Representa a palavra de um terceiro independente sobre aquilo que a gema é — independentemente de quem a vendeu.',
-            ]},
-            {'h': 'Como contratar no carrinho', 'p': [
-                'A certificação é opcional e pode ser contratada diretamente no momento da compra, sem precisar falar com um especialista antes. Ao adicionar uma gema ao carrinho, marque a opção <strong>Laudo Gemológico</strong> no item desejado. O valor aparece separado e é somado ao total no checkout.',
-                'Você pode incluir laudo em uma ou mais pedras do mesmo pedido: cada gema marcada gera seu certificado individual. A opção também está disponível na página de cada produto.',
-                'Após a confirmação do pagamento, coordenamos o envio da pedra ao laboratório. O prazo padrão para análise de pedras coloridas é de cerca de 2 dias úteis após o recebimento. O certificado é entregue junto com a gema ou conforme combinado com nossa equipe.',
-            ]},
-            {'h': 'Quanto custa?', 'p': [
-                'O valor do laudo é exibido no carrinho ao marcar a opção, já convertido para reais conforme a cotação do dia. O preço é por pedra certificada: se você comprar duas gemas e contratar laudo nas duas, serão dois documentos independentes.',
-                'O certificado não substitui a descrição do produto no site, mas complementa com análise laboratorial formal. Para pedras de alto valor, presentes especiais ou investimento em coleção, é um custo que se traduz diretamente em segurança e respaldo técnico.',
-            ]},
-            {'h': 'Por que vale a pena?', 'p': [
-                'Com a proliferação de gemas sintéticas e tratamentos cada vez mais difíceis de detectar visualmente, um laudo independente protege seu investimento e dá respaldo técnico à compra. É especialmente relevante para presentes, coleções e peças de alto valor.',
-                'Além da tranquilidade pessoal, o certificado agrega valor de revenda e facilita a confiança em transações futuras. Muitos clientes optam pelo laudo já na primeira compra conosco.',
-            ]},
-            {'h': 'Dúvidas?', 'p': [
-                'Para gemas específicas, pedidos especiais ou dúvidas sobre o processo de certificação, fale com nossos especialistas pela página <a href="/o-que-procura">O que procura?</a>. Respondemos pessoalmente a cada consulta.',
-            ]},
-        ],
-    },
-    'como-funciona-o-envio': {
-        'title': 'Como funciona o envio',
-        'subtitle': 'Embalagem segura, Correios com seguro e rastreio até a sua porta.',
-        'read_min': 4,
-        'intro': 'Cada gema que vendemos é peça única — e merece o mesmo cuidado que dedicamos à lapidação. Por isso, todos os pedidos da Katsumi Joias são enviados pelos Correios com seguro contratado e código de rastreio, do nosso cofre até o endereço que você informar no checkout.',
-        'sections': [
-            {'h': 'Correios com seguro', 'p': [
-                'Utilizamos os serviços dos Correios para entregas em todo o Brasil. O frete inclui <strong>seguro</strong>, que cobre o valor declarado do pedido durante o transporte — uma camada extra de proteção para gemas de alto valor.',
-                'O custo do envio é calculado automaticamente no checkout com base no seu CEP e no valor do carrinho. Em compras acima do valor mínimo configurado, o frete pode ser gratuito para o seu estado.'
-            ]},
-            {'h': 'Embalagem discreta e segura', 'p': [
-                'Suas pedras são conferidas individualmente, protegidas em estojos ou envelopes acolchoados e acondicionadas em caixa rígida, sem identificação externa do conteúdo. Priorizamos discrição e integridade da peça.',
-                'Se você contratou laudo gemológico, a logística pode incluir passagem pelo laboratório antes do envio final. Nesse caso, nossa equipe combina prazos e mantém você informado por e-mail.'
-            ]},
-            {'h': 'Rastreio e acompanhamento', 'p': [
-                'Assim que o pacote for postado, enviamos o <strong>código de rastreio</strong> por e-mail. Você também pode acompanhar o status em <a href="/account">Minha conta</a> e na página de confirmação do pedido.',
-                'O prazo de entrega varia conforme região e modalidade dos Correios. Assim que houver movimentação no rastreio, você verá as atualizações no site dos Correios ou no app Meu Correios.'
-            ]},
-            {'h': 'Recebimento e conferência', 'p': [
-                'Ao receber, confira se a embalagem está íntegra antes de assinar. Em caso de avaria visível na entrega, registre com o entregador e entre em contato conosco imediatamente — o seguro existe justamente para essas situações.',
-                'Pedras soltas devem ser guardadas em local seguro até montagem em joia. Se tiver qualquer dúvida sobre a peça recebida, fale com nossos especialistas pelo WhatsApp ou responda ao e-mail de confirmação do pedido.'
-            ]},
-            {'h': 'Dúvidas sobre o seu envio?', 'p': [
-                'Nossa equipe acompanha cada despacho. Se o rastreio não atualizar no prazo esperado ou se precisar alterar endereço antes da postagem, fale conosco o quanto antes.',
-                'Para pedidos em andamento, tenha em mãos o número do pedido (disponível em <a href="/account">Minha conta</a>) — assim localizamos sua encomenda com agilidade.'
-            ]},
-        ],
-    },
-    'como-comprar-na-katsumi-joias': {
-        'title': 'Como comprar na Katsumi Joias',
-        'subtitle': 'Do catálogo à entrega: entenda cada etapa da sua compra online.',
-        'read_min': 5,
-        'banner_image': 'images/como-comprar.png',
-        'banner_min_h': 'min-h-[440px] md:min-h-[540px] lg:min-h-[600px]',
-        'banner_object_position': 'center 30%',
-        'intro': 'Comprar gemas online pede confiança — especialmente quando cada pedra é única. Este guia explica, passo a passo, como funciona a experiência de compra na Katsumi Joias, desde a escolha no catálogo até o recebimento em casa.',
-        'sections': [
-            {'h': '1. Escolha no catálogo', 'p': [
-                'Navegue por tipo de gema, use os filtros de cor, peso e dimensões para refinar a busca, e abra a ficha de cada produto para ver fotos, medidas e preço em reais (convertido automaticamente pela cotação do dia).',
-                'Cada pedra listada é um exemplar real — não trabalhamos com fotos genéricas de catálogo. Se precisar de algo fora do site, nossa equipe de especialistas pode buscar sob medida pela página <a href="/o-que-procura">O que procura?</a>.'
-            ]},
-            {'h': '2. Carrinho e laudo gemológico', 'p': [
-                'Adicione as gemas desejadas ao carrinho. Se quiser certificação independente, marque a opção <strong>Laudo Gemológico</strong> em cada item — o valor aparece no resumo antes do checkout. Veja detalhes no guia de <a href="/guias/certificacao-gemologica">certificação gemológica</a>.',
-                'Revise quantidades e valores no carrinho lateral antes de seguir. Você pode continuar navegando e voltar quando quiser — o carrinho fica salvo no seu navegador.'
-            ]},
-            {'h': '3. Checkout e pagamento', 'p': [
-                'No checkout, informe endereço de entrega, contato e CPF (obrigatório para emissão de nota e processamento do pagamento). Aceitamos PIX, cartão de crédito e boleto bancário via Pagar.me.',
-                'No PIX, o QR Code e o código copia-e-cola ficam disponíveis na tela de confirmação do pedido. A reserva da gema é temporária — conclua o pagamento dentro do prazo indicado. Cartão aprovado na hora confirma o pedido imediatamente.'
-            ]},
-            {'h': '4. Confirmação e preparação', 'p': [
-                'Assim que o pagamento é confirmado, você recebe um e-mail de confirmação e pode acompanhar o pedido em <a href="/account">Minha conta</a> ou na página de sucesso do checkout.',
-                'Suas gemas passam por conferência individual antes do envio — o mesmo cuidado que aplicamos há três gerações na lapidação. Se incluiu laudo gemológico, a pedra segue ao laboratório antes ou conforme a logística do pedido.'
-            ]},
-            {'h': '5. Envio e rastreio', 'p': [
-                'Despachamos com embalagem segura e rastreável para todo o Brasil. Quando o pacote sair, você recebe o código de rastreio por e-mail.',
-                'Em caso de dúvida sobre status ou prazo, responda ao e-mail de confirmação do pedido ou acesse sua conta. Estamos à disposição para ajudar em cada etapa.'
-            ]},
-        ],
-    },
-    'entenda-tratamentos-em-gemas': {
-        'title': 'Tratamentos em gemas: o que você precisa saber',
-        'subtitle': 'Esclareça o que é comum, o que é aceitável e o que deve ser declarado antes de comprar.',
-        'read_min': 5,
-        'banner_image': 'images/tratamentos.png',
-        'intro': 'Grande parte das gemas no mercado passa por algum tipo de tratamento — e isso não é necessariamente um problema. O que importa é saber o que foi feito, como isso afeta valor e durabilidade, e exigir transparência de quem vende. Explicamos aqui os tratamentos mais comuns e como a Katsumi Joias lida com essa questão.',
-        'sections': [
-            {'h': 'Por que gemas são tratadas?', 'p': [
-                'Tratamentos existem há séculos: aquecimento, óleo, irradiação e outros processos buscam realçar cor, melhorar pureza aparente ou estabilizar a pedra. Muitos são aceitos pelo mercado internacional quando declarados corretamente.',
-                'O problema surge quando tratamentos não são informados — ou quando processos agressivos simulam qualidades que a pedra não teria naturalmente. Por isso a transparência é central em qualquer compra responsável.'
-            ]},
-            {'h': 'Tratamentos mais comuns', 'p': [
-                '<strong>Esmeraldas:</strong> óleo ou resina em fissuras é praticamente universal e aceito, desde que declarado. Esmeraldas “no oil” (sem óleo) são raríssimas e muito mais caras.',
-                '<strong>Rubis e safiras:</strong> aquecimento é o tratamento mais comum e geralmente aceito. Difusão ou preenchimento de vidro alteram muito mais o valor e devem ser identificados.',
-                '<strong>Quartzo, topázio, citrino:</strong> irradiação e aquecimento são frequentes para intensificar cor. Outras gemas podem receber impregnação ou tingimento — um laudo gemológico independente identifica esses processos.'
-            ]},
-            {'h': 'Natural, sintético e simulante', 'p': [
-                'Pedra <strong>natural</strong> foi formada na natureza, podendo ou não ser tratada. <strong>Sintética</strong> tem a mesma composição química, mas foi criada em laboratório. <strong>Simulante</strong> imita a aparência sem ser a mesma substância (ex.: vidro ou cubic zirconia).',
-                'Na Katsumi Joias trabalhamos com gemas naturais selecionadas. Para documentação formal de autenticidade, o laudo gemológico independente distingue natural de sintético e registra os tratamentos detectados.'
-            ]},
-            {'h': 'O que perguntar antes de comprar', 'p': [
-                'Informe-se sobre tratamentos aceitos para aquela espécie. Compare preços com referência de mercado — um rubi muito barato para a cor apresentada pode esconder tratamentos não declarados.',
-                'Quando o valor ou a finalidade da compra exigir segurança extra (presente, investimento, coleção), considere o <a href="/guias/certificacao-gemologica">laudo gemológico independente</a> contratado no carrinho — o laboratório documenta o que a análise revelar.'
-            ]},
-            {'h': 'Nosso compromisso', 'p': [
-                'Descrevemos as características de cada pedra com honestidade e selecionamos exemplares que representam o que anunciamos. Dúvidas sobre um produto específico podem ser esclarecidas antes da compra — entre em contato ou use a página <a href="/o-que-procura">O que procura?</a> para conversar com nossos especialistas.'
-            ]},
-        ],
-    },
-}
-
-
 @app.route('/guias')
-def guias_index():
-    """Índice de guias e conteúdo educativo."""
-    guides = [{'slug': slug, **data} for slug, data in GUIDES.items()]
-    page_seo = _basic_page_seo(
-        f'Guias sobre Gemas | {seo.BRAND}',
-        'Guias educativos sobre pedras preciosas, lapidação, laudos gemológicos e compra de gemas brasileiras.',
-        path='/guias',
-    )
-    return render_template('guias.html', guides=guides, seo=page_seo)
+@app.route('/guias/<path:_slug>')
+@app.route('/certificacao')
+def legacy_content_redirect(_slug=None):
+    return redirect(url_for('homepage'), 301)
 
 
-@app.route('/guias/certificacao-gemologica-cga')
-def guia_cga_redirect():
-    """Redirect legacy CGA certification guide URL to the new clean slug."""
-    return redirect(url_for('guia_artigo', slug='certificacao-gemologica'), 301)
-
-
-@app.route('/guias/<slug>')
-def guia_artigo(slug):
-    """Renderiza um guia individual."""
-    guide = GUIDES.get(slug)
-    if not guide:
-        return redirect(url_for('guias_index'))
-    others = [{'slug': s, **d} for s, d in GUIDES.items() if s != slug]
-    title = f"{guide['title']} | {seo.BRAND}"
-    intro = guide.get('intro', '')[:160]
-    page_seo = _basic_page_seo(title, intro, path=f'/guias/{slug}')
-    return render_template('guia_artigo.html', guide=guide, slug=slug, others=others, seo=page_seo)
+@app.route('/conjuntos')
+@app.route('/pedras/conjuntos')
+def legacy_conjuntos_redirect():
+    return redirect(url_for('joias_page'), 301)
 
 
 @app.route('/api/certificate-product')
@@ -1139,10 +1038,16 @@ def api_certificate_product():
     })
 
 
-def _render_products_catalog(fixed_category=None, category_slug_param=None):
-    """Shared catalog renderer for /products and /pedras/<slug>."""
+def _render_products_catalog(fixed_category=None, category_slug_param=None, fixed_kind=None):
+    """Catálogo compartilhado: /joias, /joias/<tipo>, /pedras, /pedras/<gema> e /products (busca)."""
     all_products = get_all_products()
     active_products = [p for p in all_products if _is_catalog_visible(p)]
+    if fixed_kind and not fixed_category:
+        active_products = [p for p in active_products if product_types.product_kind(p) == fixed_kind]
+    if fixed_category:
+        cat_products = [p for p in active_products if p.get('category') == fixed_category]
+        if cat_products:
+            fixed_kind = product_types.product_kind(cat_products[0])
     _categories_data = get_product_categories()
     for product in active_products:
         if 'specifications' in product:
@@ -1223,7 +1128,10 @@ def _render_products_catalog(fixed_category=None, category_slug_param=None):
             args.pop('category', None)
         args['page'] = p
         if fixed_category and category_slug_param:
-            return url_for('category_page', category_slug=category_slug_param, **args)
+            endpoint = 'joias_category_page' if fixed_kind == PRODUCT_TYPE_JOIA else 'category_page'
+            return url_for(endpoint, category_slug=category_slug_param, **args)
+        if request.endpoint in ('joias_page', 'gemas_page'):
+            return url_for(request.endpoint, **args)
         return url_for('products_page', **args)
 
     pagination = {
@@ -1239,14 +1147,30 @@ def _render_products_catalog(fixed_category=None, category_slug_param=None):
 
     _apply_price_markup(products_page_items, markup_rate)
 
-    categories = sorted(set([p.get('category') for p in all_products if p.get('category')]))
+    if fixed_kind:
+        categories = sorted(set(p.get('category') for p in active_products if p.get('category')))
+    else:
+        categories = sorted(set([p.get('category') for p in all_products if p.get('category')]))
     cut_types = get_cut_types()
     has_riviera_products = any(p.get('riviera') for p in active_products)
 
+    # Filtros específicos de joias (metal, cor do metal, pedra principal)
+    jewelry_products = [p for p in active_products if is_joia(p)]
+    if fixed_category:
+        jewelry_products = [p for p in jewelry_products if p.get('category') == fixed_category]
+    _metal_values = {p.get('metal') for p in jewelry_products if p.get('metal')}
+    _color_values = {p.get('metal_color') for p in jewelry_products if p.get('metal_color')}
+    jewelry_filters = {
+        'metals': [(k, v) for k, v in product_types.METALS if k in _metal_values],
+        'metal_colors': [(k, v) for k, v in product_types.METAL_COLORS if k in _color_values],
+        'stones': sorted({(p.get('main_stone') or '').strip() for p in jewelry_products if (p.get('main_stone') or '').strip()}),
+    }
+    catalog_kind = fixed_kind or (PRODUCT_TYPE_JOIA if jewelry_products and len(jewelry_products) >= len(active_products) / 2 else None)
+
     site = _site_url()
-    canonical = seo.catalog_canonical(site, category, page)
-    page_title = seo.category_page_title(category)
-    page_description = seo.category_meta_description(category)
+    canonical = seo.catalog_canonical(site, category, page, kind=fixed_kind)
+    page_title = seo.category_page_title(category, kind=fixed_kind)
+    page_description = seo.category_meta_description(category, kind=fixed_kind)
     page_seo = {
         'title': page_title,
         'description': page_description,
@@ -1288,9 +1212,15 @@ def _render_products_catalog(fixed_category=None, category_slug_param=None):
                              'numero_pedras': numero_pedras,
                              'riviera': riviera,
                              'sort_by': sort_by,
+                             'metal': request.args.get('metal'),
+                             'metal_color': request.args.get('metal_color'),
+                             'main_stone': request.args.get('main_stone'),
                          },
+                         jewelry_filters=jewelry_filters,
+                         catalog_kind=catalog_kind,
+                         catalog_base_url=request.path,
                          seo=page_seo,
-                         category_h1=seo.category_h1(category),
+                         category_h1=seo.category_h1(category, kind=fixed_kind),
                          category_slug=category_slug_param,
                          firebase_config=get_firebase_config())
 
@@ -1299,23 +1229,50 @@ def _render_products_catalog(fixed_category=None, category_slug_param=None):
 def products_page():
     args = request.args.to_dict()
     if args.get('category') and set(args.keys()) <= {'category', 'page'}:
-        slug = seo.category_slug(args['category'])
+        target = seo.category_path(args['category'])
         page = args.get('page')
-        target = url_for('category_page', category_slug=slug)
         if page and str(page) != '1':
             return redirect(f'{target}?page={page}', 301)
         return redirect(target, 301)
     return _render_products_catalog()
 
 
+@app.route('/joias')
+def joias_page():
+    return _render_products_catalog(fixed_kind=PRODUCT_TYPE_JOIA)
+
+
+@app.route('/pedras')
+def gemas_page():
+    return _render_products_catalog(fixed_kind=PRODUCT_TYPE_GEMA)
+
+
+def _resolve_catalog_category(category_slug):
+    names = set(get_product_categories().keys())
+    names.update(p.get('category') for p in get_all_products() if p.get('category'))
+    return seo.resolve_category_from_slug(category_slug, sorted(n for n in names if n))
+
+
+@app.route('/joias/<category_slug>')
+def joias_category_page(category_slug):
+    cat = _resolve_catalog_category(category_slug)
+    if not cat:
+        return redirect(url_for('joias_page'))
+    expected = seo.category_path(cat)
+    if expected != request.path:
+        return redirect(expected, 301)
+    return _render_products_catalog(fixed_category=cat, category_slug_param=category_slug, fixed_kind=PRODUCT_TYPE_JOIA)
+
+
 @app.route('/pedras/<category_slug>')
 def category_page(category_slug):
-    all_products = get_all_products()
-    categories = sorted(set(p.get('category') for p in all_products if p.get('category')))
-    cat = seo.resolve_category_from_slug(category_slug, categories)
+    cat = _resolve_catalog_category(category_slug)
     if not cat:
-        return "Category not found", 404
-    return _render_products_catalog(fixed_category=cat, category_slug_param=category_slug)
+        return redirect(url_for('gemas_page'))
+    expected = seo.category_path(cat)
+    if expected != request.path:
+        return redirect(expected, 301)
+    return _render_products_catalog(fixed_category=cat, category_slug_param=category_slug, fixed_kind=PRODUCT_TYPE_GEMA)
 
 @app.route('/product/<product_id>')
 def product_detail(product_id):
@@ -1338,8 +1295,7 @@ def product_detail(product_id):
     product['display_description'] = get_product_display_description(product, categories_data)
 
     price_rate = get_price_increase_rate()
-    if price_rate:
-        product['price'] = round(product.get('price', 0) * (1 + price_rate / 100), 2)
+    _apply_price_markup([product], price_rate)
 
     site = _site_url()
     exchange = get_exchange_rate()
@@ -1348,12 +1304,16 @@ def product_detail(product_id):
     image_url = seo.product_absolute_image(product, site)
     page_title = seo.product_page_title(product)
     page_description = seo.product_meta_description(product)
+    product_is_joia = is_joia(product)
+    category_name = product.get('category') or ''
+    category_url = seo.category_path(category_name) if category_name else ('/joias' if product_is_joia else '/pedras')
     json_ld = [
-        seo.build_product_json_ld(product, site, rate_data, price_rate or 0),
+        # o markup já foi aplicado em product['price'] acima
+        seo.build_product_json_ld(product, site, rate_data, 0),
         seo.build_breadcrumb_json_ld([
             {'name': 'Início', 'url': f'{site}/'},
-            {'name': product.get('category') or 'Catálogo', 'url': f"{site}{seo.category_path(product.get('category', ''))}"},
-            {'name': product.get('name') or 'Gema', 'url': product_url},
+            {'name': category_name or ('Joias' if product_is_joia else 'Pedras'), 'url': f"{site}{category_url}"},
+            {'name': product.get('name') or 'Joia', 'url': product_url},
         ]),
     ]
     page_seo = {
@@ -1371,6 +1331,10 @@ def product_detail(product_id):
 
     return render_template('product_detail.html',
                          product=product,
+                         product_is_joia=product_is_joia,
+                         jewelry_specs=product_types.jewelry_specs(product) if product_is_joia else [],
+                         jewelry_summary=product_types.jewelry_summary(product) if product_is_joia else '',
+                         category_url=category_url,
                          firebase_config=get_firebase_config(),
                          view_only=not product.get('active', False),
                          seo=page_seo)
@@ -2085,28 +2049,18 @@ def _validate_cart_server(cart_items_raw):
         product = get_product_by_id(product_id)
         if not product or not product.get('active', False):
             continue
+        product_is_joia = is_joia(product)
+        if product_is_joia and product_types.stock_qty(product) <= 0 and not product.get('made_to_order'):
+            continue
 
-        price_usd = float(product.get('price', 0) or 0)
-
-        carat_raw = str(product.get('carat_weight', '') or '').strip()
-        if carat_raw:
-            cw_num = carat_raw.split()[0] if ' ' in carat_raw else carat_raw
-            try:
-                carat = float(cw_num.replace(',', '.'))
-            except (ValueError, TypeError):
-                carat = 1.0
+        # Mesmo cálculo exibido na loja (inclui o desconto do produto)
+        markup_factor = 1 + markup_rate / 100 if markup_rate else 1.0
+        if product_is_joia:
+            price_brl = product_types.final_total_brl(product, exchange_rate)
+        elif exchange_rate:
+            price_brl = product_types.final_total_brl(product, exchange_rate, markup_factor)
         else:
-            carat = 1.0
-
-        total_usd = price_usd * carat
-
-        if markup_rate:
-            total_usd = total_usd * (1 + markup_rate / 100)
-
-        if exchange_rate:
-            price_brl = total_usd * exchange_rate
-        else:
-            price_brl = total_usd
+            price_brl = product_types.base_total_usd(product, 0, markup_factor) * product_types.discount_factor(product)
 
         total_brl += price_brl
         validated.append({
@@ -2114,11 +2068,12 @@ def _validate_cart_server(cart_items_raw):
             'name':       product.get('name', 'Produto'),
             'price_brl':  round(price_brl, 2),
             'image':      product.get('main_image_url', ''),
-            'wants_certificate': bool(raw.get('wantsCertificate')),
+            'product_type': product_types.product_kind(product),
+            'wants_certificate': bool(raw.get('wantsCertificate')) and not product_is_joia,
         })
 
-        if raw.get('wantsCertificate') and cert_product and cert_product.get('active', False):
-            cert_usd = float(cert_product.get('price', 0) or 0)
+        if raw.get('wantsCertificate') and not product_is_joia and cert_product and cert_product.get('active', False):
+            cert_usd = float(cert_product.get('price', 0) or 0) * product_types.discount_factor(cert_product)
             if markup_rate:
                 cert_usd = cert_usd * (1 + markup_rate / 100)
             cert_brl = cert_usd * exchange_rate if exchange_rate else cert_usd
@@ -2213,6 +2168,7 @@ ENTITY_LABELS = {
     'payment': 'Pagamento',
     'seller': 'Vendedor',
     'setting': 'Ajuste',
+    'quote': 'Orçamento',
 }
 
 LOG_ACTION_LABELS = {
@@ -2500,7 +2456,31 @@ def _product_pedra_label(product):
 
 def _serialize_product_for_order(product):
     """Payload consumed by the 'novo pedido' form when a SKU is picked."""
+    if is_joia(product):
+        rate = _current_exchange_rate()
+        unit_brl = product_types.final_total_brl(product, rate)
+        return {
+            'id': product.get('id'),
+            'kind': PRODUCT_TYPE_JOIA,
+            'sku': product.get('sku') or '',
+            'name': product.get('name') or '',
+            'pedra': product.get('main_stone') or '',
+            'formato': product_types.metal_label(product),
+            'calibre': product.get('ring_size') or _product_calibre(product),
+            'ct': 1,
+            'numero_pedras': 1,
+            'stock_units': product_types.stock_qty(product),
+            'made_to_order': bool(product.get('made_to_order')),
+            'price_brl': round(unit_brl, 2),
+            'price_per_carat_usd': round(unit_brl / rate, 2) if rate else 0,
+            'category': product.get('category') or '',
+            'variant': product.get('variant') or '',
+            'active': bool(product.get('active')),
+            'sold_out': bool(product.get('sold_out')),
+            'image': product.get('main_image_url') or '',
+        }
     return {
+        'kind': PRODUCT_TYPE_GEMA,
         'id': product.get('id'),
         'sku': product.get('sku') or '',
         'name': product.get('name') or '',
@@ -2543,13 +2523,18 @@ def _serialize_customer_for_order(customer):
 
 
 def _current_exchange_rate():
-    setting = get_exchange_rate()
-    if setting and 'value' in setting:
-        try:
-            return float((setting['value'] or {}).get('rate') or 0)
-        except (ValueError, TypeError):
-            return 0.0
-    return 0.0
+    now = time.time()
+    data = _exchange_rate_cache['data']
+    if not data or now - _exchange_rate_cache['ts'] >= _EXCHANGE_RATE_TTL:
+        setting = get_exchange_rate()
+        if setting and 'value' in setting:
+            data = setting['value'] or {}
+            _exchange_rate_cache['data'] = data
+            _exchange_rate_cache['ts'] = now
+    try:
+        return float((data or {}).get('rate') or 0)
+    except (ValueError, TypeError):
+        return 0.0
 
 
 def _build_address_structured(form, prefix=''):
@@ -2612,9 +2597,12 @@ def crm_dashboard():
     active_products   = [p for p in products if p.get('active')]
     draft_products    = [p for p in products if not p.get('active')]
     sold_out_products = [p for p in products if p.get('sold_out')]
-    stock_carats = sum(parse_carat_value(p.get('carat_weight')) for p in active_products)
+    active_jewelry = [p for p in active_products if is_joia(p)]
+    active_gems = [p for p in active_products if not is_joia(p)]
+    stock_jewelry_units = sum(product_types.stock_qty(p) for p in active_jewelry)
+    stock_carats = sum(parse_carat_value(p.get('carat_weight')) for p in active_gems)
     stock_stones = 0
-    for p in active_products:
+    for p in active_gems:
         try:
             stock_stones += int(p.get('numero_pedras') or 0)
         except (ValueError, TypeError):
@@ -2622,8 +2610,15 @@ def crm_dashboard():
     exchange_rate = _current_exchange_rate()
     markup_factor = 1 + get_price_increase_rate() / 100
     stock_value_brl = sum(
-        _product_total_brl_calc(p, markup_factor, exchange_rate) for p in active_products
-    ) if exchange_rate else 0.0
+        product_types.final_total_brl(p, exchange_rate) * max(1, product_types.stock_qty(p)) for p in active_jewelry
+    ) + (sum(
+        _product_total_brl_calc(p, markup_factor, exchange_rate) for p in active_gems
+    ) if exchange_rate else 0.0)
+    try:
+        open_quotes_count = designer_service.count_open_quotes()
+    except Exception as e:
+        print(f"[dashboard] quotes count error: {e}")
+        open_quotes_count = 0
 
     # ── Clientes ──
     customers_internal = sum(1 for c in customers if _resolve_customer_source(c) == SOURCE_INTERNAL)
@@ -2663,6 +2658,46 @@ def crm_dashboard():
         if created and created >= cutoff_30:
             orders_30d  += 1
             revenue_30d += float(o.get('amount_brl') or 0)
+
+    # ── Período selecionado (filtros do topo) ──
+    date_from = _parse_iso_date(request.args.get('date_from')) or (today - timedelta(days=29))
+    date_to = _parse_iso_date(request.args.get('date_to')) or today
+    if date_from > date_to:
+        date_from, date_to = date_to, date_from
+    source_filter = request.args.get('source', '')
+    if source_filter not in (SOURCE_INTERNAL, SOURCE_WEBSITE):
+        source_filter = ''
+    period_days = (date_to - date_from).days + 1
+
+    period_orders = []
+    received_period = 0.0
+    for o in billable_orders:
+        if source_filter and o['source'] != source_filter:
+            continue
+        created = _order_date(o)
+        if created and date_from <= created <= date_to:
+            period_orders.append((created, o))
+        if o['source'] == SOURCE_INTERNAL:
+            for payment in o.get('payments') or []:
+                paid_on = _parse_iso_date(str(payment.get('paid_at') or '')[:10])
+                if paid_on and date_from <= paid_on <= date_to:
+                    received_period += float(payment.get('amount_brl') or 0)
+        elif created and date_from <= created <= date_to:
+            received_period += o['paid_total_brl']
+    orders_period = len(period_orders)
+    revenue_period = sum(float(o.get('amount_brl') or 0) for _, o in period_orders)
+    avg_ticket_period = revenue_period / orders_period if orders_period else 0.0
+
+    chart_days = [date_from + timedelta(days=i) for i in range(min(period_days, 366))]
+    chart_index = {d: i for i, d in enumerate(chart_days)}
+    chart_counts = [0] * len(chart_days)
+    chart_revenue = [0.0] * len(chart_days)
+    for created, o in period_orders:
+        idx = chart_index.get(created)
+        if idx is not None:
+            chart_counts[idx] += 1
+            chart_revenue[idx] = round(chart_revenue[idx] + float(o.get('amount_brl') or 0), 2)
+    chart_labels = [d.strftime('%d/%m') for d in chart_days]
 
     # ── Próximas cobranças ──
     upcoming_charges = []
@@ -2731,6 +2766,10 @@ def crm_dashboard():
         stock_carats=stock_carats,
         stock_stones=stock_stones,
         stock_value_brl=stock_value_brl,
+        active_jewelry_count=len(active_jewelry),
+        active_gems_count=len(active_gems),
+        stock_jewelry_units=stock_jewelry_units,
+        open_quotes_count=open_quotes_count,
         total_customers=len(customers),
         customers_internal=customers_internal,
         customers_website=customers_website,
@@ -2754,6 +2793,16 @@ def crm_dashboard():
         top_debtors=top_debtors,
         recent_orders=orders[:6],
         exchange_rate=exchange_rate,
+        filters={'date_from': date_from.isoformat(), 'date_to': date_to.isoformat(), 'source': source_filter},
+        source_options=SOURCE_LABELS,
+        period_days=period_days,
+        orders_period=orders_period,
+        revenue_period=revenue_period,
+        avg_ticket_period=avg_ticket_period,
+        received_period=received_period,
+        chart_labels=chart_labels,
+        chart_counts=chart_counts,
+        chart_revenue=chart_revenue,
     )
 
 def _parse_carat_weight(product):
@@ -2767,6 +2816,8 @@ def _parse_carat_weight(product):
 
 
 def _product_sort_price(product):
+    if is_joia(product):
+        return product_types.base_total_usd(product, _current_exchange_rate())
     price = float(product.get('price') or 0)
     carat = _parse_carat_weight(product) or 1.0
     return price * carat
@@ -2815,10 +2866,25 @@ def _apply_product_filters(products, request_args, safe_float, markup_rate=0, ex
                 str(p.get('variant', '')),
                 str(p.get('color', '')),
                 str(p.get('cut', '')),
+                str(p.get('main_stone', '')),
+                product_types.metal_label(p) if is_joia(p) else '',
             ]).lower()
             if search_lower in searchable_text:
                 filtered_products.append(p)
         products = filtered_products
+
+    kind = request_args.get('kind')
+    if kind in product_types.PRODUCT_TYPES:
+        products = [p for p in products if product_types.product_kind(p) == kind]
+    metal = request_args.get('metal')
+    if metal:
+        products = [p for p in products if is_joia(p) and p.get('metal') == metal]
+    metal_color = request_args.get('metal_color')
+    if metal_color:
+        products = [p for p in products if is_joia(p) and p.get('metal_color') == metal_color]
+    main_stone = request_args.get('main_stone')
+    if main_stone:
+        products = [p for p in products if (p.get('main_stone') or '').strip().lower() == main_stone.strip().lower()]
 
     if category:
         products = [p for p in products if p.get('category') == category]
@@ -3055,7 +3121,15 @@ def crm_produtos():
         'sold': sold_filter,
         'source': source_filter,
         'sort_by': sort_by,
+        'kind': request.args.get('kind', ''),
     }
+    exchange_rate = _current_exchange_rate()
+    for p in products_page:
+        p['product_type'] = product_types.product_kind(p)
+        if is_joia(p):
+            p['_price_brl_display'] = product_types.final_total_brl(p, exchange_rate)
+            p['_jewelry_summary'] = product_types.jewelry_summary(p)
+            p['_stock_units'] = product_types.stock_qty(p)
     return render_template('crm_produtos.html', products=products_page, categories=categories, gem_types=categories, cuts=cut_types, filters=filters, pagination=pagination, bounds=bounds, category_options=category_options, source_options=SOURCE_LABELS)
 
 @app.route('/crm/clientes')
@@ -3222,7 +3296,34 @@ def edit_setting(setting_key):
 def crm_categories():
     """Página para gerenciar categorias e variantes de produtos."""
     categories = get_product_categories()
-    return render_template('crm_categories.html', categories=categories)
+    jewelry_categories = product_types.categories_of_kind(categories, PRODUCT_TYPE_JOIA)
+    gem_categories = product_types.categories_of_kind(categories, PRODUCT_TYPE_GEMA)
+    return render_template('crm_categories.html', categories=categories,
+                           jewelry_categories=jewelry_categories, gem_categories=gem_categories)
+
+
+def _category_form_meta(form, existing=None):
+    """Campos de exibição de uma categoria (tipo, imagem, ordem, menu)."""
+    data = dict(existing or {})
+    kind = form.get('category_kind')
+    if kind in product_types.PRODUCT_TYPES:
+        data['kind'] = kind
+    if 'category_order' in form:
+        try:
+            data['order'] = int(form.get('category_order') or 100)
+        except (ValueError, TypeError):
+            data['order'] = 100
+    if 'category_show_in_nav_present' in form:
+        data['show_in_nav'] = form.get('category_show_in_nav') == 'on'
+    image = request.files.get('category_image')
+    if image and image.filename:
+        url = upload_image(image, image.filename, folder='categories')
+        if url:
+            data['image_url'] = url
+    if form.get('category_image_remove') == 'on':
+        data['image_url'] = ''
+    return data
+
 
 @app.route('/crm/categories/add', methods=['POST'])
 @require_admin
@@ -3242,10 +3343,13 @@ def crm_add_category():
             flash('Esta categoria já existe', 'error')
             return redirect(url_for('crm_categories'))
         
-        categories[category_name] = {
+        categories[category_name] = _category_form_meta(request.form, {
             'description': category_description,
-            'variants': []
-        }
+            'variants': [],
+            'kind': PRODUCT_TYPE_JOIA,
+            'show_in_nav': True,
+            'order': 100,
+        })
         save_product_categories(categories)
         
         flash(f'Categoria "{category_name}" adicionada com sucesso!', 'success')
@@ -3269,10 +3373,11 @@ def crm_update_category():
             flash('Categoria não encontrada', 'error')
             return redirect(url_for('crm_categories'))
         
+        categories[category_name] = _category_form_meta(request.form, categories[category_name])
         categories[category_name]['description'] = category_description
         save_product_categories(categories)
         
-        flash(f'Descrição da categoria "{category_name}" atualizada com sucesso!', 'success')
+        flash(f'Categoria "{category_name}" atualizada com sucesso!', 'success')
         return redirect(url_for('crm_categories'))
     except Exception as e:
         print(f"Error updating category: {e}")
@@ -3496,18 +3601,45 @@ def crm_price_increase_rate():
     rate = get_price_increase_rate()
     return render_template('crm_price_increase_rate.html', rate=rate)
 
+def _read_product_type_fields(form):
+    """Tipo do produto + campos de preço/joia do formulário do CRM."""
+    kind = form.get('product_type')
+    if kind not in product_types.PRODUCT_TYPES:
+        kind = PRODUCT_TYPE_JOIA
+    data = {'product_type': kind}
+    if kind == PRODUCT_TYPE_JOIA:
+        data['price_brl'] = round(product_types.parse_number(form.get('price_brl'), 0.0), 2)
+        data['price'] = 0.0
+        for field in ('metal', 'metal_color', 'gold_karat', 'main_stone', 'ring_size'):
+            data[field] = (form.get(field) or '').strip()
+        data['metal_weight_g'] = round(product_types.parse_number(form.get('metal_weight_g'), 0.0), 2)
+        data['stone_count'] = int(product_types.parse_number(form.get('stone_count'), 0))
+        data['stone_carat_weight'] = round(product_types.parse_number(form.get('stone_carat_weight'), 0.0), 3)
+        data['stock_qty'] = max(0, int(product_types.parse_number(form.get('stock_qty'), 1)))
+        data['made_to_order'] = form.get('made_to_order') == 'on'
+        data['production_days'] = int(product_types.parse_number(form.get('production_days'), 0))
+        data['carat_weight'] = ''
+        data['riviera'] = False
+    else:
+        data['price'] = float(product_types.parse_number(form.get('price'), 0.0))
+    return kind, data
+
+
 @app.route('/crm/product/new', methods=['GET', 'POST'])
 @require_admin
 def new_product():
     if request.method == 'POST':
         try:
             # Get basic product data
+            product_kind, type_fields = _read_product_type_fields(request.form)
             product_data = {
                 'name': request.form['name'],
                 'category': request.form['category'],
                 'description': request.form.get('description', ''),
-                'price': float(request.form['price']),
             }
+            if product_kind == PRODUCT_TYPE_JOIA and type_fields['price_brl'] <= 0:
+                flash('Informe o preço da joia em reais.', 'error')
+                return redirect(url_for('new_product'))
             
             # Get variant if provided
             variant = request.form.get('variant', '').strip()
@@ -3566,6 +3698,9 @@ def new_product():
                 except (ValueError, TypeError):
                     pass
             product_data['riviera'] = riviera
+            product_data.update(type_fields)
+            if product_kind == PRODUCT_TYPE_JOIA:
+                product_data.pop('numero_pedras', None)
             
             # Handle additional specifications
             specifications = {}
@@ -3627,12 +3762,16 @@ def new_product():
     default_specs = get_default_specifications()
     cut_types = get_cut_types()
     sku_mode = 'existing' if request.args.get('sku_mode') == 'existing' else 'new'
+    initial_kind = request.args.get('tipo') if request.args.get('tipo') in product_types.PRODUCT_TYPES else PRODUCT_TYPE_JOIA
     return render_template('product_form.html',
                          product=None,
                          categories=categories,
                          default_specs=default_specs,
                          cut_types=cut_types,
                          sku_mode=sku_mode,
+                         label_product=None,
+                         initial_kind=initial_kind,
+                         **_product_form_context(),
                          suggested_sku=get_next_numeric_sku() if sku_mode == 'new' else '')
 
 @app.route('/crm/product/<product_id>/edit', methods=['GET', 'POST'])
@@ -3649,7 +3788,11 @@ def edit_product(product_id):
             name = request.form.get('name')
             description = request.form.get('description')
             category = request.form.get('category')
-            price = float(request.form.get('price', 0))
+            product_kind, type_fields = _read_product_type_fields(request.form)
+            price = type_fields.get('price', 0.0)
+            if product_kind == PRODUCT_TYPE_JOIA and type_fields['price_brl'] <= 0:
+                flash('Informe o preço da joia em reais.', 'error')
+                return redirect(url_for('edit_product', product_id=product_id))
             
             # Get gemstone specific fields
             color = request.form.get('color', '').strip()
@@ -3756,6 +3899,12 @@ def edit_product(product_id):
                 except (ValueError, TypeError):
                     pass
             updated_product['riviera'] = riviera
+            updated_product.update(type_fields)
+            if product_kind == PRODUCT_TYPE_JOIA:
+                updated_product.pop('numero_pedras', None)
+            # Ao reabastecer uma joia esgotada, ela volta a poder ser vendida
+            if product_kind == PRODUCT_TYPE_JOIA and type_fields.get('stock_qty', 0) > 0 and product.get('sold_out'):
+                updated_product['sold_out'] = False
 
             # YouTube URL
             youtube_url = request.form.get('youtube_url', '').strip()
@@ -3804,7 +3953,43 @@ def edit_product(product_id):
                          categories=categories,
                          cut_types=cut_types,
                          sales_history=sales_history,
-                         related_orders=related_orders)
+                         related_orders=related_orders,
+                         label_product=_label_payload(product),
+                         initial_kind=product_types.product_kind(product),
+                         **_product_form_context())
+
+
+def _product_form_context():
+    return {
+        'metal_options': product_types.METALS,
+        'metal_color_options': product_types.METAL_COLORS,
+        'metal_purity_options': product_types.METAL_PURITIES,
+        'category_kinds': {name: product_types.category_kind(cat) for name, cat in get_product_categories().items()},
+    }
+
+
+def _label_payload(product):
+    """Dados usados pela etiqueta Zebra do formulário de produto."""
+    if not product:
+        return None
+    return {
+        'id': product.get('id'),
+        'sku': product.get('sku') or '',
+        'name': product.get('name') or '',
+        'category': product.get('category') or '',
+        'variant': product.get('variant') or '',
+        'cut': product.get('cut') or '',
+        'carat_weight': product.get('carat_weight') or '',
+        'numero_pedras': product.get('numero_pedras') or '',
+        'comprimento': product.get('comprimento') or '',
+        'largura': product.get('largura') or '',
+        'altura': product.get('altura') or '',
+        'price': product.get('price') or 0,
+        'price_brl': product.get('price_brl') or 0,
+        'product_type': product_types.product_kind(product),
+        'metal': product_types.metal_label(product),
+        'main_stone': product.get('main_stone') or '',
+    }
 
 @app.route('/crm/product/<product_id>/delete', methods=['POST'])
 @require_admin
@@ -4331,13 +4516,14 @@ def crm_api_product_search():
     for product in get_all_products():
         if product.get('id') in CATALOG_HIDDEN_PRODUCT_IDS:
             continue
-        if product.get('sold_out'):
+        if product.get('sold_out') and not product.get('made_to_order'):
             continue
         haystack = ' '.join([
             str(product.get('sku') or ''),
             str(product.get('name') or ''),
             str(product.get('category') or ''),
             str(product.get('variant') or ''),
+            str(product.get('main_stone') or ''),
         ]).lower()
         if query in haystack:
             results.append(_serialize_product_for_order(product))
@@ -4398,8 +4584,58 @@ def _build_internal_order_items(raw_items, exchange_rate):
         product = get_product_by_id(product_id)
         if not product:
             return None, None, 0.0, f"Produto não encontrado (linha {index + 1})."
-        if product.get('sold_out'):
+        if product.get('sold_out') and not product.get('made_to_order'):
             return None, None, 0.0, f"O produto {product.get('sku') or product.get('name')} já está esgotado."
+
+        if is_joia(product):
+            # Joias: quantidade em unidades; preço unitário em US$ (equivalente do preço em R$)
+            available_units = product_types.stock_qty(product)
+            try:
+                units = max(1, int(raw.get('numero_pedras') or 1))
+            except (ValueError, TypeError):
+                return None, None, 0.0, f"Quantidade inválida na linha {index + 1}."
+            if units > available_units and not product.get('made_to_order'):
+                return None, None, 0.0, (
+                    f"O produto {product.get('sku')} tem apenas {available_units} unidade(s) em estoque."
+                )
+            default_unit_usd = product_types.final_total_brl(product, exchange_rate) / exchange_rate if exchange_rate else 0
+            try:
+                unit_usd = round(float(str(raw.get('price_per_carat_usd') or default_unit_usd or 0).replace(',', '.')), 2)
+            except (ValueError, TypeError):
+                return None, None, 0.0, f"Preço unitário inválido na linha {index + 1}."
+            if unit_usd <= 0:
+                return None, None, 0.0, f"Informe o preço unitário na linha {index + 1}."
+            total_usd = round(unit_usd * units, 2)
+            subtotal_usd += total_usd
+            items.append({
+                'product_id': product_id,
+                'product_type': PRODUCT_TYPE_JOIA,
+                'sku': product.get('sku') or '',
+                'name': product.get('name') or '',
+                'lote': (raw.get('lote') or '').strip(),
+                'pedra': product.get('main_stone') or '',
+                'formato': product_types.metal_label(product),
+                'calibre': product.get('ring_size') or _product_calibre(product),
+                'ct': units,
+                'numero_pedras': units,
+                'price_per_carat_usd': unit_usd,
+                'total_usd': total_usd,
+                'total_brl': round(total_usd * exchange_rate, 2) if exchange_rate else total_usd,
+                'sale_mode': 'full' if units >= available_units else 'partial',
+                'image': product.get('main_image_url') or '',
+                'quantity': units,
+            })
+            stock_plan.append({
+                'product_id': product_id,
+                'sku': product.get('sku') or '',
+                'name': product.get('name') or '',
+                'ct': units,
+                'numero_pedras': units,
+                'full_sale': units >= available_units,
+                'total_usd': total_usd,
+                'index': index,
+            })
+            continue
 
         sale_mode = 'partial' if (raw.get('sale_mode') == 'partial') else 'full'
         available_ct = parse_carat_value(product.get('carat_weight'))
@@ -4621,14 +4857,11 @@ def crm_api_create_order():
             'product', plan['product_id'], f"{plan['name']} ({plan['sku']})", LOG_ACTION_UPDATE,
             changes=diff_for_log(
                 before,
-                {
-                    'carat_weight': result.get('carat_weight'),
-                    'numero_pedras': result.get('numero_pedras'),
-                    'active': result.get('active'),
-                    'sold_out': result.get('sold_out'),
-                },
+                {k: v for k, v in result.items() if k != 'already_applied'},
             ),
             note=(
+                f"Baixa pelo pedido #{order_number} ({plan['numero_pedras']} unidade(s))"
+                if is_joia(before) else
                 f"Baixa {'integral' if plan['full_sale'] else 'parcial'} pelo pedido #{order_number} "
                 f"({plan['ct']} ct / {plan['numero_pedras']} pedra(s))"
             ),
@@ -4882,17 +5115,16 @@ def sitemap_xml():
     site = _site_url()
     urls = [
         ('/', 'daily', '1.0'),
-        ('/products', 'daily', '0.9'),
+        ('/joias', 'daily', '0.95'),
+        ('/crie-sua-joia', 'monthly', '0.8'),
         ('/historia', 'monthly', '0.7'),
         ('/o-que-procura', 'monthly', '0.6'),
-        ('/feiras', 'monthly', '0.5'),
-        ('/guias', 'weekly', '0.8'),
     ]
-    for slug in GUIDES:
-        urls.append((f'/guias/{slug}', 'monthly', '0.7'))
 
     all_products = get_all_products()
     active = [p for p in all_products if _is_catalog_visible(p)]
+    if any(not product_types.is_joia(p) for p in active):
+        urls.append(('/pedras', 'daily', '0.8'))
     categories = sorted(set(p.get('category') for p in active if p.get('category')))
     for cat in categories:
         urls.append((seo.category_path(cat), 'daily', '0.85'))
@@ -5560,6 +5792,320 @@ def api_shipping_calculate():
         'minimum': minimum,
         'state': state,
     })
+
+
+# ============================================
+# Crie sua jóia (designer com IA) + Orçamentos
+# ============================================
+
+def _designer_user():
+    """(uid, email) do usuário logado — Bearer token do Firebase ou sessão Flask."""
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        try:
+            decoded = firebase_auth.verify_id_token(auth_header.split('Bearer ', 1)[1])
+            return decoded.get('uid'), (decoded.get('email') or '').lower()
+        except Exception:
+            return None, None
+    uid = session.get('user_id')
+    if uid:
+        return uid, (session.get('user_email') or '').lower()
+    return None, None
+
+
+def _designer_rate_key():
+    uid, _ = _designer_user()
+    return f'user:{uid}' if uid else f'ip:{get_remote_address()}'
+
+
+def _designer_login_required():
+    return jsonify({
+        'error': 'Entre na sua conta para criar e salvar suas joias.',
+        'login_url': url_for('login', next=url_for('designer_page')),
+    }), 401
+
+
+@app.route('/crie-sua-joia')
+def designer_page():
+    page_seo = _basic_page_seo(
+        f'Crie sua jóia | {seo.BRAND}',
+        'Monte a sua joia: escolha o tipo, o metal, as pedras e o formato, veja uma prévia ilustrativa '
+        'gerada na hora e peça um orçamento ao ateliê Katsumi.',
+        path='/crie-sua-joia',
+    )
+    return render_template(
+        'crie_sua_joia.html',
+        catalog=jewelry_designer.public_catalog(),
+        images_per_generation=designer_service.images_per_generation(),
+        initial_design_id=(request.args.get('criacao') or '').strip(),
+        firebase_config=get_firebase_config(),
+        seo=page_seo,
+    )
+
+
+@app.route('/api/designer/validate', methods=['POST'])
+@limiter.limit("60/minute")
+def api_designer_validate():
+    data = request.get_json(silent=True) or {}
+    choices = jewelry_designer.normalize_choices(data.get('choices'))
+    try:
+        warnings = jewelry_designer.validate_choices(choices)
+        return jsonify({'ok': True, 'warnings': warnings, 'choices': choices})
+    except jewelry_designer.DesignValidationError as exc:
+        return jsonify({'ok': False, 'errors': exc.errors, 'choices': choices})
+
+
+@app.route('/api/designer/generate', methods=['POST'])
+@limiter.limit("6/minute;40/day", key_func=_designer_rate_key)
+@limiter.limit("60/day")
+def api_designer_generate():
+    uid, email = _designer_user()
+    if not uid:
+        return _designer_login_required()
+    data = request.get_json(silent=True) or {}
+    choices = jewelry_designer.normalize_choices(data.get('choices'))
+    try:
+        warnings = jewelry_designer.validate_choices(choices)
+    except jewelry_designer.DesignValidationError as exc:
+        return jsonify({'error': exc.errors[0], 'errors': exc.errors}), 400
+
+    details, error = jewelry_designer.sanitize_free_text(data.get('details'))
+    if error:
+        return jsonify({'error': error}), 400
+    ok, categories = jewelry_designer.moderate_text(details)
+    if not ok:
+        print(f"[designer] moderation blocked for {uid}: {categories}")
+        return jsonify({'error': 'Sua descrição não pôde ser aceita. Descreva apenas detalhes da joia.'}), 400
+
+    try:
+        designer_service.check_limits(uid)
+    except designer_service.DesignerLimitError as exc:
+        return jsonify({'error': str(exc)}), 429
+
+    try:
+        design = designer_service.create_generation(
+            uid, email, choices, details, warnings, ip_hash=designer_service.hash_ip(get_remote_address()),
+        )
+    except Exception as e:
+        print(f"[designer] create_generation error: {e}")
+        return jsonify({'error': 'Não foi possível iniciar a criação. Tente novamente.'}), 500
+    return jsonify({'design': design}), 202
+
+
+def _owned_design_or_error(design_id):
+    uid, email = _designer_user()
+    if not uid:
+        return None, None, _designer_login_required()
+    design = designer_service.get_design(design_id)
+    if not design or design.get('user_id') != uid:
+        return None, None, (jsonify({'error': 'Criação não encontrada.'}), 404)
+    return design, (uid, email), None
+
+
+@app.route('/api/designer/designs/<design_id>')
+def api_designer_design(design_id):
+    design, _, err = _owned_design_or_error(design_id)
+    if err:
+        return err
+    return jsonify({'design': designer_service.serialize_design(design)})
+
+
+@app.route('/api/designer/designs/<design_id>/retry', methods=['POST'])
+@limiter.limit("6/minute", key_func=_designer_rate_key)
+def api_designer_retry(design_id):
+    design, user, err = _owned_design_or_error(design_id)
+    if err:
+        return err
+    uid, _ = user
+    if design.get('status') not in (designer_service.STATUS_FAILED, designer_service.STATUS_PARTIAL):
+        return jsonify({'error': 'Esta criação não precisa ser refeita.'}), 400
+    if int(design.get('retries') or 0) >= 3:
+        return jsonify({'error': 'Limite de novas tentativas atingido para esta criação. Crie uma nova.'}), 429
+    try:
+        designer_service.check_limits(uid)
+    except designer_service.DesignerLimitError as exc:
+        if 'ainda está sendo gerada' in str(exc):
+            return jsonify({'error': str(exc)}), 429
+    designer_service.retry_design(design)
+    return jsonify({'design': designer_service.serialize_design(designer_service.get_design(design_id))}), 202
+
+
+@app.route('/api/designer/designs/<design_id>/edit', methods=['POST'])
+@limiter.limit("6/minute;40/day", key_func=_designer_rate_key)
+def api_designer_edit(design_id):
+    design, user, err = _owned_design_or_error(design_id)
+    if err:
+        return err
+    uid, email = user
+    if design.get('status') not in (designer_service.STATUS_COMPLETED, designer_service.STATUS_PARTIAL):
+        return jsonify({'error': 'Aguarde a criação terminar para pedir ajustes.'}), 400
+    data = request.get_json(silent=True) or {}
+    instruction, error = jewelry_designer.sanitize_free_text(data.get('instruction'), jewelry_designer.MAX_EDIT_CHARS)
+    if error:
+        return jsonify({'error': error}), 400
+    if len(instruction) < 4:
+        return jsonify({'error': 'Descreva o ajuste que deseja (ex.: “pedra um pouco maior”, “aro mais fino”).'}), 400
+    ok, _cats = jewelry_designer.moderate_text(instruction)
+    if not ok:
+        return jsonify({'error': 'Seu pedido de ajuste não pôde ser aceito. Descreva apenas detalhes da joia.'}), 400
+    try:
+        image_index = int(data.get('image_index', 0))
+    except (TypeError, ValueError):
+        image_index = 0
+    try:
+        designer_service.check_limits(uid, kind='edit')
+    except designer_service.DesignerLimitError as exc:
+        return jsonify({'error': str(exc)}), 429
+    try:
+        new_design = designer_service.create_edit(uid, email, design, image_index, instruction,
+                                                   ip_hash=designer_service.hash_ip(get_remote_address()))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify({'design': new_design}), 202
+
+
+@app.route('/api/designer/my-designs')
+def api_designer_my_designs():
+    uid, _ = _designer_user()
+    if not uid:
+        return _designer_login_required()
+    return jsonify({'designs': designer_service.list_user_designs(uid)})
+
+
+@app.route('/api/designer/quotes', methods=['POST'])
+@limiter.limit("5/minute;20/day", key_func=_designer_rate_key)
+def api_designer_create_quote():
+    uid, email = _designer_user()
+    if not uid:
+        return _designer_login_required()
+    data = request.get_json(silent=True) or {}
+    design = designer_service.get_design((data.get('design_id') or '').strip())
+    if not design or design.get('user_id') != uid:
+        return jsonify({'error': 'Criação não encontrada.'}), 404
+    if design.get('quote_id'):
+        existing = designer_service.get_quote(design['quote_id'])
+        if existing and existing.get('status') not in ('cancelado', 'recusado'):
+            return jsonify({'error': 'Você já pediu um orçamento para esta criação.', 'quote_id': existing['id']}), 409
+    notes, error = jewelry_designer.sanitize_free_text(data.get('notes'), 1500)
+    if error and 'termos' not in error:
+        return jsonify({'error': error}), 400
+    if error:
+        notes = re.sub(r'\s+', ' ', str(data.get('notes') or ''))[:1500]
+    phone = re.sub(r'\D', '', str(data.get('phone') or ''))[:13]
+    budget = str(data.get('budget') or '')[:60]
+    try:
+        image_index = int(data.get('image_index', 0))
+    except (TypeError, ValueError):
+        image_index = 0
+
+    customer = get_customer_by_firebase_uid(uid) or (get_customer_by_email(email) if email else None)
+    if customer and phone and not customer.get('phone'):
+        update_customer(customer['id'], {'phone': phone})
+    try:
+        quote = designer_service.create_quote(design, image_index, uid, email, customer, notes=notes, phone=phone, budget=budget)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    _log_action('quote', quote['id'], f"Orçamento #{quote['id'][:8].upper()}", LOG_ACTION_CREATE,
+                changes=[{'field': 'name', 'before': '—', 'after': quote.get('customer_name')}],
+                note='Pedido de orçamento enviado pelo “Crie sua jóia”', automatic=True)
+    try:
+        email_service.send_admin_quote_notification(quote)
+    except Exception as e:
+        print(f"[designer] quote notification error: {e}")
+    return jsonify({'quote': designer_service.serialize_quote_public(quote)}), 201
+
+
+@app.route('/api/account/quotes')
+def api_account_quotes():
+    uid, email = _designer_user()
+    if not uid:
+        return jsonify({'error': 'Unauthorized'}), 401
+    quotes = designer_service.list_user_quotes(uid, email)
+    return jsonify({'quotes': [designer_service.serialize_quote_public(q) for q in quotes]})
+
+
+# ── CRM › Orçamentos ──
+
+@app.route('/crm/orcamentos')
+@require_admin
+def crm_orcamentos():
+    status = (request.args.get('status') or '').strip()
+    quotes = designer_service.list_quotes(status=status or None)
+    for q in quotes:
+        q['created_at_formatted'] = format_datetime_brt(q.get('created_at')) if q.get('created_at') else ''
+        q['status_label'] = designer_service.QUOTE_STATUS_LABELS.get(q.get('status'), q.get('status'))
+    counts = {}
+    for q in designer_service.list_quotes():
+        counts[q.get('status')] = counts.get(q.get('status'), 0) + 1
+
+    usage = []
+    try:
+        today = datetime.now(_sao_paulo_tz).date()
+        for offset in range(13, -1, -1):
+            day = (today - timedelta(days=offset)).strftime('%Y-%m-%d')
+            snap = db.collection(designer_service.USAGE).document(day).get()
+            data = snap.to_dict() if snap.exists else {}
+            usage.append({'day': day[8:10] + '/' + day[5:7], 'cost_usd': float((data or {}).get('cost_usd', 0)),
+                          'images': int((data or {}).get('images', 0))})
+    except Exception as e:
+        print(f"[crm_orcamentos] usage error: {e}")
+
+    return render_template(
+        'crm_orcamentos.html',
+        quotes=quotes,
+        status_filter=status,
+        statuses=designer_service.QUOTE_STATUSES,
+        counts=counts,
+        usage=usage,
+        usage_total=round(sum(u['cost_usd'] for u in usage), 2),
+        providers=image_generation.providers_status(),
+    )
+
+
+@app.route('/crm/orcamentos/<quote_id>', methods=['GET', 'POST'])
+@require_admin
+def crm_orcamento_detalhe(quote_id):
+    quote = designer_service.get_quote(quote_id)
+    if not quote:
+        flash('Orçamento não encontrado.', 'error')
+        return redirect(url_for('crm_orcamentos'))
+
+    if request.method == 'POST':
+        status = request.form.get('status') or quote.get('status')
+        if status not in designer_service.QUOTE_STATUS_LABELS:
+            status = quote.get('status')
+        price_raw = (request.form.get('quoted_price_brl') or '').strip()
+        quoted_price = _parse_brl_amount(price_raw) if price_raw else None
+        update = {
+            'status': status,
+            'admin_notes': (request.form.get('admin_notes') or '').strip()[:4000],
+            'customer_message': (request.form.get('customer_message') or '').strip()[:2000],
+            'production_days': int(product_types.parse_number(request.form.get('production_days'), 0)) or None,
+        }
+        if price_raw:
+            update['quoted_price_brl'] = quoted_price
+        updated = designer_service.update_quote(quote_id, update, _current_actor()['actor_email'], note=(request.form.get('history_note') or '').strip()[:300])
+        _log_action('quote', quote_id, f"Orçamento #{quote_id[:8].upper()}", LOG_ACTION_UPDATE,
+                    changes=diff_for_log(quote, {k: v for k, v in (updated or {}).items() if k in update}))
+        flash('Orçamento atualizado.', 'success')
+        return redirect(url_for('crm_orcamento_detalhe', quote_id=quote_id))
+
+    for h in quote.get('history') or []:
+        h['at_formatted'] = format_datetime_brt(h.get('at')) if h.get('at') else ''
+    for d in quote.get('designs') or []:
+        d['created_at_formatted'] = format_datetime_brt(d.get('created_at')) if d.get('created_at') else ''
+    quote['created_at_formatted'] = format_datetime_brt(quote.get('created_at')) if quote.get('created_at') else ''
+    wa_phone = re.sub(r'\D', '', quote.get('customer_phone') or '')
+    if wa_phone and not wa_phone.startswith('55'):
+        wa_phone = '55' + wa_phone
+    return render_template(
+        'crm_orcamento_detalhe.html',
+        quote=quote,
+        statuses=designer_service.QUOTE_STATUSES,
+        status_label=designer_service.QUOTE_STATUS_LABELS.get(quote.get('status'), quote.get('status')),
+        wa_phone=wa_phone,
+    )
 
 
 if __name__ == '__main__':

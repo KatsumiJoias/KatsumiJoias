@@ -48,7 +48,6 @@
 
                 <div id="cert-summary-page" class="hidden text-xs bg-luxury-cream/80 rounded-md px-3 py-2.5 border border-luxury-gold/15 mb-5">
                     <span data-cert-summary-text class="text-gray-700"></span>
-                    <a href="/guias/certificacao-gemologica" target="_blank" rel="noopener noreferrer" class="text-luxury-gold hover:underline font-medium ml-1">Saiba mais</a>
                 </div>
                 
                 <button onclick="goToCheckout()" class="w-full bg-luxury-gold text-white py-3 rounded-md hover:bg-luxury-gold-dark transition-colors duration-200 font-medium mb-3">
@@ -75,6 +74,7 @@
 <script>
     // Load and display cart items on page
     async function loadCartPage() {
+        if (!exchangeRate) exchangeRate = await fetchExchangeRate();
         const cart = getGemCartItems(getCart());
         const cartItemsContainer = document.getElementById('cart-page-items');
         const emptyCart = document.getElementById('cart-page-empty');
@@ -102,21 +102,10 @@
             const currency = getCurrency();
             const subtotal = await calcCartSubtotalUSD(getCart());
             
-            if (currency === 'BRL') {
-                try {
-                    const response = await fetch('/api/exchange-rate');
-                    if (response.ok) {
-                        const rateData = await response.json();
-                        const rate = rateData.rate;
-                        const subtotalBRL = subtotal * rate;
-                        summarySubtotal.textContent = `R$ ${subtotalBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                        summaryTotal.textContent = `R$ ${subtotalBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                    }
-                } catch (error) {
-                    console.error('Error fetching exchange rate:', error);
-                    summarySubtotal.textContent = `$${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                    summaryTotal.textContent = `$${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                }
+            if (currency === 'BRL' && exchangeRate && exchangeRate.rate) {
+                const subtotalBRL = subtotal * exchangeRate.rate;
+                summarySubtotal.textContent = `R$ ${subtotalBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                summaryTotal.textContent = `R$ ${subtotalBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             } else {
                 summarySubtotal.textContent = `$${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 summaryTotal.textContent = `$${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -130,31 +119,23 @@
         div.className = 'cart-page-item bg-white rounded-lg shadow-sm p-6';
         
         const currency = getCurrency();
-        const caratWeight = item.caratWeight || 1;
-        const discount = item.discount || 0;
-        const totalPriceOriginal = item.price * caratWeight;
-        const totalPrice = totalPriceOriginal * (1 - discount / 100);
+        const totalPrice = cartItemBaseUSD(item) * cartItemDiscountFactor(item);
         
         let priceDisplay = `$${totalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         
-        if (currency === 'BRL') {
-            try {
-                const response = await fetch('/api/exchange-rate');
-                if (response.ok) {
-                    const rateData = await response.json();
-                    const rate = rateData.rate;
-                    const priceBRL = totalPrice * rate;
-                    priceDisplay = `R$ ${priceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                }
-            } catch (error) {
-                console.error('Error fetching exchange rate:', error);
-            }
+        if (currency === 'BRL' && exchangeRate && exchangeRate.rate) {
+            const priceBRL = cartItemBaseBRL(item, exchangeRate.rate) * cartItemDiscountFactor(item);
+            priceDisplay = `R$ ${priceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
         
-        const caratInfo = (item.caratWeight && item.caratWeight !== 1) ? `${item.caratWeight} ct` : '';
-        const cert = await getCertificateProduct();
-        const certPriceLabel = cert ? await formatCertPrice(cert) : '';
-        const certToggle = buildCertToggleHtml(item, certPriceLabel);
+        const joia = isJoiaItem(item);
+        const caratInfo = (!joia && item.caratWeight && item.caratWeight !== 1) ? `${item.caratWeight} ct` : '';
+        let certToggle = '';
+        if (!joia) {
+            const cert = await getCertificateProduct();
+            const certPriceLabel = cert ? await formatCertPrice(cert) : '';
+            certToggle = buildCertToggleHtml(item, certPriceLabel);
+        }
         const safeId = String(item.id).replace(/'/g, "\\'");
 
         div.innerHTML = `

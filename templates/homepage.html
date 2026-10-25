@@ -13,20 +13,20 @@
     @keyframes heroProgress { to { transform: scaleX(1); } }
 </style>
 
-<h1 class="sr-only">Katsumi Joias — gemas brasileiras lapidadas desde 1942</h1>
+<h1 class="sr-only">Katsumi Joias — joias sob medida, diamantes e pedras preciosas</h1>
 
 <!-- Hero -->
 <section class="relative bg-black text-white overflow-hidden">
     {% set hero_slides = [
-        {'img': 'banner1.jpg', 'lines': ['Da mina', 'à sua', 'joia'], 'text': 'Cada pedra é escolhida uma a uma. Sem catálogo de fábrica, sem intermediários — apenas a curadoria de quem vive de gemas desde 1942, com importação, exportação e lapidação próprias.'},
-        {'img': 'banner2.jpg', 'lines': ['Lapidação', 'própria,', 'olhar raro'], 'text': 'Do bruto à pedra final, no nosso ateliê. Cor, pureza e proporção conferidas à mão, pedra por pedra.'},
-        {'img': 'banner3.jpg', 'lines': ['Duas', 'gerações', 'em gemas'], 'text': 'Fornecendo aos grandes mestres joalheiros do Brasil desde a fundação por Wilson Alves Paixão.'}
+        {'img': 'banner1.jpg', 'lines': ['Histórias', 'em joias', 'eternas'], 'text': 'Joias pensadas para marcar momentos e atravessar gerações — com design exclusivo, seleção criteriosa de materiais e acabamento impecável.', 'cta': ('Ver as jóias', '/joias')},
+        {'img': 'banner2.jpg', 'lines': ['Crie', 'a sua', 'jóia'], 'text': 'Escolha o tipo, o metal e as pedras, veja uma prévia na hora e peça um orçamento. Do desenho à modelagem 3D, você participa de cada etapa.', 'cta': ('Crie sua jóia', '/crie-sua-joia')},
+        {'img': 'banner3.jpg', 'lines': ['Além', 'do', 'tempo'], 'text': 'Da fundição à cravação, cada peça KATSUMI é conduzida com domínio técnico, sensibilidade estética e respeito pela tradição joalheira.', 'cta': ('Nossa história', '/historia')}
     ] %}
     <div class="carousel-container relative h-[calc(100svh-56px)] lg:h-[calc(100vh-124px)] min-h-[560px] max-h-[920px]">
         {% for slide in hero_slides %}
         <div class="carousel-slide absolute inset-0 transition-opacity duration-1000 {{ 'is-active opacity-100 z-[2]' if loop.first else 'opacity-0 pointer-events-none z-[1]' }}">
             <img src="{{ url_for('static', filename='images/' ~ slide.img) }}"
-                 alt="Gemas preciosas brasileiras lapidadas pela Katsumi Joias"
+                 alt="Joias Katsumi"
                  class="hero-img absolute inset-0 w-full h-full object-cover"
                  {% if not loop.first %}loading="lazy"{% endif %}>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40"></div>
@@ -37,7 +37,7 @@
                     </p>
                     <p class="mt-8 text-sm lg:text-[15px] text-white/75 leading-relaxed max-w-lg">{{ slide.text }}</p>
                     <div class="mt-10">
-                        <a href="/products" class="brand-btn brand-btn--light">Explorar o catálogo</a>
+                        <a href="{{ slide.cta[1] }}" class="brand-btn brand-btn--light">{{ slide.cta[0] }}</a>
                     </div>
                 </div>
             </div>
@@ -47,7 +47,7 @@
         <!-- Top meta row -->
         <div class="absolute top-0 inset-x-0 z-10 pointer-events-none">
             <div class="max-w-[1600px] mx-auto px-6 lg:px-12 pt-8 flex items-center justify-between">
-                <p class="brand-eyebrow text-white/80">Tradição em pedras preciosas · Desde 1942</p>
+                <p class="brand-eyebrow text-white/80">A arte de transformar histórias em joias eternas</p>
                 <p class="brand-eyebrow text-white/80 tabular-nums"><span id="hero-current">01</span> / {{ '%02d' % hero_slides|length }}</p>
             </div>
         </div>
@@ -75,23 +75,26 @@
     </div>
 </section>
 
-<!-- A curadoria -->
+<!-- Nossas jóias -->
 <section class="bg-white">
     <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 lg:py-32 grid lg:grid-cols-12 gap-14 lg:gap-12">
         <div class="lg:col-span-4 lg:pr-8">
             <div class="lg:sticky lg:top-40">
-                <p class="brand-eyebrow text-brand-muted mb-6">Pedras disponíveis</p>
-                <h2 class="brand-display text-4xl lg:text-5xl">A curadoria</h2>
+                <p class="brand-eyebrow text-brand-muted mb-6">Coleção</p>
+                <h2 class="brand-display text-4xl lg:text-5xl">Nossas jóias</h2>
                 <p class="mt-8 text-[15px] text-black/70 leading-relaxed">
-                    Esmeraldas, turmalinas, tanzanitas e topázios avaliados individualmente por cor, pureza e proporção. Só segue para o catálogo a pedra que passa pelo nosso olhar — e pode acompanhar laudo gemológico independente.
+                    Anéis, alianças, colares, brincos e pulseiras em metais nobres, com diamantes e pedras preciosas selecionados com critério. Cada peça carrega uma identidade própria.
                 </p>
-                <a href="/products" class="brand-btn brand-btn--dark mt-10">Ver pedras disponíveis</a>
+                <a href="/joias" class="brand-btn brand-btn--dark mt-10">Ver todas as jóias</a>
+                {% if has_gem_products %}
+                <a href="/pedras" class="brand-link text-black block mt-6">Pedras preciosas avulsas</a>
+                {% endif %}
             </div>
         </div>
         <div class="lg:col-span-8">
             {% if products %}
             <div class="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-10">
-                {% for product in products[:3] %}
+                {% for product in products[:6] %}
                 {% include '_product_card.html' %}
                 {% endfor %}
             </div>
@@ -104,30 +107,27 @@
     </div>
 </section>
 
-<!-- Explore por gema -->
+{% if nav_jewelry_types %}
+<!-- Explore por tipo -->
 <section class="bg-white border-t border-brand-line">
     <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 lg:py-28">
         <div class="flex items-end justify-between gap-6 mb-12">
-            <h2 class="brand-display text-3xl lg:text-4xl">Explore por gema</h2>
-            <a href="/products" class="brand-link text-black flex-shrink-0">Ver todas</a>
+            <h2 class="brand-display text-3xl lg:text-4xl">Explore por tipo</h2>
+            <a href="/joias" class="brand-link text-black flex-shrink-0">Ver todas</a>
         </div>
-        {% set gem_tiles = [
-            ('Esmeralda', 'Esmeralda'|category_path, 'esmeralda.png'),
-            ('Turmalina', 'Turmalina'|category_path, 'turmalina.png'),
-            ('Tanzanita', 'Tanzanita'|category_path, 'tanzanita.png'),
-            ('Topázio', 'Topázio'|category_path, 'topazio.jpg'),
-            ('Kunzita', 'Kunzita'|category_path, 'kunzita.png'),
-            ('Conjuntos', '/products?numero_pedras_min=2', 'conjuntos.jpg')
-        ] %}
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-3 gap-y-10">
-            {% for label, href, img in gem_tiles %}
-            <a href="{{ href }}" class="group block">
-                <div class="aspect-[3/4] bg-black overflow-hidden">
-                    <img src="{{ url_for('static', filename='images/' ~ img) }}" alt="{{ label }}" loading="lazy"
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-{{ [nav_jewelry_types|length, 6]|min }} gap-x-3 gap-y-10">
+            {% for t in nav_jewelry_types[:6] %}
+            <a href="{{ t.url }}" class="group block">
+                <div class="aspect-[3/4] bg-neutral-100 overflow-hidden flex items-center justify-center">
+                    {% if t.image_url %}
+                    <img src="{{ t.image_url }}" alt="{{ t.name }}" loading="lazy"
                          class="w-full h-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105">
+                    {% else %}
+                    <span class="font-serif text-2xl text-black/40 group-hover:text-black transition-colors">{{ t.name }}</span>
+                    {% endif %}
                 </div>
                 <div class="mt-4 flex items-center justify-between">
-                    <span class="text-[11px] tracking-[0.24em] uppercase">{{ label }}</span>
+                    <span class="text-[11px] tracking-[0.24em] uppercase">{{ t.name }}</span>
                     <svg class="w-4 h-4 -translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                 </div>
             </a>
@@ -135,34 +135,44 @@
         </div>
     </div>
 </section>
+{% endif %}
 
-<!-- 1942 — Nossa história -->
-<section class="bg-black text-white">
-    <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 lg:py-32 grid lg:grid-cols-12 gap-14 lg:gap-16 items-center">
+<!-- Crie sua jóia -->
+<section class="bg-luxury-cream border-t border-brand-line">
+    <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 lg:py-28 grid lg:grid-cols-12 gap-12 items-center">
         <div class="lg:col-span-6">
-            <div class="aspect-[4/5] overflow-hidden bg-neutral-900">
-                <img src="{{ url_for('static', filename='images/nossahistoria.jpg') }}" alt="Wilson Alves Paixão, fundador da Katsumi Joias" loading="lazy" class="w-full h-full object-cover grayscale-[30%]">
-            </div>
-        </div>
-        <div class="lg:col-span-5 lg:col-start-8">
-            <p class="text-[22vw] sm:text-[9rem] lg:text-[11rem] leading-none font-light tracking-tight text-white/90">1942</p>
-            <p class="brand-eyebrow text-white/50 mt-6">Nossa história</p>
-            <h2 class="brand-display text-3xl lg:text-4xl mt-5">Uma história escrita em pedras preciosas</h2>
-            <p class="mt-8 text-[15px] text-white/65 leading-relaxed max-w-md">
-                Duas gerações dedicadas à lapidação e à curadoria das gemas mais belas, fornecendo aos grandes mestres joalheiros do Brasil desde a fundação por Wilson Alves Paixão.
+            <p class="brand-eyebrow text-brand-muted mb-6">Sob medida</p>
+            <h2 class="brand-display text-4xl lg:text-5xl">Crie sua jóia</h2>
+            <p class="mt-8 text-[15px] text-black/70 leading-relaxed max-w-lg">
+                Escolha o tipo de peça, o metal, as pedras e o formato. Em instantes você vê uma prévia ilustrativa
+                da sua ideia — e nosso ateliê transforma o desenho em uma joia concebida especialmente para você.
             </p>
-            <a href="/historia" class="brand-btn brand-btn--outline-light mt-10">Conheça nossa história</a>
+            <a href="/crie-sua-joia" class="brand-btn brand-btn--dark mt-10">Começar a criar</a>
+        </div>
+        <div class="lg:col-span-6">
+            {% set steps = [('01', 'Escolha', 'Tipo, metal, pedras, formato e detalhes.'), ('02', 'Visualize', 'Prévias geradas na hora para você comparar.'), ('03', 'Ajuste', 'Peça mudanças até ficar do seu jeito.'), ('04', 'Orçamento', 'Nossa equipe confirma valor e prazo.')] %}
+            <div class="grid grid-cols-2 gap-px bg-brand-line border border-brand-line">
+                {% for num, title, text in steps %}
+                <div class="bg-white p-6 lg:p-8 min-h-[11rem] flex flex-col">
+                    <span class="text-[11px] tracking-[0.24em] text-brand-muted tabular-nums">{{ num }}</span>
+                    <h3 class="mt-auto text-[13px] tracking-[0.22em] uppercase">{{ title }}</h3>
+                    <p class="mt-2 text-sm text-black/60 leading-relaxed">{{ text }}</p>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </section>
+
+{% include '_historia_section.html' %}
 
 <!-- Diferenciais -->
 <section class="bg-white">
     <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 lg:py-28">
         {% set pillars = [
-            ('01', 'Lapidação própria', 'Do bruto à pedra final, no nosso ateliê.'),
-            ('02', 'Curadoria à mão', 'Cada pedra selecionada individualmente.'),
-            ('03', 'Laudo gemológico', 'Certificação independente, quando desejada.'),
+            ('01', 'Joias sob medida', 'Projetos personalizados que respeitam o seu estilo.'),
+            ('02', 'Modelagem 3D', 'Você acompanha a criação antes da fabricação.'),
+            ('03', 'Diamantes e pedras preciosas', 'Seleção criteriosa em cada peça.'),
             ('04', 'Envio segurado', 'Rastreio total para todo o Brasil.')
         ] %}
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-brand-line border border-brand-line">
@@ -172,21 +182,6 @@
                 <h3 class="mt-auto text-[13px] tracking-[0.22em] uppercase">{{ title }}</h3>
                 <p class="mt-3 text-sm text-black/60 leading-relaxed">{{ text }}</p>
             </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-<!-- Onde nos encontrar -->
-<section class="bg-luxury-cream border-t border-brand-line">
-    <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 lg:py-28">
-        <div class="flex items-end justify-between gap-6 mb-12">
-            <h2 class="brand-display text-3xl lg:text-4xl">Onde nos encontrar</h2>
-            <a href="/feiras" class="brand-link text-black flex-shrink-0">Agenda de feiras</a>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {% for label in ['Logo feira', 'Logo feira', 'Logo feira', 'Logo feira', 'Logo associação'] %}
-            <div class="brand-placeholder brand-placeholder--light aspect-[3/2] bg-white border border-brand-line {{ 'col-span-2 md:col-span-1' if loop.last else '' }}">[ {{ label }} ]</div>
             {% endfor %}
         </div>
     </div>

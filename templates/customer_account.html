@@ -161,9 +161,9 @@
                 </div>
 
                 <div class="specialist-box">
-                    <h3 class="font-serif text-base text-luxury-gold-light mb-2">Seu especialista de gemas</h3>
-                    <p class="text-sm text-white/75 leading-relaxed mb-3">Atendimento dedicado para clientes do acervo.</p>
-                    <a href="https://wa.me/5531911500029" target="_blank" rel="noopener" class="text-sm font-medium text-luxury-gold-light hover:text-white transition-colors">
+                    <h3 class="font-serif text-base text-luxury-gold-light mb-2">Atendimento Katsumi</h3>
+                    <p class="text-sm text-white/75 leading-relaxed mb-3">Fale com nosso ateliê sobre joias, ajustes e criações sob medida.</p>
+                    <a href="https://wa.me/5511971581675" target="_blank" rel="noopener" class="text-sm font-medium text-luxury-gold-light hover:text-white transition-colors">
                         Chamar no WhatsApp →
                     </a>
                 </div>
@@ -191,19 +191,53 @@
                     </div>
                 </div>
 
+                <!-- Quotes (Crie sua jóia) -->
+                <div class="account-card" id="quotes-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div>
+                            <h2 class="font-serif text-xl text-luxury-black">Orçamentos</h2>
+                            <p class="text-sm text-gray-500 mt-0.5">Pedidos de orçamento das joias que você criou.</p>
+                        </div>
+                    </div>
+                    <div id="quotes-container">
+                        <div id="quotes-loader" class="py-6 text-center text-sm text-gray-400">Carregando…</div>
+                        <div id="quotes-empty" class="hidden text-center py-8">
+                            <p class="text-sm text-gray-500">Nenhum orçamento ainda.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Designs (Crie sua jóia) -->
+                <div class="account-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div>
+                            <h2 class="font-serif text-xl text-luxury-black">Minhas criações</h2>
+                            <p class="text-sm text-gray-500 mt-0.5">As joias que você desenhou no “Crie sua jóia”.</p>
+                        </div>
+                        <a href="/crie-sua-joia" class="btn-outline-gold w-full sm:w-auto whitespace-nowrap px-5">+ Criar uma jóia</a>
+                    </div>
+                    <div id="designs-container">
+                        <div id="designs-loader" class="py-6 text-center text-sm text-gray-400">Carregando…</div>
+                        <div id="designs-empty" class="hidden text-center py-8">
+                            <p class="text-sm text-gray-500">Você ainda não criou nenhuma joia.</p>
+                        </div>
+                        <div id="designs-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+                    </div>
+                </div>
+
                 <!-- Special requests -->
                 <div class="account-card">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                         <div>
                             <h2 class="font-serif text-xl text-luxury-black">Pedidos especiais</h2>
-                            <p class="text-sm text-gray-500 mt-0.5">Gemas sob encomenda — nosso gemólogo busca para você.</p>
+                            <p class="text-sm text-gray-500 mt-0.5">Procurando uma peça ou pedra específica? Nossa equipe busca para você.</p>
                         </div>
                         <a href="/o-que-procura" class="btn-outline-gold w-full sm:w-auto whitespace-nowrap px-5">+ Nova solicitação</a>
                     </div>
                     <div id="solicitacoes-container">
                         <div id="solicitacoes-loader" class="py-6 text-center text-sm text-gray-400">Carregando…</div>
                         <div id="solicitacoes-empty" class="hidden text-center py-8">
-                            <p class="text-sm text-gray-500">Nenhuma solicitação ainda. Conte o que procura e garimpamos para você.</p>
+                            <p class="text-sm text-gray-500">Nenhuma solicitação ainda. Conte o que procura e encontramos para você.</p>
                         </div>
                     </div>
                 </div>
@@ -409,7 +443,7 @@
             const items = order.items || [];
             const productId = items[0] && items[0].product_id;
             const productLink = productId
-                ? `<a href="/product/${escapeHTML(productId)}" class="text-xs text-luxury-gold hover:underline mt-1 inline-block">Ver gema →</a>`
+                ? `<a href="/product/${escapeHTML(productId)}" class="text-xs text-luxury-gold hover:underline mt-1 inline-block">Ver peça →</a>`
                 : '';
             return `<p class="col-span-full text-xs text-gray-500 mt-1 leading-relaxed">Envio segurado com rastreio — você receberá o código por e-mail assim que despacharmos.</p>${productLink}`;
         }
@@ -635,7 +669,77 @@
         }
 
         loadSolicitacoes(user);
+        loadQuotes(user);
+        loadDesigns(user);
     });
+
+    const QUOTE_STATUS_CLS = {
+        novo: 'status-awaiting', em_analise: 'status-awaiting', orcamento_enviado: 'status-preparing',
+        aprovado: 'status-delivered', em_producao: 'status-preparing', concluido: 'status-delivered',
+        recusado: 'status-failed', cancelado: 'status-failed',
+    };
+
+    function quoteCardHTML(q) {
+        const l = q.labels || {};
+        const spec = [l.metal, [l.stone, l.shape].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+        return `
+            <div class="flex gap-4 border border-[#F2F2F2] rounded-lg p-4 mb-3 last:mb-0">
+                <a href="/crie-sua-joia?criacao=${encodeURIComponent(q.design_id || '')}" class="flex-shrink-0">
+                    <img src="${escapeHTML(q.selected_image_url)}" alt="" class="w-20 h-20 object-cover rounded-md border border-[#F2F2F2]">
+                </a>
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <p class="font-semibold text-sm text-luxury-black">${escapeHTML(l.jewelry_type || 'Joia')} · #${escapeHTML(q.number)}</p>
+                        <span class="status-pill ${QUOTE_STATUS_CLS[q.status] || 'status-awaiting'}">${escapeHTML(q.status_label)}</span>
+                    </div>
+                    <p class="text-xs text-gray-500">${escapeHTML(spec)} · ${escapeHTML((q.created_at || '').split(' ')[0])}</p>
+                    ${q.quoted_price_brl ? `<p class="text-sm font-semibold text-luxury-black mt-2">Valor: ${fmtBRL(q.quoted_price_brl)}</p>` : ''}
+                    ${q.customer_message ? `<p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">${escapeHTML(q.customer_message)}</p>` : ''}
+                </div>
+            </div>`;
+    }
+
+    async function loadQuotes(user) {
+        let list = [];
+        try {
+            const idToken = await user.getIdToken();
+            const res = await fetch('/api/account/quotes', { headers: { Authorization: 'Bearer ' + idToken } });
+            if (res.ok) list = (await res.json()).quotes || [];
+        } catch (e) {}
+        document.getElementById('quotes-loader')?.remove();
+        if (!list.length) {
+            document.getElementById('quotes-empty').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('quotes-container').insertAdjacentHTML('beforeend', list.map(quoteCardHTML).join(''));
+    }
+
+    async function loadDesigns(user) {
+        let list = [];
+        try {
+            const idToken = await user.getIdToken();
+            const res = await fetch('/api/designer/my-designs', { headers: { Authorization: 'Bearer ' + idToken } });
+            if (res.ok) list = (await res.json()).designs || [];
+        } catch (e) {}
+        document.getElementById('designs-loader')?.remove();
+        const withImages = list.filter(d => (d.images || []).some(i => i.url));
+        if (!withImages.length) {
+            document.getElementById('designs-empty').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('designs-grid').innerHTML = withImages.slice(0, 12).map(d => {
+            const img = d.images.find(i => i.url);
+            const l = d.labels || {};
+            return `
+                <a href="/crie-sua-joia?criacao=${encodeURIComponent(d.id)}" class="block group">
+                    <div class="aspect-square rounded-md overflow-hidden border border-[#F2F2F2] bg-[#F7F7F7]">
+                        <img src="${escapeHTML(img.url)}" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <p class="text-xs text-luxury-black mt-1.5 truncate">${escapeHTML(l.jewelry_type || 'Joia')}${d.kind === 'edit' ? ' · ajuste' : ''}</p>
+                    <p class="text-[11px] text-gray-400 truncate">${escapeHTML((d.created_at || '').split(' ')[0])}${d.quote_id ? ' · orçamento pedido' : ''}</p>
+                </a>`;
+        }).join('');
+    }
 
     async function loadSolicitacoes(user) {
         try {

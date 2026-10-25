@@ -8,8 +8,19 @@ import requests
 
 WHATSGW_API_URL = 'https://app.whatsgw.com.br/api/WhatsGw/Send'
 DEFAULT_SITE_URL = os.getenv('SITE_URL', '')
-SUPPORT_WHATSAPP_NUMBER = os.getenv('SUPPORT_WHATSAPP_NUMBER', '5531911500029').strip()
-SUPPORT_WHATSAPP_DISPLAY = '(31) 9115-0029'
+SUPPORT_WHATSAPP_NUMBER = re.sub(r'\D', '', os.getenv('SUPPORT_WHATSAPP_NUMBER', '') or '5511971581675')
+
+
+def _display_phone(number):
+    local = number[2:] if number.startswith('55') and len(number) > 11 else number
+    if len(local) == 11:
+        return f'({local[:2]}) {local[2:7]}-{local[7:]}'
+    if len(local) == 10:
+        return f'({local[:2]}) {local[2:6]}-{local[6:]}'
+    return number
+
+
+SUPPORT_WHATSAPP_DISPLAY = _display_phone(SUPPORT_WHATSAPP_NUMBER)
 
 
 def support_wa_me_url(text=''):
@@ -135,7 +146,7 @@ def send_order_created_whatsapp(order):
 
         payment = order.get('payment_method', '')
         if payment == 'pix':
-            payment_line = 'Conclua o pagamento via *PIX* para garantirmos suas gemas.'
+            payment_line = 'Conclua o pagamento via *PIX* para garantirmos sua joia.'
         elif payment == 'credit_card':
             payment_line = 'Estamos aguardando a confirmação do pagamento no *cartão*.'
         else:
@@ -170,9 +181,9 @@ def send_order_paid_whatsapp(order):
         message = (
             f'Pagamento confirmado, {name}! ✅\n\n'
             f'Seu pedido *#{order_number}* foi pago com sucesso.\n'
-            f'Suas gemas entram em preparação e você receberá o código de rastreio assim que despacharmos.\n\n'
+            f'Sua joia entra em preparação e você receberá o código de rastreio assim que despacharmos.\n\n'
             f'Acompanhe: {order_url}\n\n'
-            f'Katsumi Joias · Gemas brasileiras lapidadas desde 1942'
+            f'Katsumi Joias · A arte de transformar histórias em joias eternas'
         )
         _log(f'ORDER_PAID sending for order #{order_number}')
         return send_text_message(phone, message, message_custom_id=f'order-paid-{order.get("id", "")[:12]}')

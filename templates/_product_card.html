@@ -1,6 +1,9 @@
 {# Product grid card — shared by homepage and catalog #}
 {% set extra_class = card_extra_class if card_extra_class is defined else '' %}
-{% if product.numero_pedras == 2 %}
+{% set card_is_joia = product|is_joia %}
+{% if card_is_joia %}
+    {% set piece_label = none %}
+{% elif product.numero_pedras == 2 %}
     {% set piece_label = 'Par' %}
 {% elif product.numero_pedras == 3 %}
     {% set piece_label = 'Trio' %}
@@ -9,9 +12,15 @@
 {% else %}
     {% set piece_label = none %}
 {% endif %}
-{% set carat_display = product.carat_weight if product.carat_weight and 'ct' in product.carat_weight|lower else (product.carat_weight ~ ' ct' if product.carat_weight else none) %}
+{% if card_is_joia %}
+    {% set carat_display = none %}
+    {% set card_subtitle = product|jewelry_summary %}
+{% else %}
+    {% set carat_display = product.carat_weight if product.carat_weight and 'ct' in product.carat_weight|lower else (product.carat_weight ~ ' ct' if product.carat_weight else none) %}
+    {% set card_subtitle = (piece_label ~ ' · ' if piece_label else '') ~ (carat_display or '') %}
+{% endif %}
 {% set discount = product.discount if product.discount else 0 %}
-{% if product.carat_weight %}
+{% if product.carat_weight and not card_is_joia %}
     {% set carat_weight_str = product.carat_weight.split()[0] if ' ' in product.carat_weight else product.carat_weight %}
     {% set carat_weight = carat_weight_str.replace(',', '.') | float %}
     {% set base_total = product.price * carat_weight %}
@@ -34,9 +43,11 @@
             <div class="brand-placeholder absolute inset-0" {% if product.main_image_url %}style="display: none;"{% endif %}>Imagem</div>
         </a>
 
-        {% if product.riviera or discount > 0 %}
+        {% set made_to_order = card_is_joia and product.made_to_order %}
+        {% if product.riviera or discount > 0 or made_to_order %}
         <div class="absolute top-3 left-3 flex flex-col items-start gap-1.5 pointer-events-none">
-            {% if product.riviera %}<span class="bg-white text-black px-2 py-1 text-[9px] tracking-[0.2em] uppercase">Riviera</span>{% endif %}
+            {% if product.riviera and not card_is_joia %}<span class="bg-white text-black px-2 py-1 text-[9px] tracking-[0.2em] uppercase">Riviera</span>{% endif %}
+            {% if made_to_order %}<span class="bg-white text-black px-2 py-1 text-[9px] tracking-[0.2em] uppercase">Sob encomenda</span>{% endif %}
             {% if discount > 0 %}<span class="bg-white text-black px-2 py-1 text-[9px] tracking-[0.2em] uppercase">-{{ product.discount }}%</span>{% endif %}
         </div>
         {% endif %}
@@ -48,6 +59,8 @@
                 data-product-price="{{ product.price }}"
                 data-product-discount="{{ discount }}"
                 data-product-carat-weight="{{ carat_weight if carat_weight else 1 }}"
+                data-product-kind="{{ 'joia' if card_is_joia else 'gema' }}"
+                data-product-price-brl="{{ product.price_brl if card_is_joia else '' }}"
                 data-product-image="{{ product.main_image_url or '' }}"
                 onclick="quickBuyFromCard(this)">
             Comprar
@@ -56,13 +69,14 @@
 
     <a href="{{ product_url }}" class="block pt-5 pb-2 px-2 text-center">
         <h3 class="text-[11px] sm:text-[12px] uppercase tracking-[0.18em] leading-relaxed text-black line-clamp-2">{{ product.name }}</h3>
-        {% if carat_display or piece_label %}
-        <p class="mt-1.5 text-[11px] tracking-wide text-brand-muted">{{ piece_label ~ ' · ' if piece_label }}{{ carat_display or '' }}</p>
+        {% if card_subtitle %}
+        <p class="mt-1.5 text-[11px] tracking-wide text-brand-muted line-clamp-1">{{ card_subtitle }}</p>
         {% endif %}
 
         <div class="price-display mt-3"
              data-price-usd="{{ product.price }}"
              data-discount="{{ discount }}"
+             {% if card_is_joia %}data-price-brl="{{ product.price_brl }}"{% endif %}
              {% if carat_weight %}data-carat-weight="{{ carat_weight }}"{% endif %}>
             {% if discount > 0 %}
             <span class="original-total-price block text-[11px] text-brand-muted line-through">$ {{ "{:,.2f}".format(base_total).replace(',', '#').replace('.', ',').replace('#', '.') }}</span>

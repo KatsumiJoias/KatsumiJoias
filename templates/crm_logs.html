@@ -152,7 +152,7 @@
                     <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                         Revertida{% if log.reverted_by %} por {{ log.reverted_by }}{% endif %}
                     </span>
-                    {% elif log.can_revert %}
+                    {% elif log.can_revert and has_endpoint('crm_log_revert') %}
                     <form method="POST" action="{{ url_for('crm_log_revert', log_id=log.id) }}"
                           onsubmit="return confirm('Reverter esta ação? A operação inversa será aplicada.');">
                         <button type="submit"

@@ -1,0 +1,166 @@
+{% extends "crm_base.html" %}
+
+{% block title %}Orçamento #{{ quote.id[:8] | upper }} - CRM{% endblock %}
+
+{% block crm_content %}
+<div class="mb-6">
+    <a href="{{ url_for('crm_orcamentos') }}" class="text-sm text-indigo-600 hover:text-indigo-800">← Orçamentos</a>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-2">
+        <h2 class="text-2xl font-bold text-gray-900">Orçamento #{{ quote.id[:8] | upper }}</h2>
+        <span class="self-start px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">{{ status_label }}</span>
+    </div>
+    <p class="text-sm text-gray-500 mt-1">Recebido em {{ quote.created_at_formatted }}</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <a href="{{ quote.selected_image_url }}" target="_blank" rel="noopener">
+                    <img src="{{ quote.selected_image_url }}" alt="Imagem escolhida pelo cliente" class="w-full rounded-md border border-gray-200">
+                </a>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Especificação escolhida</p>
+                    <dl class="text-sm divide-y divide-gray-100">
+                        {% set l = quote.labels or {} %}
+                        {% for label, value in [
+                            ('Tipo', l.jewelry_type),
+                            ('Metal', l.metal),
+                            ('Acabamento', l.finish),
+                            ('Pedra', l.stone),
+                            ('Quantidade', l.count),
+                            ('Formato', l.shape),
+                            ('Tamanho', l.size),
+                            ('Detalhes', l.accent),
+                        ] if value %}
+                        <div class="flex justify-between gap-3 py-1.5">
+                            <dt class="text-gray-500">{{ label }}</dt>
+                            <dd class="text-gray-900 text-right">{{ value }}</dd>
+                        </div>
+                        {% endfor %}
+                    </dl>
+                    {% if quote.details_text %}
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 mt-4 mb-1">Descrição do cliente</p>
+                    <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ quote.details_text }}</p>
+                    {% endif %}
+                    {% if quote.edit_instructions %}
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 mt-4 mb-1">Ajustes pedidos</p>
+                    <ol class="list-decimal list-inside text-sm text-gray-800 space-y-0.5">
+                        {% for e in quote.edit_instructions %}<li>{{ e }}</li>{% endfor %}
+                    </ol>
+                    {% endif %}
+                    {% if quote.notes %}
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 mt-4 mb-1">Observações</p>
+                    <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ quote.notes }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-semibold text-gray-700">Histórico de geração</p>
+                <p class="text-xs text-gray-500">Custo total de IA: US$ {{ '%.4f' % (quote.total_generation_cost_usd or 0) }}</p>
+            </div>
+            <div class="space-y-4">
+                {% for d in quote.designs or [] %}
+                <div class="border border-gray-100 rounded-md p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <p class="text-sm font-medium text-gray-900">
+                            {{ 'Criação inicial' if d.kind != 'edit' else 'Ajuste: “' ~ d.edit_instruction ~ '”' }}
+                        </p>
+                        <p class="text-xs text-gray-400">{{ d.created_at_formatted }} · US$ {{ '%.4f' % (d.actual_cost_usd or 0) }}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        {% for img in d.images %}
+                        <a href="{{ img.url }}" target="_blank" rel="noopener" class="block">
+                            <img src="{{ img.url }}" alt="" class="w-20 h-20 object-cover rounded border {{ 'border-indigo-500 border-2' if img.url == quote.selected_image_url else 'border-gray-200' }}">
+                        </a>
+                        {% endfor %}
+                    </div>
+                    <p class="text-[11px] text-gray-500">
+                        {% for img in d.images %}
+                        <span class="inline-block mr-3">#{{ img.index }} {{ img.provider }}/{{ img.model }}{% if img.fallback_used %} (reserva){% endif %}{% if img.response_id %} · id {{ img.response_id }}{% endif %}{% if img.seed %} · seed {{ img.seed }}{% endif %}</span>
+                        {% endfor %}
+                    </p>
+                    <details class="mt-2">
+                        <summary class="text-xs text-indigo-600 cursor-pointer">Ver prompt ({{ d.prompt_version }})</summary>
+                        <pre class="mt-2 text-[11px] text-gray-700 bg-gray-50 rounded p-2 whitespace-pre-wrap">{{ d.prompt }}</pre>
+                    </details>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 text-sm">
+            <p class="text-sm font-semibold text-gray-700 mb-3">Cliente</p>
+            <p class="text-gray-900 font-medium">{{ quote.customer_name }}</p>
+            <p class="text-gray-600 break-all">{{ quote.customer_email }}</p>
+            {% if quote.customer_phone %}<p class="text-gray-600">{{ quote.customer_phone }}</p>{% endif %}
+            {% if quote.budget_range %}<p class="text-gray-600 mt-2">Faixa: {{ quote.budget_range }}</p>{% endif %}
+            <div class="flex flex-wrap gap-2 mt-4">
+                {% if wa_phone %}
+                <a href="https://wa.me/{{ wa_phone }}?text={{ ('Olá ' ~ quote.customer_name ~ '! Aqui é da Katsumi Joias, sobre o seu orçamento #' ~ (quote.id[:8] | upper) ~ ' do Crie sua jóia.') | urlencode }}"
+                   target="_blank" rel="noopener" class="px-3 py-1.5 rounded-md bg-green-600 text-white text-xs font-medium hover:bg-green-700">WhatsApp</a>
+                {% endif %}
+                {% if quote.firestore_customer_id %}
+                <a href="{{ url_for('edit_customer', customer_id=quote.firestore_customer_id) }}" class="px-3 py-1.5 rounded-md border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50">Ficha do cliente</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="POST" class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 space-y-4">
+            <p class="text-sm font-semibold text-gray-700">Atendimento</p>
+            <div>
+                <label for="status" class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                <select id="status" name="status" class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    {% for key, label in statuses %}
+                    <option value="{{ key }}" {% if quote.status == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="quoted_price_brl" class="block text-xs font-medium text-gray-600 mb-1">Valor (R$)</label>
+                    <input id="quoted_price_brl" name="quoted_price_brl" type="text" inputmode="decimal"
+                           value="{{ ('%.2f' % quote.quoted_price_brl).replace('.', ',') if quote.quoted_price_brl else '' }}"
+                           class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="0,00">
+                </div>
+                <div>
+                    <label for="production_days" class="block text-xs font-medium text-gray-600 mb-1">Prazo (dias)</label>
+                    <input id="production_days" name="production_days" type="number" min="0" value="{{ quote.production_days or '' }}"
+                           class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+            </div>
+            <div>
+                <label for="customer_message" class="block text-xs font-medium text-gray-600 mb-1">Mensagem para o cliente <span class="text-gray-400">(aparece em Minha conta)</span></label>
+                <textarea id="customer_message" name="customer_message" rows="3" class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ quote.customer_message or '' }}</textarea>
+            </div>
+            <div>
+                <label for="admin_notes" class="block text-xs font-medium text-gray-600 mb-1">Notas internas</label>
+                <textarea id="admin_notes" name="admin_notes" rows="3" class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ quote.admin_notes or '' }}</textarea>
+            </div>
+            <div>
+                <label for="history_note" class="block text-xs font-medium text-gray-600 mb-1">Nota no histórico (opcional)</label>
+                <input id="history_note" name="history_note" type="text" maxlength="300" class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+            <button type="submit" class="w-full px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">Salvar</button>
+        </form>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+            <p class="text-sm font-semibold text-gray-700 mb-3">Histórico</p>
+            <ol class="space-y-3">
+                {% for h in (quote.history or []) | reverse %}
+                <li class="text-sm">
+                    <p class="text-gray-900">{{ dict(statuses).get(h.status, h.status) }}</p>
+                    <p class="text-xs text-gray-500">{{ h.at_formatted }} · {{ h.by }}</p>
+                    {% if h.note %}<p class="text-xs text-gray-700 mt-0.5">{{ h.note }}</p>{% endif %}
+                </li>
+                {% endfor %}
+            </ol>
+        </div>
+    </div>
+</div>
+{% endblock %}

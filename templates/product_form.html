@@ -114,15 +114,33 @@
 
     <!-- Form -->
     <form method="POST" enctype="multipart/form-data" class="space-y-6" id="product-form">
+
+        <!-- Tipo de produto -->
+        <input type="hidden" name="product_type" id="product_type" value="{{ initial_kind or 'joia' }}">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+            <p class="text-sm font-semibold text-gray-700 mb-3">Tipo de produto</p>
+            <div class="grid grid-cols-2 gap-3" role="radiogroup">
+                <button type="button" data-kind-btn="joia" onclick="setProductKind('joia')"
+                        class="kind-btn text-left rounded-lg border-2 px-4 py-3 transition-colors">
+                    <span class="block text-sm font-bold text-gray-900">Joia</span>
+                    <span class="block text-xs text-gray-500 mt-0.5">Anel, colar, brinco… preço fixo em R$</span>
+                </button>
+                <button type="button" data-kind-btn="gema" onclick="setProductKind('gema')"
+                        class="kind-btn text-left rounded-lg border-2 px-4 py-3 transition-colors">
+                    <span class="block text-sm font-bold text-gray-900">Gema avulsa</span>
+                    <span class="block text-xs text-gray-500 mt-0.5">Pedra solta · preço em US$ por quilate</span>
+                </button>
+            </div>
+        </div>
         
-        <!-- Informações da Gema (unified section) -->
+        <!-- Informações do produto (unified section) -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
                 <div class="flex items-center gap-3">
                     <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                     </svg>
-                    <h2 class="text-lg font-semibold text-white">Informações da Gema</h2>
+                    <h2 class="text-lg font-semibold text-white" id="info-title">Informações da Joia</h2>
                 </div>
             </div>
             
@@ -143,7 +161,7 @@
                         </p>
                         <p id="name-free-hint" class="mt-1.5 text-xs text-purple-600 hidden flex items-center gap-1">
                             <svg class="h-3.5 w-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                            Riviera: nome livre para editar
+                            <span id="name-free-hint-text">Riviera: nome livre para editar</span>
                         </p>
                     </div>
 
@@ -156,11 +174,14 @@
                                 class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
                             <option value="">Selecione uma categoria</option>
                             {% for category in categories %}
-                            <option value="{{ category }}" {{ 'selected' if product and product.category == category else '' }}>
+                            <option value="{{ category }}" data-kind="{{ category_kinds.get(category, 'gema') }}" {{ 'selected' if product and product.category == category else '' }}>
                                 {{ category }}
                             </option>
                             {% endfor %}
                         </select>
+                        <p class="mt-1.5 text-xs text-gray-500">
+                            <a href="{{ url_for('crm_categories') }}" target="_blank" class="text-purple-600 hover:text-purple-800 font-medium">Gerenciar tipos de joia e gemas →</a>
+                        </p>
                     </div>
 
                     <div id="variant-container" style="display: none;">
@@ -174,7 +195,100 @@
                     </div>
                 </div>
 
-                <div class="border-t border-gray-100 pt-5">
+                {% set p = product or {} %}
+                <div class="border-t border-gray-100 pt-5" data-kind-section="joia">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div>
+                            <label for="metal" class="block text-sm font-semibold text-gray-700 mb-2">Metal *</label>
+                            <select name="metal" id="metal" data-kind-required
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                                <option value="">Selecione</option>
+                                {% for key, label in metal_options %}
+                                <option value="{{ key }}" {{ 'selected' if p.get('metal') == key else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="gold_karat" class="block text-sm font-semibold text-gray-700 mb-2">Teor</label>
+                            <input type="text" name="gold_karat" id="gold_karat" list="metal-purity-list"
+                                   value="{{ p.get('gold_karat') or '' }}" placeholder="Ex: 18k, 925"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                            <datalist id="metal-purity-list">
+                                {% for purity in metal_purity_options %}<option value="{{ purity }}">{% endfor %}
+                            </datalist>
+                        </div>
+                        <div>
+                            <label for="metal_color" class="block text-sm font-semibold text-gray-700 mb-2">Cor do metal</label>
+                            <select name="metal_color" id="metal_color"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                                <option value="">—</option>
+                                {% for key, label in metal_color_options %}
+                                <option value="{{ key }}" {{ 'selected' if p.get('metal_color') == key else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="metal_weight_g" class="block text-sm font-semibold text-gray-700 mb-2">Peso do metal (g)</label>
+                            <input type="number" step="any" min="0" name="metal_weight_g" id="metal_weight_g"
+                                   value="{{ p.get('metal_weight_g') or '' }}" placeholder="Ex: 3.2"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                        </div>
+                        <div>
+                            <label for="main_stone" class="block text-sm font-semibold text-gray-700 mb-2">Pedra principal</label>
+                            <input type="text" name="main_stone" id="main_stone"
+                                   value="{{ p.get('main_stone') or '' }}" placeholder="Ex: Diamante, Esmeralda (vazio = sem pedra)"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                        </div>
+                        <div>
+                            <label for="cut_joia" class="block text-sm font-semibold text-gray-700 mb-2">Lapidação da pedra</label>
+                            <select name="cut" id="cut_joia"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                                <option value="">—</option>
+                                {% for cut_type in cut_types %}
+                                <option value="{{ cut_type }}" {% if p.get('cut') == cut_type %}selected{% endif %}>{{ cut_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="stone_count" class="block text-sm font-semibold text-gray-700 mb-2">Qtd. de pedras</label>
+                            <input type="number" min="0" step="1" name="stone_count" id="stone_count"
+                                   value="{{ p.get('stone_count') or '' }}" placeholder="Ex: 1"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                        </div>
+                        <div>
+                            <label for="stone_carat_weight" class="block text-sm font-semibold text-gray-700 mb-2">Peso total das pedras (ct)</label>
+                            <input type="number" step="any" min="0" name="stone_carat_weight" id="stone_carat_weight"
+                                   value="{{ p.get('stone_carat_weight') or '' }}" placeholder="Ex: 0.50"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                        </div>
+                        <div>
+                            <label for="ring_size" class="block text-sm font-semibold text-gray-700 mb-2">Aro / tamanho</label>
+                            <input type="text" name="ring_size" id="ring_size"
+                                   value="{{ p.get('ring_size') or '' }}" placeholder="Ex: 14, 45 cm, ajustável"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                        </div>
+                        <div>
+                            <label for="stock_qty" class="block text-sm font-semibold text-gray-700 mb-2">Unidades em estoque</label>
+                            <input type="number" min="0" step="1" name="stock_qty" id="stock_qty"
+                                   value="{{ p.get('stock_qty') if p.get('stock_qty') is not none else 1 }}"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                            <p class="mt-1.5 text-xs text-gray-500">Cada venda dá baixa de 1 unidade; ao zerar a peça sai da loja.</p>
+                        </div>
+                        <div class="flex items-center gap-3 pt-6">
+                            <input type="checkbox" name="made_to_order" id="made_to_order" {% if p.get('made_to_order') %}checked{% endif %}
+                                   class="h-5 w-5 rounded text-purple-600 focus:ring-2 focus:ring-purple-500 border-gray-300">
+                            <label for="made_to_order" class="text-sm font-semibold text-gray-700 cursor-pointer">Sob encomenda</label>
+                        </div>
+                        <div>
+                            <label for="production_days" class="block text-sm font-semibold text-gray-700 mb-2">Prazo de produção (dias úteis)</label>
+                            <input type="number" min="0" step="1" name="production_days" id="production_days"
+                                   value="{{ p.get('production_days') or '' }}" placeholder="Ex: 20"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-gray-50">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-5" data-kind-section="gema">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
                             <label for="color" class="block text-sm font-semibold text-gray-700 mb-2">Cor</label>
@@ -227,7 +341,7 @@
                                    placeholder="Ex: 5"
                                    min="1"
                                    step="1"
-                                   required
+                                   data-kind-required
                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition-all duration-150 bg-gray-50">
                         </div>
 
@@ -332,7 +446,26 @@
             
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div>
+                    <div data-kind-section="joia">
+                        <label for="price_brl" class="block text-sm font-semibold text-gray-700 mb-2">Preço da peça (R$) *</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 text-sm">R$</span>
+                            </div>
+                            <input type="number"
+                                   name="price_brl"
+                                   id="price_brl"
+                                   value="{{ product.price_brl if product and product.price_brl else '' }}"
+                                   step="0.01"
+                                   min="0"
+                                   data-kind-required
+                                   class="block w-full pl-9 rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all duration-150 bg-gray-50"
+                                   placeholder="0,00">
+                        </div>
+                        <p class="mt-1.5 text-xs text-gray-500">Preço fixo em reais — não sofre câmbio nem a taxa de aumento.</p>
+                    </div>
+
+                    <div data-kind-section="gema">
                         <label for="price" class="block text-sm font-semibold text-gray-700 mb-2">Preço por quilate ($) *</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -343,7 +476,7 @@
                                    id="price" 
                                    value="{{ product.price if product else '' }}"
                                    step="0.01" 
-                                   required 
+                                   data-kind-required
                                    class="block w-full pl-7 rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all duration-150 bg-gray-50"
                                    placeholder="0.00">
                         </div>
@@ -1001,13 +1134,57 @@ function setupImagePreview(inputId, placeholderId, previewId, filenameId) {
     });
 }
 
+/* ══ Tipo de produto: joia (padrão) x gema avulsa ══ */
+function currentProductKind() {
+    return document.getElementById('product_type').value === 'gema' ? 'gema' : 'joia';
+}
+
+function setProductKind(kind) {
+    kind = kind === 'gema' ? 'gema' : 'joia';
+    document.getElementById('product_type').value = kind;
+
+    document.querySelectorAll('[data-kind-btn]').forEach(btn => {
+        const active = btn.dataset.kindBtn === kind;
+        btn.classList.toggle('border-purple-600', active);
+        btn.classList.toggle('bg-purple-50', active);
+        btn.classList.toggle('border-gray-200', !active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+    });
+
+    // Seções do outro tipo ficam ocultas e desabilitadas (não são enviadas nem validadas)
+    document.querySelectorAll('[data-kind-section]').forEach(section => {
+        const visible = section.dataset.kindSection === kind;
+        section.classList.toggle('hidden', !visible);
+        section.querySelectorAll('input, select, textarea').forEach(field => {
+            field.disabled = !visible;
+            if (field.hasAttribute('data-kind-required')) field.required = visible;
+        });
+    });
+
+    document.getElementById('info-title').textContent = kind === 'joia' ? 'Informações da Joia' : 'Informações da Gema';
+
+    // Categorias do tipo selecionado primeiro; as demais ficam marcadas
+    const categorySelect = document.getElementById('category');
+    Array.from(categorySelect.options).forEach(opt => {
+        if (!opt.value) return;
+        const matches = (opt.dataset.kind || 'gema') === kind;
+        opt.textContent = opt.value + (matches ? '' : (kind === 'joia' ? ' (gema)' : ' (joia)'));
+    });
+
+    updateProductName();
+}
+
 function updateProductName() {
     const riviera = document.getElementById('riviera').checked;
     const nameInput = document.getElementById('name');
     const hint = document.getElementById('name-hint');
     const freeHint = document.getElementById('name-free-hint');
+    const freeHintText = document.getElementById('name-free-hint-text');
+    const isJoia = currentProductKind() === 'joia';
+    if (freeHintText) freeHintText.textContent = isJoia ? 'Joia: dê um nome comercial à peça (ex.: Anel Solitário Aurora)' : 'Riviera: nome livre para editar';
+    if (isJoia && nameInput.placeholder === 'Preenchido automaticamente') nameInput.placeholder = 'Ex.: Anel Solitário Aurora';
 
-    if (riviera) {
+    if (riviera || isJoia) {
         nameInput.removeAttribute('readonly');
         nameInput.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-500');
         nameInput.classList.add('bg-gray-50');
@@ -1102,6 +1279,13 @@ function updateActiveToggleState(autoCheck = false) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    setProductKind(document.getElementById('product_type').value);
+    document.getElementById('category').addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        if (!isEditMode && opt && opt.value && opt.dataset.kind && opt.dataset.kind !== currentProductKind()) {
+            setProductKind(opt.dataset.kind);
+        }
+    });
     updateVariants();        // also calls updateProductName() at its end
     updateActiveToggleState();
 

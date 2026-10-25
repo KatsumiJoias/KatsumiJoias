@@ -431,7 +431,6 @@
                 <div class="space-y-4">
                     <div id="cert-summary-sidebar" class="hidden text-xs bg-luxury-cream/80 rounded-md px-3 py-2 border border-luxury-gold/15">
                         <span data-cert-summary-text class="text-gray-700"></span>
-                        <a href="/guias/certificacao-gemologica" target="_blank" rel="noopener noreferrer" class="text-luxury-gold hover:underline font-medium ml-1">Saiba mais</a>
                     </div>
                     <div class="flex justify-between items-baseline">
                         <span class="brand-eyebrow text-brand-muted">Subtotal</span>
@@ -575,6 +574,8 @@
                     price: product.price,
                     discount: product.discount || 0,
                     caratWeight: product.caratWeight || 1,
+                    kind: product.kind || 'gema',
+                    priceBrl: Number(product.priceBrl) || 0,
                     image: product.image || '',
                     category: product.category || ''
                 });
@@ -617,6 +618,8 @@
                 price: item.price,
                 discount: item.discount || 0,
                 caratWeight: item.caratWeight || 1,
+                kind: item.kind || 'gema',
+                priceBrl: item.priceBrl || 0,
                 image: item.image || ''
             });
             if (added && options.removeFromRecent) {
@@ -629,11 +632,9 @@
                 exchangeRate = await fetchExchangeRate();
             }
             const currency = getCurrency();
-            const caratWeight = item.caratWeight || 1;
-            const discount = item.discount || 0;
-            const totalUSD = item.price * caratWeight * (1 - discount / 100);
+            const totalUSD = cartItemBaseUSD(item) * cartItemDiscountFactor(item);
             if (currency === 'BRL' && exchangeRate && exchangeRate.rate) {
-                const brl = totalUSD * exchangeRate.rate;
+                const brl = cartItemBaseBRL(item, exchangeRate.rate) * cartItemDiscountFactor(item);
                 return {
                     total: `R$ ${brl.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
                     installment: `R$ ${(brl / 5).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
@@ -718,7 +719,7 @@
                 const card = document.createElement('a');
                 card.href = `/product/${item.id}`;
                 card.className = 'product-card product-card-compact catalog-card group flex flex-col flex-shrink-0 w-[42vw] min-w-[140px] max-w-[170px] sm:w-44 md:w-48 lg:w-60 xl:w-64 snap-start';
-                const cw = item.caratWeight;
+                const cw = isJoiaItem(item) ? 0 : item.caratWeight;
                 const caratLabel = cw ? `${Number(cw) % 1 === 0 ? Number(cw) : Number(cw).toFixed(2)} ct` : '';
                 card.innerHTML = `
                     <div class="catalog-card-media relative aspect-[4/5] overflow-hidden flex-shrink-0">
@@ -795,8 +796,30 @@
             return cart.filter(item => item.id !== CERTIFICATE_PRODUCT_ID);
         }
 
+        // Joias têm preço fixo em R$ (priceBrl); gemas usam US$/ct × quilates
+        function isJoiaItem(item) {
+            return !!item && item.kind === 'joia' && Number(item.priceBrl) > 0;
+        }
+
+        function cartItemBaseUSD(item) {
+            if (isJoiaItem(item)) {
+                const rate = exchangeRate && exchangeRate.rate;
+                return rate ? Number(item.priceBrl) / rate : (Number(item.price) || 0);
+            }
+            return (Number(item.price) || 0) * (item.caratWeight || 1);
+        }
+
+        function cartItemBaseBRL(item, rate) {
+            if (isJoiaItem(item)) return Number(item.priceBrl);
+            return (Number(item.price) || 0) * (item.caratWeight || 1) * rate;
+        }
+
+        function cartItemDiscountFactor(item) {
+            return 1 - (item.discount || 0) / 100;
+        }
+
         function countCertificatesInCart(cart) {
-            return getGemCartItems(cart).filter(i => i.wantsCertificate).length;
+            return getGemCartItems(cart).filter(i => i.wantsCertificate && !isJoiaItem(i)).length;
         }
 
         async function getCertificateUnitPriceUSD() {
@@ -815,9 +838,7 @@
         async function calcCartSubtotalUSD(cart) {
             let subtotal = 0;
             getGemCartItems(cart).forEach(item => {
-                const caratWeight = item.caratWeight || 1;
-                const discount = item.discount || 0;
-                subtotal += item.price * caratWeight * (1 - discount / 100);
+                subtotal += cartItemBaseUSD(item) * cartItemDiscountFactor(item);
             });
             subtotal += await calcCertificatesTotalUSD(cart);
             return subtotal;
@@ -844,7 +865,7 @@
                 document.getElementById('cert-summary-page')
             ];
             const count = countCertificatesInCart(cart);
-            const gemCount = getGemCartItems(cart).length;
+            const gemCount = getGemCartItems(cart).filter(i => !isJoiaItem(i)).length;
 
             if (gemCount === 0 || count === 0) {
                 summaryEls.forEach(el => el?.classList.add('hidden'));
@@ -1003,7 +1024,9 @@
                 name: product.name,
                 price: product.price,
                 discount: product.discount || 0,
-                caratWeight: product.caratWeight || 1,
+                caratWeight: product.kind === 'joia' ? 1 : (product.caratWeight || 1),
+                kind: product.kind === 'joia' ? 'joia' : 'gema',
+                priceBrl: product.kind === 'joia' ? (Number(product.priceBrl) || 0) : 0,
                 image: product.image,
                 quantity: 1,
                 wantsCertificate: false
@@ -1026,6 +1049,8 @@
                 price: parseFloat(d.productPrice),
                 discount: parseFloat(d.productDiscount) || 0,
                 caratWeight: parseFloat(d.productCaratWeight) || 1,
+                kind: d.productKind || 'gema',
+                priceBrl: parseFloat(d.productPriceBrl) || 0,
                 image: d.productImage
             });
             toggleCart();
@@ -1151,27 +1176,29 @@
             div.className = 'cart-item pb-4 border-b border-gray-200';
             
             const currency = getCurrency();
-            const caratWeight = item.caratWeight || 1;
             const discount = item.discount || 0;
-            const totalPriceOriginal = item.price * caratWeight;
-            const totalPrice = totalPriceOriginal * (1 - discount / 100);
+            const totalPriceOriginal = cartItemBaseUSD(item);
+            const totalPrice = totalPriceOriginal * cartItemDiscountFactor(item);
             
             let priceDisplay = `$${totalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             let originalPriceHtml = '';
             if (currency === 'BRL' && exchangeRate) {
-                const priceBRL = totalPrice * exchangeRate.rate;
+                const originalBRL = cartItemBaseBRL(item, exchangeRate.rate);
+                const priceBRL = originalBRL * cartItemDiscountFactor(item);
                 priceDisplay = `R$ ${priceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 if (discount > 0) {
-                    const originalBRL = totalPriceOriginal * exchangeRate.rate;
                     originalPriceHtml = `<span class="text-xs text-gray-400 line-through block">R$ ${originalBRL.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
                 }
             } else if (discount > 0) {
                 originalPriceHtml = `<span class="text-xs text-gray-400 line-through block">$${totalPriceOriginal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
             }
 
-            const cert = await getCertificateProduct();
-            const certPriceLabel = cert ? await formatCertPrice(cert) : '';
-            const certToggle = buildCertToggleHtml(item, certPriceLabel);
+            let certToggle = '';
+            if (!isJoiaItem(item)) {
+                const cert = await getCertificateProduct();
+                const certPriceLabel = cert ? await formatCertPrice(cert) : '';
+                certToggle = buildCertToggleHtml(item, certPriceLabel);
+            }
             const safeId = String(item.id).replace(/'/g, "\\'");
             
             div.innerHTML = `
@@ -1393,7 +1420,9 @@
                 const discountMultiplier = 1 - (discount / 100);
                 const hasCarat = !Number.isNaN(caratWeight) && caratWeight > 0;
 
-                const baseTotalUSD = hasCarat ? priceUSD * caratWeight : priceUSD;
+                const fixedBRL = parseFloat(priceEl.dataset.priceBrl);
+                const isFixedBRL = !Number.isNaN(fixedBRL) && fixedBRL > 0;
+                const baseTotalUSD = isFixedBRL && rate ? fixedBRL / rate : (hasCarat ? priceUSD * caratWeight : priceUSD);
                 const finalTotalUSD = baseTotalUSD * discountMultiplier;
 
                 const totalPriceEl = priceEl.querySelector('.total-price');
@@ -1401,8 +1430,8 @@
                 const installmentEl = priceEl.querySelector('.installment-amount');
 
                 if (currency === 'BRL' && rate) {
-                    const baseTotalBRL = baseTotalUSD * rate;
-                    const finalTotalBRL = finalTotalUSD * rate;
+                    const baseTotalBRL = isFixedBRL ? fixedBRL : baseTotalUSD * rate;
+                    const finalTotalBRL = baseTotalBRL * discountMultiplier;
                     const installmentBRL = finalTotalBRL / 5;
 
                     if (discount > 0 && originalTotalPriceEl) {

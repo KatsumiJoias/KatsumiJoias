@@ -500,14 +500,19 @@ US$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X
                     <input type="date" name="next_charge_date" value="{{ order.get('next_charge_date', '') }}"
                            class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <p class="text-xs text-gray-500">
+                        {% if has_endpoint('crm_order_send_charge') %}
                         Na data escolhida, às 8h, o cliente recebe automaticamente o romaneio desta
                         cobrança em PDF por e-mail.
+                        {% else %}
+                        A data aparece no dashboard como lembrete de cobrança para a equipe.
+                        {% endif %}
                     </p>
                     <button type="submit"
                             class="w-full px-4 py-2 rounded-lg text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 transition-colors">
                         Salvar data
                     </button>
                 </form>
+                {% if has_endpoint('crm_order_send_charge') and has_endpoint('crm_order_charge_pdf') %}
                 <div class="px-5 pb-5 pt-0 space-y-2 border-t border-gray-100 mt-1">
                     <p class="pt-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cobrança por e-mail</p>
                     {% if order.get('charge_email_sent_at') %}
@@ -535,6 +540,7 @@ US$ {{ "{:,.2f}".format(value or 0).replace(',','X').replace('.',',').replace('X
                     <p class="text-xs text-amber-700">Cadastre o e-mail do cliente para habilitar o envio.</p>
                     {% endif %}
                 </div>
+                {% endif %}
             </div>
             {% endif %}
 

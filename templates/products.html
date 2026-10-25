@@ -6,7 +6,15 @@
     {%- elif lo -%}a partir de {{ unit_before }}{{ lo }}{{ unit_after }}
     {%- else -%}até {{ unit_before }}{{ hi }}{{ unit_after }}{%- endif -%}
 {%- endmacro %}
-{% set active_filters_count = [filters.search, filters.category, filters.min_altura, filters.max_altura, filters.min_comprimento, filters.max_comprimento, filters.min_largura, filters.max_largura, filters.min_peso, filters.max_peso, filters.min_preco_ct, filters.max_preco_ct, filters.min_preco_total, filters.max_preco_total, filters.cut, filters.numero_pedras, filters.riviera] | select | list | length %}
+{% set active_filters_count = [filters.search, filters.category, filters.min_altura, filters.max_altura, filters.min_comprimento, filters.max_comprimento, filters.min_largura, filters.max_largura, filters.min_peso, filters.max_peso, filters.min_preco_ct, filters.max_preco_ct, filters.min_preco_total, filters.max_preco_total, filters.cut, filters.numero_pedras, filters.riviera, filters.metal, filters.metal_color, filters.main_stone] | select | list | length %}
+{% set is_jewelry_catalog = catalog_kind == 'joia' %}
+{% if request.path.startswith('/joias') %}
+    {% set catalog_root_url, catalog_root_label = '/joias', 'Jóias' %}
+{% elif request.path.startswith('/pedras') %}
+    {% set catalog_root_url, catalog_root_label = '/pedras', 'Pedras preciosas' %}
+{% else %}
+    {% set catalog_root_url, catalog_root_label = '/products', 'Catálogo' %}
+{% endif %}
 {% set sort_labels = {'': 'Destaques', 'price_asc': 'Preço: menor ao maior', 'price_desc': 'Preço: maior ao menor', 'peso_asc': 'Peso: menor ao maior', 'peso_desc': 'Peso: maior ao menor', 'recentes': 'Mais recentes'} %}
 <style>
     .catalog-select {
@@ -42,18 +50,18 @@
             <a href="/" class="hover:text-black transition-colors">Início</a>
             <span class="mx-2">·</span>
             {% if category_slug or filters.search %}
-            <a href="/products" class="hover:text-black transition-colors">Gemas</a>
+            <a href="{{ catalog_root_url }}" class="hover:text-black transition-colors">{{ catalog_root_label }}</a>
             <span class="mx-2">·</span>
             <span class="text-black">{{ filters.search and ('Busca: “' ~ filters.search ~ '”') or category_h1 }}</span>
             {% else %}
-            <span class="text-black">Gemas</span>
+            <span class="text-black">{{ catalog_root_label }}</span>
             {% endif %}
         </nav>
 
         <div class="mt-10 lg:mt-14 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
             <div>
-                <h1 class="brand-display text-3xl sm:text-4xl lg:text-5xl">{{ category_h1|default('Catálogo de Gemas') }}</h1>
-                <p class="mt-4 text-[11px] tracking-[0.2em] uppercase text-brand-muted">{{ pagination.total_count }} {{ 'peça' if pagination.total_count == 1 else 'peças' }} · cada uma é única</p>
+                <h1 class="brand-display text-3xl sm:text-4xl lg:text-5xl">{{ category_h1|default('Jóias') }}</h1>
+                <p class="mt-4 text-[11px] tracking-[0.2em] uppercase text-brand-muted">{{ pagination.total_count }} {{ 'peça' if pagination.total_count == 1 else 'peças' }}{{ '' if is_jewelry_catalog else ' · cada uma é única' }}</p>
             </div>
 
             <div class="flex items-stretch gap-2 sm:gap-3">
@@ -89,7 +97,7 @@
             </button>
         </div>
     </div>
-    <form id="filter-form" method="GET" action="{% if category_slug %}{{ url_for('category_page', category_slug=category_slug) }}{% else %}/products{% endif %}" class="px-8 py-8 space-y-8">
+    <form id="filter-form" method="GET" action="{{ catalog_base_url or '/products' }}" class="px-8 py-8 space-y-8">
         {% if filters.search %}
         <input type="hidden" name="search" value="{{ filters.search }}">
         <div class="pb-6 border-b border-brand-line">
@@ -102,7 +110,7 @@
         {% endif %}
 
         <div>
-            <label for="category" class="catalog-filter-label block">Gema</label>
+            <label for="category" class="catalog-filter-label block">{{ 'Tipo de joia' if is_jewelry_catalog else ('Gema' if catalog_root_url == '/pedras' else 'Categoria') }}</label>
             <select name="category" id="category" onchange="handleFilterChangeImmediate()" class="catalog-select">
                 <option value="">Todas</option>
                 {% for cat in categories %}
@@ -111,6 +119,52 @@
             </select>
         </div>
 
+        {% if jewelry_filters and jewelry_filters.metals %}
+        <div>
+            <label for="metal" class="catalog-filter-label block">Metal</label>
+            <select name="metal" id="metal" onchange="handleFilterChangeImmediate()" class="catalog-select">
+                <option value="">Todos</option>
+                {% for key, label in jewelry_filters.metals %}
+                <option value="{{ key }}" {% if filters.metal == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        {% if jewelry_filters and jewelry_filters.metal_colors %}
+        <div>
+            <label for="metal_color" class="catalog-filter-label block">Cor do metal</label>
+            <select name="metal_color" id="metal_color" onchange="handleFilterChangeImmediate()" class="catalog-select">
+                <option value="">Todas</option>
+                {% for key, label in jewelry_filters.metal_colors %}
+                <option value="{{ key }}" {% if filters.metal_color == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        {% if jewelry_filters and jewelry_filters.stones %}
+        <div>
+            <label for="main_stone" class="catalog-filter-label block">Pedra principal</label>
+            <select name="main_stone" id="main_stone" onchange="handleFilterChangeImmediate()" class="catalog-select">
+                <option value="">Todas</option>
+                {% for stone in jewelry_filters.stones %}
+                <option value="{{ stone }}" {% if filters.main_stone == stone %}selected{% endif %}>{{ stone }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div>
+            <label for="preco-total-range-select" class="catalog-filter-label block">Preço total (R$)</label>
+            <select id="preco-total-range-select" class="catalog-select">
+                <option value="">Todos</option>
+            </select>
+            <input type="hidden" id="preco-total-i-min" name="min_preco_total" value="{{ filters.min_preco_total or '' }}">
+            <input type="hidden" id="preco-total-i-max" name="max_preco_total" value="{{ filters.max_preco_total or '' }}">
+        </div>
+
+        <div class="space-y-8 {{ 'hidden' if is_jewelry_catalog }}">
         <!-- Altura (hidden — most products don't have this field populated) -->
         <div class="hidden">
             <div class="drs-wrap" id="altura-slider"><div class="drs-track-bg"></div><div class="drs-track-fill" id="altura-fill"></div><input type="range" id="altura-r-min" step="0.1"><input type="range" id="altura-r-max" step="0.1"></div>
@@ -125,15 +179,6 @@
             </select>
             <input type="hidden" id="peso-i-min" name="min_peso" value="{{ filters.min_peso or '' }}">
             <input type="hidden" id="peso-i-max" name="max_peso" value="{{ filters.max_peso or '' }}">
-        </div>
-
-        <div>
-            <label for="preco-total-range-select" class="catalog-filter-label block">Preço total (R$)</label>
-            <select id="preco-total-range-select" class="catalog-select">
-                <option value="">Todos</option>
-            </select>
-            <input type="hidden" id="preco-total-i-min" name="min_preco_total" value="{{ filters.min_preco_total or '' }}">
-            <input type="hidden" id="preco-total-i-max" name="max_preco_total" value="{{ filters.max_preco_total or '' }}">
         </div>
 
         <div>
@@ -196,6 +241,7 @@
             </label>
         </div>
         {% endif %}
+        </div>
     </form>
 </aside>
 
@@ -242,15 +288,18 @@
         </nav>
         {% endif %}
         {% else %}
-        {% set has_filters = filters.search or filters.category or filters.min_altura or filters.max_altura or filters.min_comprimento or filters.max_comprimento or filters.min_largura or filters.max_largura or filters.min_peso or filters.max_peso or filters.min_preco_ct or filters.max_preco_ct or filters.min_preco_total or filters.max_preco_total or filters.cut or filters.numero_pedras or filters.riviera %}
+        {% set has_filters = active_filters_count > 0 %}
         <div class="max-w-xl mx-auto text-center py-20 border-t border-b border-brand-line">
             <h2 class="brand-title text-sm">Nenhuma peça encontrada</h2>
-            <p class="mt-4 text-sm text-brand-muted">Não encontramos pedras com os filtros aplicados.</p>
+            <p class="mt-4 text-sm text-brand-muted">{{ 'Não encontramos peças com os filtros aplicados.' if has_filters else 'Novas peças chegam em breve.' }}</p>
 
             {% if has_filters %}
             <ul class="mt-8 inline-flex flex-col gap-2 text-left text-[12px] text-black/80">
                 {% if filters.search %}<li><span class="catalog-filter-label mr-2">Busca</span>“{{ filters.search }}”</li>{% endif %}
-                {% if filters.category %}<li><span class="catalog-filter-label mr-2">Gema</span>{{ filters.category }}</li>{% endif %}
+                {% if filters.category %}<li><span class="catalog-filter-label mr-2">Categoria</span>{{ filters.category }}</li>{% endif %}
+                {% if filters.metal %}<li><span class="catalog-filter-label mr-2">Metal</span>{{ filters.metal }}</li>{% endif %}
+                {% if filters.metal_color %}<li><span class="catalog-filter-label mr-2">Cor do metal</span>{{ filters.metal_color }}</li>{% endif %}
+                {% if filters.main_stone %}<li><span class="catalog-filter-label mr-2">Pedra</span>{{ filters.main_stone }}</li>{% endif %}
                 {% if filters.min_altura or filters.max_altura %}<li><span class="catalog-filter-label mr-2">Altura</span>{{ _range(filters.min_altura, filters.max_altura, '', ' mm') }}</li>{% endif %}
                 {% if filters.min_comprimento or filters.max_comprimento %}<li><span class="catalog-filter-label mr-2">Comprimento</span>{{ _range(filters.min_comprimento, filters.max_comprimento, '', ' mm') }}</li>{% endif %}
                 {% if filters.min_largura or filters.max_largura %}<li><span class="catalog-filter-label mr-2">Largura</span>{{ _range(filters.min_largura, filters.max_largura, '', ' mm') }}</li>{% endif %}
@@ -264,8 +313,8 @@
             {% endif %}
 
             <div class="mt-10 flex flex-col sm:flex-row justify-center gap-3">
-                <button type="button" onclick="clearFilters()" class="brand-btn brand-btn--dark">Limpar filtros</button>
-                <a href="/" class="brand-btn brand-btn--outline">Voltar ao início</a>
+                {% if has_filters %}<button type="button" onclick="clearFilters()" class="brand-btn brand-btn--dark">Limpar filtros</button>{% endif %}
+                <a href="/crie-sua-joia" class="brand-btn brand-btn--outline">Crie sua jóia</a>
             </div>
         </div>
         {% endif %}
@@ -284,6 +333,7 @@
 </style>
 <script type="application/json" id="jinja-data">
 {
+    "catalogRoot": {{ catalog_root_url | tojson }},
     "categoryOptions": {{ category_options | tojson }},
     "bounds": {
         "altura":      {"min": {{ bounds.altura.min }},      "max": {{ bounds.altura.max }}},
@@ -507,14 +557,14 @@ function handleFilterChangeImmediate() {
     var pageCategory = (_jinjaData.filters && _jinjaData.filters.category) || '';
     if (catSel && catSel.value !== pageCategory) {
         var val = catSel.value;
-        window.location.href = val ? ('/products?category=' + encodeURIComponent(val)) : '/products';
+        window.location.href = val ? ('/products?category=' + encodeURIComponent(val)) : (_jinjaData.catalogRoot || '/products');
         return;
     }
     _submitFilters();
 }
 
 function clearFilters() {
-    window.location.href = '/products';
+    window.location.href = _jinjaData.catalogRoot || '/products';
 }
 
 // ---- Category-aware dropdown filtering ----

@@ -96,14 +96,29 @@ API_KEY_BREVO=xkeysib-...
 WHATSGW_API_KEY=...
 WHATSGW_PHONE_NUMBER=5531...
 WHATSGW_INSTANCIA_ID=...
-SUPPORT_WHATSAPP_NUMBER=5531911500029
+SUPPORT_WHATSAPP_NUMBER=5511971581675
+
+# --- Crie sua jóia (geração de imagens) ---
+OPENAI_API_KEY=sk-...
+IMAGE_PROVIDER_PRIMARY=openai          # openai | google | mock
+OPENAI_IMAGE_MODEL=gpt-image-2.5-sunburst   # ou gpt-image-2.5-flare
+GEMINI_API_KEY=...
+IMAGE_PROVIDER_FALLBACK=google         # usado se o principal falhar
+QUOTES_NOTIFY_EMAIL=atendimento@katsumijoias.com.br
 
 # --- Outros ---
 SITE_URL=https://katsumijoias.com.br
 EXCHANGE_RATE_CRON_SECRET=um-segredo-para-cron
 ```
 
-6. Execute a aplicação:
+7. (Opcional) Popule o banco com dados de exemplo:
+```bash
+python seed_data.py            # joias, gemas, clientes, pedidos, orçamentos...
+python seed_data.py --upload   # idem, enviando as imagens ao Firebase Storage
+python seed_data.py --wipe     # remove tudo que o seed criou
+```
+
+8. Execute a aplicação:
 ```bash
 python app.py
 ```
@@ -129,11 +144,40 @@ Acesse: http://localhost:5000
 | `WHATSGW_API_KEY`             |             | Chave de API do WhatsGW                          |
 | `WHATSGW_PHONE_NUMBER`        |             | Número do WhatsApp para envio                    |
 | `WHATSGW_INSTANCIA_ID`        |             | ID da instância WhatsGW                          |
-| `SUPPORT_WHATSAPP_NUMBER`     |             | Número de suporte exibido no site                |
+| `SUPPORT_WHATSAPP_NUMBER`     |             | Número de suporte exibido no site (padrão 5511971581675) |
 | `SITE_URL`                    |             | URL pública do site                              |
 | `EXCHANGE_RATE_CRON_SECRET`   |             | Segredo para endpoint de atualização de câmbio   |
 
 > *Forneça `FIREBASE_CREDENTIALS_JSON` **ou** `FIREBASE_CREDENTIALS_PATH` (não ambos).
+
+### Crie sua jóia (imagens por IA)
+
+Sem nenhuma chave configurada o estúdio funciona em modo **mock** (imagens ilustrativas locais), útil para testar o fluxo.
+
+| Variável                           | Padrão                     | Descrição |
+| ---------------------------------- | -------------------------- | --------- |
+| `OPENAI_API_KEY`                   | —                          | Chave da OpenAI (geração, ajuste e moderação de texto) |
+| `OPENAI_ORG_ID`                    | —                          | Organização OpenAI (opcional) |
+| `OPENAI_IMAGE_MODEL`               | `gpt-image-2.5-sunburst`   | Modelo de geração (`gpt-image-2.5-flare` também é aceito) |
+| `OPENAI_IMAGE_EDIT_MODEL`          | igual ao de geração        | Modelo do "Ajustar esta imagem" |
+| `OPENAI_IMAGE_QUALITY`             | `high`                     | Qualidade da imagem |
+| `GEMINI_API_KEY` / `GOOGLE_API_KEY`| —                          | Chave do Google AI Studio (provedor alternativo) |
+| `GEMINI_IMAGE_MODEL`               | `gemini-nano-banana-2.1`   | Modelo de imagem do Google |
+| `IMAGE_PROVIDER_PRIMARY`           | automático                 | `openai`, `google` ou `mock` |
+| `IMAGE_PROVIDER_FALLBACK`          | `google` se houver chave   | Provedor usado quando o principal falha |
+| `IMAGE_PROVIDER_MAX_RETRIES`       | `2`                        | Tentativas por imagem antes do fallback |
+| `DESIGNER_IMAGES_PER_GENERATION`   | `2`                        | Variações por geração (1 ou 2) |
+| `DESIGNER_DAILY_LIMIT_PER_USER`    | `10`                       | Gerações por cliente por dia |
+| `DESIGNER_MAX_CONCURRENT_PER_USER` | `1`                        | Gerações simultâneas por cliente |
+| `DESIGNER_DAILY_BUDGET_USD`        | `25`                       | Teto diário de gasto estimado (todas as gerações) |
+| `DESIGNER_COST_PER_IMAGE_USD`      | `0.17`                     | Custo estimado por imagem OpenAI (para o teto/relatório) |
+| `GEMINI_COST_PER_IMAGE_USD`        | `0.04`                     | Custo estimado por imagem Google |
+| `DESIGNER_CACHE` / `DESIGNER_CACHE_TTL_DAYS` | `1` / `30`       | Reaproveita imagens de escolhas idênticas |
+| `DESIGNER_MODERATION`              | `1`                        | `0` desliga a moderação do texto livre |
+| `DESIGNER_USE_REFERENCES`          | `0`                        | `1` envia as imagens de `static/designer/refs/` como referência |
+| `QUOTES_NOTIFY_EMAIL`              | —                          | E-mail que recebe aviso de novo orçamento |
+
+Os jobs de geração rodam em threads do próprio processo, por isso o Cloud Run usa `--no-cpu-throttling` (já configurado no workflow).
 
 ## Deploy — GitHub Actions + Cloud Run
 
@@ -205,7 +249,8 @@ gcloud run deploy katsumijoias-app \
   --image=southamerica-east1-docker.pkg.dev/katsumijoias/docker-repo/katsumijoias-app:latest \
   --region=southamerica-east1 \
   --project=katsumijoias \
-  --allow-unauthenticated
+  --allow-unauthenticated \
+  --no-cpu-throttling
 ```
 
 ### Variáveis de ambiente no Cloud Run (obrigatório)
@@ -223,6 +268,10 @@ Mínimo para subir:
 | `FIREBASE_AUTH_DOMAIN` | `katsumijoias.firebaseapp.com` |
 | `FIREBASE_MESSAGING_SENDER_ID` | do Console |
 | `FIREBASE_APP_ID` | do Console |
+
+Para o **Crie sua jóia**, adicione também `OPENAI_API_KEY` e/ou `GEMINI_API_KEY` — de preferência como
+*secret* (Secret Manager → "Reference a secret" na mesma tela) — além de `IMAGE_PROVIDER_PRIMARY`,
+`OPENAI_IMAGE_MODEL` e `QUOTES_NOTIFY_EMAIL`.
 
 No Cloud Run, o Admin SDK usa a **service account do serviço** (ADC) — não precisa de `FIREBASE_CREDENTIALS_PATH`. Garanta que essa SA tenha acesso Firestore/Storage (ou use secret `FIREBASE_CREDENTIALS_JSON`).
 
@@ -252,7 +301,11 @@ firebase deploy --only storage
 
 | Coleção          | Descrição                                   |
 | ---------------- | ------------------------------------------- |
-| `products`       | Catálogo de produtos                        |
+| `products`       | Catálogo (joias `product_type=joia` e gemas) |
+| `jewelry_designs`| Criações do "Crie sua jóia" (escolhas, prompt, imagens, custo) |
+| `designer_cache` | Cache de imagens por combinação de escolhas |
+| `designer_usage` | Uso/custo diário do gerador de imagens      |
+| `quotes`         | Orçamentos de joias personalizadas          |
 | `customers`      | Cadastro de clientes                        |
 | `orders`         | Pedidos                                     |
 | `settings`       | Configurações do sistema                    |
@@ -272,6 +325,11 @@ KatsumiJoias/
 ├── whatsapp_service.py             # Integração WhatsGW
 ├── pagarme.py                      # Integração Pagar.me (pagamentos)
 ├── seo.py                          # SEO (sitemap, meta tags)
+├── product_types.py                # Joia x gema: preços, estoque, specs
+├── jewelry_designer.py             # Crie sua jóia: catálogo, regras, prompts, moderação
+├── designer_service.py             # Crie sua jóia: jobs, limites, cache, orçamentos
+├── image_generation/               # Provedores de imagem (OpenAI, Google, mock)
+├── seed_data.py                    # Dados de exemplo (python seed_data.py --help)
 ├── templates/                      # Templates HTML (Jinja2)
 │   ├── base.html                   # Template base do site
 │   ├── homepage.html               # Página inicial
@@ -309,8 +367,11 @@ KatsumiJoias/
 | Rota                 | Descrição                 |
 | -------------------- | ------------------------- |
 | `/`                  | Página inicial            |
-| `/products`          | Catálogo de produtos      |
+| `/joias`, `/joias/<tipo>` | Catálogo de joias    |
+| `/pedras`, `/pedras/<tipo>` | Gemas avulsas      |
 | `/product/<id>`      | Detalhes do produto       |
+| `/crie-sua-joia`     | Estúdio de criação com IA |
+| `/historia`          | Nossa história            |
 | `/cart`              | Carrinho de compras       |
 | `/checkout`          | Checkout                  |
 | `/login`             | Login do cliente          |
@@ -324,6 +385,7 @@ KatsumiJoias/
 | `/crm/produtos`       | Gerenciar produtos       |
 | `/crm/clientes`       | Gerenciar clientes       |
 | `/crm/pedidos`        | Gerenciar pedidos        |
+| `/crm/orcamentos`     | Orçamentos do Crie sua jóia |
 | `/crm/vendedores`     | Gerenciar vendedores     |
 | `/crm/solicitacoes`   | Solicitações             |
 | `/crm/newsletter`     | Newsletter               |

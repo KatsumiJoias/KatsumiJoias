@@ -382,3 +382,34 @@ def send_order_tracking_email(order, tracking_code):
     except Exception as exc:
         _log_email(f'ORDER_TRACKING failed: {type(exc).__name__}: {exc}')
         return False
+
+
+def send_admin_quote_notification(quote):
+    """Avisa a equipe (QUOTES_NOTIFY_EMAIL) sobre um novo pedido de orçamento do 'Crie sua jóia'."""
+    to_email = (os.getenv('QUOTES_NOTIFY_EMAIL') or '').strip()
+    if not to_email:
+        return False
+    labels = quote.get('labels') or {}
+    number = quote.get('id', '')[:8].upper()
+    crm_url = f"{_site_url()}/crm/orcamentos/{quote.get('id', '')}"
+    rows = ''.join(
+        f'<tr><td style="padding:4px 12px 4px 0;color:#666">{k}</td><td style="padding:4px 0">{v}</td></tr>'
+        for k, v in (
+            ('Cliente', quote.get('customer_name', '')),
+            ('E-mail', quote.get('customer_email', '')),
+            ('Telefone', quote.get('customer_phone', '') or '—'),
+            ('Tipo', labels.get('jewelry_type', '')),
+            ('Metal', labels.get('metal', '')),
+            ('Pedra', ' · '.join(x for x in (labels.get('stone'), labels.get('shape'), labels.get('size'), labels.get('count')) if x)),
+            ('Detalhes', quote.get('details_text') or '—'),
+            ('Observações', quote.get('notes') or '—'),
+        )
+    )
+    html_content = (
+        f'<div style="font-family:Arial,sans-serif;font-size:14px;color:#111">'
+        f'<h2 style="font-weight:normal">Novo pedido de orçamento #{number}</h2>'
+        f'<p><img src="{quote.get("selected_image_url", "")}" alt="Prévia" width="320" style="border:1px solid #eee"></p>'
+        f'<table>{rows}</table>'
+        f'<p><a href="{crm_url}">Abrir no CRM</a></p></div>'
+    )
+    return _send_email(to_email, 'Katsumi Joias', f'Novo orçamento “Crie sua jóia” #{number}', html_content)

@@ -354,7 +354,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="field-phone">Telefone / WhatsApp *</label>
-                            <input type="tel" id="field-phone" name="phone" class="form-input" placeholder="(31) 9115-0029" autocomplete="tel" required>
+                            <input type="tel" id="field-phone" name="phone" class="form-input" placeholder="(11) 99999-9999" autocomplete="tel" required>
                             <div class="error-msg" id="err-phone">Por favor, informe um telefone válido.</div>
                         </div>
                     </div>
@@ -518,7 +518,7 @@
                     <span aria-hidden="true">·</span>
                     <a href="/privacy-policy" target="_blank">Política de Privacidade</a>
                     <span aria-hidden="true">·</span>
-                    <a href="https://wa.me/5531911500029" target="_blank" rel="noopener">WhatsApp (31) 9115-0029</a>
+                    <a href="https://wa.me/{{ support_whatsapp_number }}" target="_blank" rel="noopener">WhatsApp {{ support_whatsapp_display }}</a>
                 </div>
 
             </form>
@@ -568,7 +568,7 @@
                             <svg class="w-7 h-7 text-luxury-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                             </svg>
-                            <span>Laudo Gemológico</span>
+                            <span>Garantia Katsumi</span>
                         </div>
                     </div>
                 </div>
@@ -577,12 +577,8 @@
                 <div class="shipping-promo">
                     <h3 class="font-serif text-base mb-2">Envio segurado, do cofre à sua porta</h3>
                     <p class="text-sm text-white/75 leading-relaxed mb-3">
-                        Suas gemas são embaladas com discrição e rastreamento completo até a entrega.
+                        Suas joias são embaladas com discrição e rastreamento completo até a entrega.
                     </p>
-                    <a href="/guias/como-funciona-o-envio" class="text-sm text-luxury-gold-light hover:text-white transition-colors inline-flex items-center gap-1">
-                        Como funciona o envio
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </a>
                 </div>
             </div>
         </aside>
@@ -657,19 +653,24 @@ function loadCart() {
     renderCartSummary();
 }
 
+function itemIsJoia(item) {
+    return item && item.kind === 'joia' && Number(item.priceBrl) > 0;
+}
+
 function calcItemPriceBRL(item) {
-    const priceUSD = parseFloat(item.price) || 0;
     const qty      = parseInt(item.quantity) || 1;
-    const carat    = parseFloat(item.caratWeight) || 1;
     const discount = item.discount || 0;
+    const rate     = EXCHANGE_RATE && EXCHANGE_RATE.rate ? EXCHANGE_RATE.rate : 0;
+    if (itemIsJoia(item)) {
+        return Number(item.priceBrl) * qty * (1 - discount / 100);
+    }
+    const priceUSD = parseFloat(item.price) || 0;
+    const carat    = parseFloat(item.caratWeight) || 1;
     let totalUSD = priceUSD * carat * qty * (1 - discount / 100);
     if (item.wantsCertificate && certificateUnitUSD) {
         totalUSD += certificateUnitUSD;
     }
-    if (EXCHANGE_RATE && EXCHANGE_RATE.rate) {
-        return totalUSD * EXCHANGE_RATE.rate;
-    }
-    return totalUSD;
+    return rate ? totalUSD * rate : totalUSD;
 }
 
 function fmtBRL(value) {
@@ -692,11 +693,15 @@ function renderCartSummary() {
             : `<div class="item-img-wrap"><div class="item-img-placeholder"><svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg></div></div>`;
 
         const specsParts = [];
-        if (item.caratWeight) specsParts.push(`${item.caratWeight} ct`);
-        specsParts.push('peça única');
+        if (itemIsJoia(item)) {
+            specsParts.push('joia');
+        } else {
+            if (item.caratWeight) specsParts.push(`${item.caratWeight} ct`);
+            specsParts.push('peça única');
+        }
         const specsHtml = `<p class="text-xs text-gray-500 mt-0.5">${specsParts.join(' · ')}</p>`;
 
-        const certHtml = item.wantsCertificate
+        const certHtml = item.wantsCertificate && !itemIsJoia(item)
                         ? `<p class="text-xs text-luxury-gold font-medium mt-0.5">+ Laudo Gemológico</p>`
             : '';
 

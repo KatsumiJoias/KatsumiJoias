@@ -149,6 +149,43 @@ def upload_image(file, filename, folder='product-images'):
                 except Exception:
                     pass
 
+
+def upload_bytes(data, path, content_type='image/png'):
+    """Upload raw bytes to Firebase Storage under `path` and return the public URL."""
+    if not data:
+        return None
+    try:
+        blob = bucket.blob(path)
+        blob.cache_control = 'public, max-age=31536000'
+        blob.upload_from_string(data, content_type=content_type)
+        blob.make_public()
+        return blob.public_url
+    except Exception as e:
+        print(f"Error in upload_bytes ({path}): {e}")
+        return None
+
+
+def download_public_url(url, timeout=20):
+    """Download bytes from one of our Storage URLs (used by the image edit flow)."""
+    if not url:
+        return None
+    try:
+        if url.startswith('/static/'):
+            local_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), url.lstrip('/'))
+            with open(local_path, 'rb') as fh:
+                return fh.read()
+        prefix = f'https://storage.googleapis.com/{bucket.name}/'
+        if url.startswith(prefix):
+            blob = bucket.blob(url[len(prefix):])
+            return blob.download_as_bytes()
+        import requests
+        resp = requests.get(url, timeout=timeout)
+        resp.raise_for_status()
+        return resp.content
+    except Exception as e:
+        print(f"Error downloading {url}: {e}")
+        return None
+
 def delete_image(filename):
     """
     Delete an image from Firebase Storage.
@@ -275,6 +312,18 @@ def record_product_sale(product_id, sale_record):
             'sales_history': history,
             'last_sold_at': sale_record.get('sold_at'),
         }
+        # Joias podem ter mais de uma unidade em estoque: só sai do ar ao zerar
+        if product.get('product_type') == 'joia':
+            try:
+                qty = int(float(product.get('stock_qty') if product.get('stock_qty') not in (None, '') else 1))
+            except (ValueError, TypeError):
+                qty = 1
+            sold_units = max(1, int(sale_record.get('quantity') or 1))
+            remaining = max(0, qty - sold_units)
+            update_data['stock_qty'] = remaining
+            if remaining > 0 or product.get('made_to_order'):
+                update_data['active'] = bool(product.get('active', False))
+                update_data['sold_out'] = False
         return update_product(product_id, update_data)
     except Exception as e:
         print(f"Error recording product sale: {e}")
@@ -379,6 +428,28 @@ def apply_product_stock_sale(product_id, sale_record, carat_sold=None, pedras_so
                 'numero_pedras': product.get('numero_pedras'),
                 'active': product.get('active', False),
                 'already_applied': True,
+            }
+
+        if product.get('product_type') == 'joia':
+            # Joias: estoque em unidades (stock_qty); `pedras_sold` = unidades vendidas
+            try:
+                qty = int(float(product.get('stock_qty') if product.get('stock_qty') not in (None, '') else 1))
+            except (ValueError, TypeError):
+                qty = 1
+            units = max(1, int(pedras_sold or 1))
+            remaining = max(0, qty - units)
+            update_data = {
+                'sales_history': history + [sale_record],
+                'stock_qty': remaining,
+                'last_sold_at': sale_record.get('sold_at'),
+            }
+            if remaining <= 0 and not product.get('made_to_order'):
+                update_data['active'] = False
+                update_data['sold_out'] = True
+            update_product(product_id, update_data)
+            return {
+                'stock_qty': remaining,
+                'active': update_data.get('active', product.get('active', False)),
             }
 
         current_carat = parse_carat_value(product.get('carat_weight'))

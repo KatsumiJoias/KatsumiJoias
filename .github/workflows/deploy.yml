@@ -95,7 +95,7 @@ jobs:
           region: ${{ env.REGION }}
           project_id: katsumijoias
           image: ${{ env.IMAGE }}:${{ github.sha }}
-          flags: --allow-unauthenticated
+          flags: --allow-unauthenticated --no-cpu-throttling
 
       - name: 9 — Allow public HTTP access (run.invoker for allUsers)
         run: |

@@ -1,48 +1,64 @@
 {% extends "base.html" %}
 
-{% block title %}Nossa História — Katsumi Joias | Tradição desde 1942{% endblock %}
+{% block title %}{{ seo.title if seo else 'Nossa História — Katsumi Joias' }}{% endblock %}
 
 {% block content %}
 <div class="bg-black text-white">
 
 <!-- Title -->
 <section class="max-w-[1600px] mx-auto px-6 lg:px-12 pt-20 lg:pt-28 pb-16 lg:pb-24 text-center">
-    <p class="brand-eyebrow text-white/50">Tradição desde 1942</p>
+    <p class="brand-eyebrow text-white/50">KATSUMI</p>
     <h1 class="brand-display text-4xl sm:text-5xl lg:text-7xl mt-6 tracking-[0.16em]">Nossa história</h1>
     <p class="mt-8 text-[15px] text-white/60 leading-relaxed max-w-xl mx-auto">
-        Duas gerações dedicadas à arte da lapidação e à curadoria das gemas mais belas.
+        A arte de transformar histórias em joias eternas.
     </p>
 </section>
 
 {% set chapters = [
     {
-        'eyebrow': 'Origem',
-        'title': ['Corinto', '& Curvelo'],
+        'eyebrow': 'Nossa história',
+        'title': ['Um recomeço', 'que virou vocação'],
         'img': 'images/nossa-historia.png',
-        'alt': 'Wilson Alves Paixão — fundador da Katsumi Joias',
-        'text': 'Na cidade de Corinto‑MG, berço dos mais belos cristais, nasceu um homem destinado a se apaixonar pelas pedras preciosas. Wilson Alves Paixão, filho da terra, passou sua infância em Curvelo‑MG, no coração de Minas Gerais, onde a fascinação pelas cores e brilhos das gemas começou a se formar.'
+        'alt': 'Ateliê Katsumi Joias',
+        'paragraphs': [
+            'A KATSUMI nasce de uma trajetória marcada pela resiliência, pelo espírito empreendedor e pela paixão pela arte de criar.',
+            'Nossa história começa com um recomeço. Após enfrentar desafios que transformaram profundamente minha vida profissional, encontrei na joalheria uma nova oportunidade de construir algo significativo. O que inicialmente surgiu como uma alternativa para seguir em frente tornou-se uma verdadeira vocação.',
+            'Foi assim que iniciei minha jornada no universo da joalheria, mergulhando no aprendizado de cada etapa do processo de criação. Da fabricação artesanal à modelagem tridimensional, da fundição à cravação e ao conhecimento aprofundado de diamantes e pedras preciosas, desenvolvi uma visão que une domínio técnico, sensibilidade estética e respeito pela tradição joalheira.',
+            'Com dedicação e perseverança, construí minha própria estrutura de trabalho, transformando um pequeno espaço em um ponto de partida para um projeto muito maior: criar joias que carreguem identidade, excelência e significado.',
+        ],
     },
     {
-        'eyebrow': 'O ofício',
-        'title': ['Lapidário', 'aos 13 anos'],
+        'eyebrow': 'Nossa essência',
+        'title': ['Antes de', 'ganhar forma'],
         'img': none,
-        'alt': 'Ateliê de lapidação',
-        'text': 'A jornada de Wilson o levou, junto com sua numerosa família de treze irmãos, à movimentada Belo Horizonte. Com apenas 13 anos de idade, iniciou seu aprendizado na arte da lapidação de pedras preciosas, mergulhando profundamente no fascinante mundo das gemas.'
+        'alt': 'Criação de joias sob medida',
+        'paragraphs': [
+            'Acreditamos que uma joia extraordinária começa muito antes de ganhar forma. Ela nasce de uma ideia, de uma inspiração ou de um momento que merece ser eternizado.',
+            'Por isso, cada criação KATSUMI é conduzida com atenção aos detalhes, seleção criteriosa de materiais e compromisso com a qualidade. Nosso trabalho une conhecimento técnico, design exclusivo e a arte da fabricação de joias para transformar desejos em peças singulares.',
+            'Trabalhamos com joias sob medida, diamantes e pedras preciosas, desenvolvendo projetos personalizados que respeitam a individualidade e o estilo de cada cliente.',
+        ],
     },
     {
-        'eyebrow': '1942',
-        'title': ['A fundação', 'da Katsumi Joias'],
+        'eyebrow': 'Exclusividade',
+        'title': ['Exclusividade', 'em cada detalhe'],
         'img': 'images/nossahistoria.jpg',
-        'alt': 'Oficina de lapidação Katsumi Joias',
-        'text': 'Aos 26 anos, movido pela visão e pelo amor inabalável por essas riquezas naturais, Wilson Alves Paixão fundou a Katsumi Joias. A empresa logo se destacou como renomada fornecedora de pedras calibradas, atendendo às demandas dos grandes mestres joalheiros do Brasil.'
+        'alt': 'Detalhe de cravação de pedras preciosas',
+        'paragraphs': [
+            'Na KATSUMI, a exclusividade vai além do design. Ela está presente na escolha de cada pedra, no desenvolvimento de cada projeto e no cuidado dedicado à execução de cada peça.',
+            'Por meio da modelagem 3D e do acompanhamento do processo de criação, buscamos proporcionar uma experiência personalizada, na qual o cliente participa da transformação de sua ideia em uma joia concebida especialmente para ele.',
+            'Cada detalhe importa. Cada escolha tem um propósito. Cada criação carrega uma identidade própria.',
+        ],
     },
     {
-        'eyebrow': 'Hoje',
-        'title': ['A segunda', 'geração'],
+        'eyebrow': 'Nosso compromisso',
+        'title': ['Mais do que', 'joias'],
         'img': 'images/faca-parte.png',
-        'alt': 'Gemas selecionadas pela Katsumi Joias',
-        'text': 'A chama da Katsumi Joias continua acesa com seu filho, Wilson Paixão, à frente da empresa. Com a mesma dedicação, ele se destaca na lapidação e nas complexas operações de importação e exportação de pedras preciosas.'
-    }
+        'alt': 'Joias Katsumi',
+        'paragraphs': [
+            'Nosso compromisso é oferecer mais do que joias: é proporcionar confiança, atendimento personalizado e criações que preservem seu valor estético e afetivo ao longo do tempo.',
+            'Valorizamos a transparência, a excelência artesanal e a relação de confiança construída com cada cliente.',
+        ],
+    },
 ] %}
 
 <!-- Chapters -->
@@ -65,37 +81,43 @@
                 <h2 class="brand-display text-3xl lg:text-[2.75rem] mt-6 tracking-[0.12em]">
                     {% for line in ch.title %}<span class="block">{{ line }}</span>{% endfor %}
                 </h2>
-                <p class="mt-8 text-[15px] text-white/65 leading-[1.8]">{{ ch.text }}</p>
+                <div class="mt-8 space-y-5">
+                    {% for p in ch.paragraphs %}
+                    <p class="text-[15px] text-white/65 leading-[1.8]">{{ p }}</p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </article>
     {% endfor %}
 </section>
 
-<!-- Quote -->
+<!-- KATSUMI — além do tempo -->
 <section class="border-t border-white/10">
     <div class="max-w-4xl mx-auto px-6 py-24 lg:py-32 text-center">
-        <blockquote>
+        <h2 class="brand-display text-3xl lg:text-5xl tracking-[0.14em]">KATSUMI — além do tempo.</h2>
+        <blockquote class="mt-12">
             <p class="text-2xl md:text-4xl font-light leading-snug tracking-wide">
-                “A história da Katsumi Joias é uma história de amor, dedicação e excelência que atravessa gerações.”
+                “Acreditamos que as joias mais especiais são aquelas que contam histórias, celebram conquistas e atravessam gerações.”
             </p>
         </blockquote>
-        <p class="mt-10 text-[15px] text-white/55 leading-relaxed max-w-2xl mx-auto">
-            Explore conosco o mundo das pedras preciosas, onde a tradição se funde com a inovação, criando joias únicas que ecoam a paixão que nos impulsiona desde o início.
-        </p>
+        <div class="mt-10 space-y-5 text-[15px] text-white/55 leading-relaxed max-w-2xl mx-auto">
+            <p>Nossa trajetória nos ensinou que grandes realizações nascem da coragem de recomeçar, da dedicação ao trabalho e da busca constante pela excelência.</p>
+            <p>É essa filosofia que inspira a KATSUMI a transformar pedras preciosas, metais nobres e ideias em criações únicas — joias feitas para marcar momentos e permanecer para sempre na memória de quem as possui.</p>
+        </div>
     </div>
 </section>
 
-<!-- Timeline -->
+<!-- O processo -->
 <section class="border-t border-white/10">
     <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 lg:py-28">
-        <h2 class="brand-title text-xs text-white/50 mb-12">Trajetória</h2>
+        <h2 class="brand-title text-xs text-white/50 mb-12">Da ideia à joia</h2>
         {% set milestones = [
-            ('Corinto-MG', 'Berço dos mais belos cristais e origem de Wilson Alves Paixão.'),
-            ('Curvelo-MG', 'A infância no coração de Minas, onde nasceu o fascínio pelas gemas.'),
-            ('Aos 13 anos', 'O primeiro contato com a arte da lapidação de pedras preciosas.'),
-            ('1942', 'A fundação da Katsumi Joias, fornecendo pedras calibradas aos grandes mestres joalheiros.'),
-            ('Hoje', 'A segunda geração, liderada por Wilson Paixão, em lapidação, importação e exportação.')
+            ('A ideia', 'Uma inspiração, uma história ou um momento que merece ser eternizado.'),
+            ('O projeto', 'Desenho e modelagem 3D, com você acompanhando cada escolha.'),
+            ('As pedras', 'Seleção criteriosa de diamantes e pedras preciosas.'),
+            ('A fabricação', 'Fundição, cravação e acabamento feitos com excelência artesanal.'),
+            ('Para sempre', 'Uma criação única, feita para atravessar gerações.')
         ] %}
         <ol class="grid sm:grid-cols-2 lg:grid-cols-5 gap-px bg-white/10 border border-white/10">
             {% for k, v in milestones %}
@@ -112,11 +134,11 @@
 <!-- CTA -->
 <section class="border-t border-white/10">
     <div class="max-w-3xl mx-auto px-6 py-24 lg:py-32 text-center">
-        <h2 class="brand-display text-3xl lg:text-4xl tracking-[0.14em]">Faça parte desta história</h2>
-        <p class="mt-6 text-[15px] text-white/60 leading-relaxed">Descubra gemas selecionadas a dedo por duas gerações de uma mesma família.</p>
+        <h2 class="brand-display text-3xl lg:text-4xl tracking-[0.14em]">Sua história em uma joia</h2>
+        <p class="mt-6 text-[15px] text-white/60 leading-relaxed">Conheça nossas criações ou comece a desenhar uma joia feita especialmente para você.</p>
         <div class="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="/products" class="brand-btn brand-btn--light">Explorar o catálogo</a>
-            <a href="/o-que-procura" class="brand-btn brand-btn--outline-light">Fale com um especialista</a>
+            <a href="/joias" class="brand-btn brand-btn--light">Ver as jóias</a>
+            <a href="/crie-sua-joia" class="brand-btn brand-btn--outline-light">Crie sua jóia</a>
         </div>
     </div>
 </section>

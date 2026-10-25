@@ -1,242 +1,211 @@
 {% extends "crm_base.html" %}
 
+{% macro category_card(category_name, category_data) %}
+<div class="bg-white border-2 border-gray-200 rounded-xl overflow-hidden shadow-md">
+    <div class="bg-gradient-to-r from-gray-100 to-gray-50 px-6 py-5 border-b-2 border-gray-200">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                    <h3 class="text-xl font-bold text-gray-900">{{ category_name }}</h3>
+                    {% if category_data.kind == 'joia' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-800">Tipo de joia</span>
+                    {% if category_data.show_in_nav %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">No menu “Jóias”</span>
+                    {% endif %}
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-100 text-sky-800">Gema</span>
+                    {% endif %}
+                    <a href="{{ category_name | category_path }}" target="_blank" class="text-xs text-indigo-600 hover:underline">ver no site →</a>
+                </div>
+
+                <form method="POST" action="{{ url_for('crm_update_category') }}" enctype="multipart/form-data" class="mt-3 space-y-3">
+                    <input type="hidden" name="category_name" value="{{ category_name }}">
+                    <input type="hidden" name="category_show_in_nav_present" value="1">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Descrição padrão</label>
+                        <textarea name="category_description" rows="2"
+                                  placeholder="Descrição padrão desta categoria (auto-preenchida nos produtos)"
+                                  class="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white">{{ category_data.description or '' }}</textarea>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+                            <select name="category_kind" class="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white">
+                                <option value="joia" {{ 'selected' if category_data.kind == 'joia' else '' }}>Joia</option>
+                                <option value="gema" {{ 'selected' if category_data.kind != 'joia' else '' }}>Gema</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Ordem no menu</label>
+                            <input type="number" name="category_order" value="{{ category_data.order }}" step="1"
+                                   class="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white">
+                        </div>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 pb-2">
+                            <input type="checkbox" name="category_show_in_nav" {% if category_data.show_in_nav %}checked{% endif %}
+                                   class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            Exibir no menu
+                        </label>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Imagem do menu</label>
+                            <input type="file" name="category_image" accept="image/*" class="block w-full text-xs text-gray-600">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        {% if category_data.image_url %}
+                        <div class="flex items-center gap-3">
+                            <img src="{{ category_data.image_url }}" alt="{{ category_name }}" class="w-14 h-14 object-cover rounded border border-gray-200">
+                            <label class="flex items-center gap-1.5 text-xs text-gray-600">
+                                <input type="checkbox" name="category_image_remove" class="h-3.5 w-3.5 rounded border-gray-300"> remover imagem
+                            </label>
+                        </div>
+                        {% else %}<span class="text-xs text-gray-400">Sem imagem (o menu usa um placeholder)</span>{% endif %}
+                        <button type="submit"
+                                class="inline-flex items-center px-3 py-2 border border-indigo-300 rounded-md text-xs font-medium text-indigo-700 bg-white hover:bg-indigo-50 transition-colors">
+                            Salvar categoria
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <form method="POST" action="{{ url_for('crm_delete_category') }}" onsubmit="return confirm('Tem certeza que deseja excluir esta categoria? Isso pode afetar produtos existentes.');">
+                <input type="hidden" name="category_name" value="{{ category_name }}">
+                <button type="submit"
+                        class="inline-flex items-center px-3 py-2 border-2 border-red-300 rounded-lg text-xs font-semibold text-red-700 bg-white hover:bg-red-50">
+                    Excluir
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="px-6 py-5 bg-gray-50">
+        <details>
+            <summary class="cursor-pointer text-sm font-semibold text-gray-700">
+                Variantes ({{ category_data.variants|length if category_data.variants else 0 }})
+            </summary>
+            <div class="mt-4 bg-white border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4">
+                <form method="POST" action="{{ url_for('crm_add_variant') }}">
+                    <input type="hidden" name="category_name" value="{{ category_name }}">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <input type="text" name="variant_name" required
+                               placeholder="{{ 'Ex: Solitário, Aparador, Meia-aliança' if category_data.kind == 'joia' else 'Ex: Paraíba, Rubelita' }}"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm bg-gray-50">
+                        <input type="text" name="variant_description" placeholder="Descrição padrão"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm bg-gray-50">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            Adicionar variante
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% if category_data.variants %}
+            <div class="space-y-3">
+                {% for variant in category_data.variants %}
+                {% set variant_dict = variant if variant is mapping else {'name': variant, 'description': ''} %}
+                <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
+                    <div class="flex items-start justify-between mb-3">
+                        <span class="text-base font-semibold text-gray-900">{{ variant_dict.name }}</span>
+                        <form method="POST" action="{{ url_for('crm_delete_variant') }}" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir esta variante?');">
+                            <input type="hidden" name="category_name" value="{{ category_name }}">
+                            <input type="hidden" name="variant_name" value="{{ variant_dict.name }}">
+                            <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-medium">Excluir</button>
+                        </form>
+                    </div>
+                    <form method="POST" action="{{ url_for('crm_update_variant') }}" class="flex gap-2 items-start">
+                        <input type="hidden" name="category_name" value="{{ category_name }}">
+                        <input type="hidden" name="variant_name" value="{{ variant_dict.name }}">
+                        <textarea name="variant_description" rows="2"
+                                  class="flex-1 block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50">{{ variant_dict.description or '' }}</textarea>
+                        <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50">Salvar</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </details>
+    </div>
+</div>
+{% endmacro %}
+
 {% block crm_content %}
 <div class="max-w-7xl mx-auto">
     <div class="mb-8 flex items-start justify-between">
         <div>
-            <h2 class="text-3xl font-bold text-gray-900">Categorias de Produtos</h2>
-            <p class="mt-2 text-sm text-gray-600">Gerencie categorias, variantes e suas descrições padrão que serão usadas nos formulários de produtos</p>
+            <h2 class="text-3xl font-bold text-gray-900">Tipos de Joia e Categorias</h2>
+            <p class="mt-2 text-sm text-gray-600">Os <strong>tipos de joia</strong> aparecem no menu “Jóias” do site (com imagem e ordem). Categorias de <strong>gema</strong> ficam disponíveis para pedras avulsas.</p>
         </div>
-        <a href="{{ url_for('crm_ajustes') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
+        <a href="{{ url_for('crm_ajustes') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
             Voltar
         </a>
     </div>
 
-    <!-- Add New Category -->
-    <div class="bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-6 mb-8 shadow-lg">
-        <div class="flex items-center mb-4">
-            <svg class="h-6 w-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            <h3 class="text-xl font-semibold text-gray-900">Adicionar Nova Categoria</h3>
-        </div>
-        <form method="POST" action="{{ url_for('crm_add_category') }}" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Nova categoria -->
+    <div class="bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-6 mb-10 shadow-lg">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">Adicionar categoria</h3>
+        <form method="POST" action="{{ url_for('crm_add_category') }}" enctype="multipart/form-data" class="space-y-4">
+            <input type="hidden" name="category_show_in_nav_present" value="1">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Categoria *</label>
-                    <input type="text" 
-                           name="category_name" 
-                           placeholder="Ex: Turmalina, Esmeralda, Topázio"
-                           required
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+                    <select name="category_kind" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white">
+                        <option value="joia" selected>Tipo de joia</option>
+                        <option value="gema">Gema</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+                    <input type="text" name="category_name" placeholder="Ex: Anéis, Colares, Brincos" required
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrição padrão</label>
+                    <input type="text" name="category_description" placeholder="Ex: Anéis em ouro 18k com acabamento artesanal"
                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrição Padrão (1-2 frases)</label>
-                    <input type="text" 
-                           name="category_description" 
-                           placeholder="Ex: Gemas preciosas de alta qualidade"
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Ordem no menu</label>
+                    <input type="number" name="category_order" value="100" step="1"
                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white">
+                </div>
+                <label class="flex items-center gap-2 text-sm text-gray-700 pt-6">
+                    <input type="checkbox" name="category_show_in_nav" checked class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    Exibir no menu “Jóias”
+                </label>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Imagem do menu (opcional)</label>
+                    <input type="file" name="category_image" accept="image/*" class="block w-full text-sm text-gray-600">
                 </div>
             </div>
             <div class="flex justify-end">
-                <button type="submit" 
-                        class="inline-flex items-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all duration-200 transform hover:scale-105">
-                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Adicionar Categoria
+                <button type="submit" class="inline-flex items-center px-6 py-3 rounded-lg shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700">
+                    Adicionar categoria
                 </button>
             </div>
         </form>
     </div>
 
-    <!-- Categories List -->
-    <div class="space-y-6">
-        {% for category_name, category_data in categories.items() %}
-        <div class="bg-white border-2 border-gray-200 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-200">
-            <!-- Category Header -->
-            <div class="bg-gradient-to-r from-gray-100 to-gray-50 px-6 py-5 border-b-2 border-gray-200">
-                <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                        <div class="flex items-center mb-2">
-                            <svg class="h-6 w-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                            </svg>
-                            <h3 class="text-xl font-bold text-gray-900">{{ category_name }}</h3>
-                        </div>
-                        
-                        <!-- Category Description -->
-                        <form method="POST" action="{{ url_for('crm_update_category') }}" class="mt-3">
-                            <input type="hidden" name="category_name" value="{{ category_name }}">
-                            <div class="flex gap-2 items-start">
-                                <div class="flex-1">
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Descrição Padrão:</label>
-                                    <textarea name="category_description" 
-                                              rows="2"
-                                              placeholder="Digite a descrição padrão desta categoria (será auto-preenchida nos produtos)"
-                                              class="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white">{{ category_data.description if category_data.description else '' }}</textarea>
-                                </div>
-                                <button type="submit" 
-                                        class="mt-6 inline-flex items-center px-3 py-2 border border-indigo-300 rounded-md text-xs font-medium text-indigo-700 bg-white hover:bg-indigo-50 transition-colors">
-                                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                    Salvar
-                                </button>
-                            </div>
-                        </form>
-                        
-                        <p class="text-sm text-gray-500 mt-3">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {% set variant_count = category_data.variants|length if category_data.variants else 0 %}
-                                {{ variant_count }} variante{% if variant_count != 1 %}s{% endif %}
-                            </span>
-                        </p>
-                    </div>
-                    <form method="POST" action="{{ url_for('crm_delete_category') }}" onsubmit="return confirm('Tem certeza que deseja excluir esta categoria? Isso pode afetar produtos existentes.');">
-                        <input type="hidden" name="category_name" value="{{ category_name }}">
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border-2 border-red-300 rounded-lg text-sm font-semibold text-red-700 bg-white hover:bg-red-50 transition-all duration-200">
-                            <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                            Excluir Categoria
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Category Content -->
-            <div class="px-6 py-5 bg-gray-50">
-                <!-- Add Variant Form -->
-                <div class="bg-white border-2 border-dashed border-gray-300 rounded-lg p-4 mb-5">
-                    <div class="flex items-center mb-3">
-                        <svg class="h-5 w-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        <h4 class="text-sm font-semibold text-gray-700">Adicionar Nova Variante</h4>
-                    </div>
-                    <form method="POST" action="{{ url_for('crm_add_variant') }}">
-                        <input type="hidden" name="category_name" value="{{ category_name }}">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Nome da Variante *</label>
-                                <input type="text" 
-                                       name="variant_name" 
-                                       placeholder="Ex: Esmeralda, Rubi, Safira"
-                                       required
-                                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm bg-gray-50">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Descrição Padrão</label>
-                                <input type="text" 
-                                       name="variant_description" 
-                                       placeholder="Ex: Esmeralda colombiana de tonalidade verde intensa"
-                                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm bg-gray-50">
-                            </div>
-                        </div>
-                        <div class="flex justify-end">
-                            <button type="submit" 
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Adicionar Variante
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Variants List -->
-                {% if category_data.variants %}
-                <div class="space-y-3">
-                    {% for variant in category_data.variants %}
-                    {% set variant_dict = variant if variant is mapping else {'name': variant, 'description': ''} %}
-                    <div class="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-center">
-                                <div class="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
-                                <span class="text-base font-semibold text-gray-900">{{ variant_dict.name }}</span>
-                            </div>
-                            <form method="POST" action="{{ url_for('crm_delete_variant') }}" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir esta variante?');">
-                                <input type="hidden" name="category_name" value="{{ category_name }}">
-                                <input type="hidden" name="variant_name" value="{{ variant_dict.name }}">
-                                <button type="submit" 
-                                        class="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                </button>
-                            </form>
-                        </div>
-                        
-                        <!-- Variant Description Form -->
-                        <form method="POST" action="{{ url_for('crm_update_variant') }}">
-                            <input type="hidden" name="category_name" value="{{ category_name }}">
-                            <input type="hidden" name="variant_name" value="{{ variant_dict.name }}">
-                            <div class="flex gap-2 items-start">
-                                <div class="flex-1">
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Descrição Padrão:</label>
-                                    <textarea name="variant_description" 
-                                              rows="2"
-                                              placeholder="Digite a descrição padrão desta variante (será auto-preenchida nos produtos)"
-                                              class="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50">{{ variant_dict.description if variant_dict.description else '' }}</textarea>
-                                </div>
-                                <button type="submit" 
-                                        class="mt-5 inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                    Salvar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-8 bg-white border-2 border-dashed border-gray-300 rounded-lg">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                    </svg>
-                    <p class="mt-2 text-sm font-medium text-gray-500">Nenhuma variante adicionada</p>
-                    <p class="text-xs text-gray-400">Use o formulário acima para adicionar variantes</p>
-                </div>
-                {% endif %}
-            </div>
+    <h3 class="text-lg font-bold text-gray-900 mb-1">Tipos de joia</h3>
+    <p class="text-sm text-gray-500 mb-4">Ordenados pela ordem do menu. Cada um ganha a página <code>/joias/&lt;tipo&gt;</code>.</p>
+    <div class="space-y-6 mb-12">
+        {% for category_name, category_data in jewelry_categories %}
+            {{ category_card(category_name, category_data) }}
+        {% else %}
+        <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-10 text-center text-sm text-gray-500">
+            Nenhum tipo de joia cadastrado ainda. Adicione “Anéis”, “Colares”, “Brincos”… para montar o menu.
         </div>
         {% endfor %}
     </div>
 
-    {% if not categories %}
-    <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-16 text-center">
-        <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-900">Nenhuma categoria criada</h3>
-        <p class="mt-2 text-sm text-gray-500">Comece adicionando uma nova categoria de produto usando o formulário acima.</p>
-    </div>
-    {% endif %}
-    
-    <!-- Info Box -->
-    <div class="mt-8 bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-        <div class="flex items-start">
-            <svg class="h-6 w-6 text-blue-600 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-            </svg>
-            <div>
-                <h4 class="text-sm font-semibold text-blue-900 mb-1">Como funciona o auto-preenchimento</h4>
-                <ul class="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                    <li>As descrições definidas aqui serão automaticamente preenchidas ao criar/editar produtos</li>
-                    <li>Quando selecionar uma categoria, a descrição curta será preenchida com a descrição da categoria</li>
-                    <li>Quando selecionar uma variante, a descrição detalhada será preenchida com a descrição da variante</li>
-                    <li>Você pode editar as descrições no formulário de produto antes de salvar</li>
-                </ul>
-            </div>
+    <h3 class="text-lg font-bold text-gray-900 mb-1">Gemas</h3>
+    <p class="text-sm text-gray-500 mb-4">Pedras avulsas, listadas em <code>/pedras/&lt;gema&gt;</code>.</p>
+    <div class="space-y-6">
+        {% for category_name, category_data in gem_categories %}
+            {{ category_card(category_name, category_data) }}
+        {% else %}
+        <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-10 text-center text-sm text-gray-500">
+            Nenhuma categoria de gema.
         </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

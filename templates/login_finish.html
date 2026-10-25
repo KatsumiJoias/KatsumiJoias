@@ -113,7 +113,10 @@
 
         window.localStorage.removeItem(EMAIL_KEY);
         showMessage('Login realizado com sucesso! Redirecionando...', false);
-        setTimeout(() => { window.location.href = '/account'; }, 1500);
+        const storedNext = window.localStorage.getItem('katsumi_login_next') || '';
+        window.localStorage.removeItem('katsumi_login_next');
+        const next = /^\/(?!\/)[^\s\\]*$/.test(storedNext) ? storedNext : '/account';
+        setTimeout(() => { window.location.href = next; }, 1500);
     }
 
     function mapLinkError(error) {

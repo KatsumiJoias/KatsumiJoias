@@ -68,6 +68,7 @@
         <input type="hidden" name="status" value="{{ filters.status or '' }}">
         <input type="hidden" name="sold" value="{{ filters.sold or '' }}">
         <input type="hidden" name="source" value="{{ filters.source or '' }}">
+        <input type="hidden" name="kind" value="{{ filters.kind or '' }}">
         <input type="hidden" name="sort_by" value="{{ filters.sort_by or '' }}">
         <div class="flex gap-2">
             <label for="crm-search" class="sr-only">Buscar produtos</label>
@@ -142,6 +143,14 @@
                             {% endfor %}
                         </select>
                         <p class="mt-1.5 text-xs text-gray-500">Mostra apenas produtos com venda registrada no canal escolhido.</p>
+                    </div>
+                    <div>
+                        <label for="crm_kind" class="block text-sm font-medium text-gray-700 mb-2">Tipo de produto</label>
+                        <select name="kind" id="crm_kind" onchange="handleCrmFilterImmediate()" class="{{ on if filters.kind else off }}">
+                            <option value="">Todos</option>
+                            <option value="joia" {% if filters.kind == 'joia' %}selected{% endif %}>Joias</option>
+                            <option value="gema" {% if filters.kind == 'gema' %}selected{% endif %}>Gemas</option>
+                        </select>
                     </div>
                     <div>
                         <label for="crm_category" class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
@@ -270,6 +279,9 @@
                                 {% else %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">Rascunho</span>
                                 {% endif %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ 'bg-amber-100 text-amber-800' if product.product_type == 'joia' else 'bg-sky-100 text-sky-800' }}">
+                                    {{ 'Joia' if product.product_type == 'joia' else 'Gema' }}
+                                </span>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                     {{ product.category }}
                                 </span>
@@ -283,7 +295,10 @@
                     </div>
                     <div class="flex items-center justify-between">
                         <div>
-                            {% if product.discount and product.discount > 0 %}
+                            {% if product.product_type == 'joia' %}
+                            <span class="text-base font-semibold text-gray-900">{{ product._price_brl_display|brl }}</span>
+                            <p class="text-xs text-gray-500">{{ product._stock_units }} un.{% if product._jewelry_summary %} · {{ product._jewelry_summary }}{% endif %}</p>
+                            {% elif product.discount and product.discount > 0 %}
                             <div class="flex items-center gap-1 mb-0.5">
                                 <span class="text-xs text-gray-400 line-through">
                                     $ {{ "{:,.2f}".format(product.price).replace(',', '#').replace('.', ',').replace('#', '.') }}
@@ -337,6 +352,9 @@
                                 {% if product.sku %}
                                 <p class="text-xs text-gray-500 mt-0.5">SKU: {{ product.sku }}</p>
                                 {% endif %}
+                                {% if product.product_type == 'joia' and product._jewelry_summary %}
+                                <p class="text-xs text-gray-500 mt-0.5 truncate">{{ product._jewelry_summary }}</p>
+                                {% endif %}
                             </div>
                             {% if product.get('sales_history') %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Vendido</span>
@@ -346,11 +364,17 @@
                             {% else %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">Rascunho</span>
                             {% endif %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-amber-100 text-amber-800' if product.product_type == 'joia' else 'bg-sky-100 text-sky-800' }}">
+                                {{ 'Joia' if product.product_type == 'joia' else 'Gema' }}
+                            </span>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                 {{ product.category }}
                             </span>
                             <div class="text-right">
-                                {% if product.discount and product.discount > 0 %}
+                                {% if product.product_type == 'joia' %}
+                                    <span class="text-base font-semibold text-gray-900">{{ product._price_brl_display|brl }}</span>
+                                    <p class="text-xs text-gray-500">{{ product._stock_units }} un. em estoque</p>
+                                {% elif product.discount and product.discount > 0 %}
                                     <div class="flex items-center justify-end space-x-2">
                                         <span class="text-sm text-gray-400 line-through">
                                             $ {{ "{:,.2f}".format(product.price).replace(',', '#').replace('.', ',').replace('#', '.') }}

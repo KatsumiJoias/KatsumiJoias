@@ -52,4 +52,8 @@ sa-key.json
 .firebase/
 firebase-debug.log
 firestore-debug.log
-ui-debug.log 
+ui-debug.log
+
+# Imagens geradas localmente (Crie sua jóia / seed_data.py)
+static/designer/generated/
+static/seed/

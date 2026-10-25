@@ -288,7 +288,7 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
         </div>
         <h1 class="font-serif text-xl sm:text-2xl text-luxury-gold mb-2">Pagamento confirmado!</h1>
         <p class="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-            Suas gemas entram em preparação para o envio segurado. Você receberá o código de rastreio por e-mail assim que despacharmos.
+            Seu pedido entra em preparação para o envio segurado. Você receberá o código de rastreio por e-mail assim que despacharmos.
         </p>
         {% elif is_pending %}
         <div class="w-12 h-12 rounded-full bg-luxury-gold/15 flex items-center justify-center mx-auto mb-4">
@@ -298,7 +298,7 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
         </div>
         <h1 class="font-serif text-xl sm:text-2xl text-luxury-gold mb-2">Pedido recebido. Falta só o pagamento.</h1>
         <p class="text-sm text-gray-600 max-w-lg mx-auto leading-relaxed">
-            Assim que o {% if pm == 'pix' %}PIX{% elif pm == 'boleto' %}boleto{% else %}pagamento{% endif %} for aprovado, sua gema entra em preparação para o envio segurado.
+            Assim que o {% if pm == 'pix' %}PIX{% elif pm == 'boleto' %}boleto{% else %}pagamento{% endif %} for aprovado, seu pedido entra em preparação para o envio segurado.
         </p>
         {% else %}
         <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
@@ -398,7 +398,7 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
 
                     <p class="text-xs text-gray-500 mt-4 leading-relaxed">
                         A confirmação costuma levar até 2 minutos. Se passou desse prazo,
-                        <a href="https://wa.me/5531911500029" target="_blank" rel="noopener" class="text-luxury-gold hover:underline">fale com a gente no WhatsApp</a>.
+                        <a href="https://wa.me/{{ support_whatsapp_number }}" target="_blank" rel="noopener" class="text-luxury-gold hover:underline">fale com a gente no WhatsApp</a>.
                     </p>
                 </div>
             </div>
@@ -453,7 +453,7 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
         {% elif not is_failed %}
         <p class="text-sm text-gray-600">Aguardando confirmação da operadora do cartão.</p>
         {% else %}
-        <p class="text-sm text-red-600">Pagamento não aprovado. Tente novamente ou entre contato com a gente por <a href="https://wa.me/5531911500029" target="_blank" rel="noopener" class="underline hover:text-red-800">aqui</a>.</p>
+        <p class="text-sm text-red-600">Pagamento não aprovado. Tente novamente ou entre contato com a gente por <a href="https://wa.me/{{ support_whatsapp_number }}" target="_blank" rel="noopener" class="underline hover:text-red-800">aqui</a>.</p>
         {% endif %}
     </div>
     {% endif %}
@@ -538,7 +538,7 @@ R$ {{ "{:,.2f}".format((value or 0) | float).replace(",", "X").replace(".", ",")
         <p class="text-sm text-white/85 leading-relaxed max-w-md">
             Precisa de ajuda com o pagamento? Um especialista responde em minutos, todos os dias.
         </p>
-        <a href="https://wa.me/5531911500029" target="_blank" rel="noopener"
+        <a href="https://wa.me/{{ support_whatsapp_number }}" target="_blank" rel="noopener"
            class="text-sm font-semibold text-white whitespace-nowrap hover:text-luxury-gold-light transition-colors">
             Chamar no WhatsApp →
         </a>

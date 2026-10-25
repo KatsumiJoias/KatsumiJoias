@@ -12,7 +12,7 @@
                 <div class="flex items-center">
                     <h1 class="text-lg md:text-xl font-bold text-gray-900">
                         <span class="hidden sm:inline">Katsumi Joias Admin</span>
-                        <span class="sm:hidden">PP Admin</span>
+                        <span class="sm:hidden">Katsumi Admin</span>
                     </h1>
                 </div>
                 
@@ -52,6 +52,11 @@
                        class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
                               {% if request.endpoint == 'crm_solicitacoes' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
                         Solicitações
+                    </a>
+                    <a href="{{ url_for('crm_orcamentos') }}"
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
+                              {% if request.endpoint in ['crm_orcamentos','crm_orcamento_detalhe'] %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                        Orçamentos
                     </a>
                     <a href="{{ url_for('crm_logs') }}"
                        class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200
@@ -96,6 +101,10 @@
                     <a href="{{ url_for('crm_solicitacoes') }}"
                        class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint == 'crm_solicitacoes' %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
                         Solicitações
+                    </a>
+                    <a href="{{ url_for('crm_orcamentos') }}"
+                       class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint in ['crm_orcamentos','crm_orcamento_detalhe'] %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                        Orçamentos
                     </a>
                     <a href="{{ url_for('crm_logs') }}"
                        class="block px-3 py-2 rounded-md text-base font-medium transition-colors {% if request.endpoint == 'crm_logs' %}bg-indigo-50 text-indigo-700{% else %}text-gray-700 hover:bg-gray-50{% endif %}">

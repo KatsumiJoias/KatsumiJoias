@@ -17,7 +17,7 @@
                     </svg>
                 </li>
                 <li>
-                    <a href="{{ product.category|category_path }}" class="text-gray-500 hover:text-luxury-gold transition-colors duration-200">
+                    <a href="{{ category_url or product.category|category_path }}" class="text-gray-500 hover:text-luxury-gold transition-colors duration-200">
                         {{ product.category }}
                     </a>
                 </li>
@@ -223,8 +223,23 @@
                     {% endif %}
                 </div>
 
+                {% if product_is_joia %}
+                <!-- Jewelry Information -->
+                {% if jewelry_specs %}
+                <div class="bg-white p-6 rounded-lg">
+                    <h2 class="text-xl font-medium text-luxury-black mb-4">Detalhes da joia</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        {% for label, value in jewelry_specs %}
+                        <div class="border-b border-gray-100 pb-3">
+                            <dt class="text-sm text-gray-500 mb-1">{{ label }}</dt>
+                            <dd class="text-base font-medium text-luxury-black">{{ value }}</dd>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% elif product.category or product.color or product.carat_weight or product.clarity or product.cut or product.dimensions %}
                 <!-- Gemstone Information -->
-                {% if product.category or product.color or product.carat_weight or product.clarity or product.cut or product.dimensions %}
                 <div class="bg-white p-6 rounded-lg">
                     <h2 class="text-xl font-medium text-luxury-black mb-4">Informações da Gema</h2>
                     <div class="grid grid-cols-2 gap-4">
@@ -316,12 +331,13 @@
                 <div class="bg-white p-6 rounded-lg">
                     <div class="mb-6" data-price-usd="{{ product.price }}"
                          data-discount="{{ product.discount if product.discount else 0 }}"
-                         {% if product.carat_weight %}
+                         {% if product_is_joia %}data-price-brl="{{ product.price_brl }}"{% endif %}
+                         {% if product.carat_weight and not product_is_joia %}
                              {% set carat_weight_str = product.carat_weight.split()[0] if ' ' in product.carat_weight else product.carat_weight %}
                              {% set carat_weight = carat_weight_str.replace(',', '.') | float %}
                              data-carat-weight="{{ carat_weight }}"
                          {% endif %}>
-                        {% if product.carat_weight %}
+                        {% if product.carat_weight and not product_is_joia %}
                             {% set carat_weight_str = product.carat_weight.split()[0] if ' ' in product.carat_weight else product.carat_weight %}
                             {% set carat_weight = carat_weight_str.replace(',', '.') | float %}
                             {% set price_per_carat = product.price %}
@@ -383,7 +399,18 @@
                             <svg class="w-5 h-5 text-luxury-gold flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
+                            {% if product_is_joia %}
+                                {% set _units = (product.stock_qty if product.stock_qty not in (none, '') else 1) | int %}
+                                {% if _units > 1 %}
+                                <span><strong class="text-luxury-black">Pronta entrega</strong> · {{ _units }} unidades disponíveis</span>
+                                {% elif _units == 1 %}
+                                <span><strong class="text-luxury-black">Pronta entrega</strong> · última unidade</span>
+                                {% else %}
+                                <span><strong class="text-luxury-black">Sob encomenda</strong>{% if product.production_days %} · produção em até {{ product.production_days }} dias úteis{% endif %}</span>
+                                {% endif %}
+                            {% else %}
                             <span><strong class="text-luxury-black">Produto único</strong>, somente 1 disponível</span>
+                            {% endif %}
                         </div>
                         <div class="flex items-start gap-3 text-sm text-gray-700">
                             <svg class="w-5 h-5 text-luxury-gold flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,6 +420,7 @@
                         </div>
                     </div>
 
+                    {% if not product_is_joia %}
                     <!-- gemological certificate add-on -->
                     <div class="bg-luxury-cream rounded-lg p-4 border border-luxury-gold/25 mb-5">
                         <div class="flex items-start gap-3">
@@ -404,12 +432,12 @@
                             <div>
                                 <p class="text-sm font-semibold text-luxury-black mb-1">Certificação gemológica independente</p>
                                 <p class="text-xs text-gray-600 leading-relaxed">
-                                    Contrate um laudo técnico completo sobre autenticidade, origem e características desta pedra.
-                                    <a href="/guias/certificacao-gemologica" target="_blank" rel="noopener noreferrer" class="text-luxury-gold hover:underline font-medium">Saiba mais</a>
+                                    Contrate um laudo técnico completo sobre autenticidade, origem e características desta pedra — você pode adicioná-lo no carrinho.
                                 </p>
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                     
                     <!-- Add to Cart Button -->
                     {% if view_only %}
@@ -421,11 +449,13 @@
                             data-product-name="{{ product.name }}"
                             data-product-price="{{ product.price }}"
                             data-product-discount="{{ product.discount if product.discount else 0 }}"
-                            {% if product.carat_weight %}
+                            {% if product.carat_weight and not product_is_joia %}
                             data-product-carat-weight-raw="{{ product.carat_weight }}"
                             {% else %}
                             data-product-carat-weight-raw="1"
                             {% endif %}
+                            data-product-kind="{{ 'joia' if product_is_joia else 'gema' }}"
+                            data-product-price-brl="{{ product.price_brl if product_is_joia else '' }}"
                             data-product-image="{{ product.main_image_url }}"
                             onclick="
                                 const caratWeightRaw = this.dataset.productCaratWeightRaw;
@@ -437,6 +467,8 @@
                                     price: parseFloat(this.dataset.productPrice),
                                     discount: parseFloat(this.dataset.productDiscount) || 0,
                                     caratWeight: caratWeight,
+                                    kind: this.dataset.productKind,
+                                    priceBrl: parseFloat(this.dataset.productPriceBrl) || 0,
                                     image: this.dataset.productImage
                                 });
                                 toggleCart();
@@ -449,12 +481,12 @@
                     </button>
                     {% endif %}
                     
-                    <a href="/" 
+                    <a href="{{ category_url or ('/joias' if product_is_joia else '/pedras') }}"
                        class="w-full inline-flex items-center justify-center px-6 py-3 border-2 border-luxury-gold text-base font-medium rounded-lg text-luxury-gold hover:bg-luxury-gold hover:text-white transition-colors duration-200">
                         <svg class="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
-                        <span>Voltar ao catálogo</span>
+                        <span>{{ 'Ver mais jóias' if product_is_joia else 'Voltar ao catálogo' }}</span>
                     </a>
                     
                     <!-- Exchange Rate Info (shown for BRL only) -->
@@ -489,7 +521,7 @@
     </div>
 </section>
 
-{% with pdp_context=true, product_category=product.category or 'gema' %}
+{% with pdp_context=true, pdp_is_gem=not product_is_joia, product_category=product.category or 'pedra' %}
 {% include '_especialista_section.html' %}
 {% endwith %}
 
@@ -542,7 +574,9 @@
     'productPrice': product.price,
     'productDiscount': product.discount or 0,
     'productImage': product.main_image_url or '',
-    'productCategory': product.category or ''
+    'productCategory': product.category or '',
+    'productKind': 'joia' if product_is_joia else 'gema',
+    'productPriceBrl': product.price_brl if product_is_joia else 0
 } | tojson }}</script>
 <script>
 (function() {
@@ -1042,7 +1076,7 @@
                         const priceContainer = document.querySelector('[data-price-usd]');
                         if (priceContainer) {
                             const priceUSD = parseFloat(priceContainer.dataset.priceUsd);
-                            const caratWeight = parseFloat(priceContainer.dataset.caratWeight);
+                            const caratWeight = priceContainer.dataset.priceBrl ? 0 : parseFloat(priceContainer.dataset.caratWeight);
                             const discount = parseFloat(priceContainer.dataset.discount) || 0;
                             const discountMultiplier = 1 - (discount / 100);
                             
@@ -1068,8 +1102,9 @@
                                     perCaratPriceEl.innerHTML = `R$ ${discountedPerCaratPriceBRL.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 0})} <span class="carat-unit">por quilate</span>`;
                                 }
                             } else {
-                                // Regular product
-                                const priceBRL = priceUSD * rate;
+                                // Joia (preço fixo em R$) ou produto sem quilate
+                                const fixedBRL = parseFloat(priceContainer.dataset.priceBrl);
+                                const priceBRL = fixedBRL > 0 ? fixedBRL : priceUSD * rate;
                                 const discountedPriceBRL = priceBRL * discountMultiplier;
                                 
                                 if (discount > 0 && originalTotalPriceEl) {
@@ -1098,7 +1133,9 @@
             discount: PDP_DATA.productDiscount,
             caratWeight: parseFloat(_cwRaw.replace(/ ct/gi, '').replace(',', '.')) || 1,
             image: PDP_DATA.productImage,
-            category: PDP_DATA.productCategory
+            category: PDP_DATA.productCategory,
+            kind: PDP_DATA.productKind,
+            priceBrl: PDP_DATA.productPriceBrl
         });
     });
 })();

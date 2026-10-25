@@ -97,6 +97,21 @@
         messageText.textContent = message;
     }
 
+    const NEXT_KEY = 'katsumi_login_next';
+    function safeNext(value) {
+        return (typeof value === 'string' && /^\/(?!\/)[^\s\\]*$/.test(value)) ? value : '';
+    }
+    (function rememberNext() {
+        const next = safeNext(new URLSearchParams(window.location.search).get('next'));
+        if (next) window.localStorage.setItem(NEXT_KEY, next);
+        else window.localStorage.removeItem(NEXT_KEY);
+    })();
+    function redirectAfterLogin() {
+        const next = safeNext(window.localStorage.getItem(NEXT_KEY)) || '/account';
+        window.localStorage.removeItem(NEXT_KEY);
+        window.location.href = next;
+    }
+
     async function handleSuccessfulLogin(user) {
         try {
             const idToken = await user.getIdToken();
@@ -109,7 +124,7 @@
             if (response.ok) {
                 window.localStorage.removeItem(EMAIL_KEY);
                 showMessage('Login realizado com sucesso! Redirecionando...', false);
-                setTimeout(() => { window.location.href = '/account'; }, 1500);
+                setTimeout(redirectAfterLogin, 1500);
             } else {
                 showMessage('Não foi possível verificar sua autenticação. Por favor, tente novamente.', true);
             }

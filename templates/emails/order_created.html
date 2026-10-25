@@ -38,7 +38,7 @@
 <body style="margin:0; padding:0; background-color:#f4f2ec; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
 
   <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
-    {% if payment_method == 'pix' %}Seu pedido #{{ order_number }} está reservado. Conclua o pagamento via PIX para garantirmos suas gemas.{% elif payment_method == 'credit_card' %}Seu pedido #{{ order_number }} está registrado. O pagamento no cartão não foi aprovado, tente novamente.{% else %}Seu pedido #{{ order_number }} foi registrado. Aguardamos a confirmação do pagamento.{% endif %}
+    {% if payment_method == 'pix' %}Seu pedido #{{ order_number }} está reservado. Conclua o pagamento via PIX para garantirmos suas joias.{% elif payment_method == 'credit_card' %}Seu pedido #{{ order_number }} está registrado. O pagamento no cartão não foi aprovado, tente novamente.{% else %}Seu pedido #{{ order_number }} foi registrado. Aguardamos a confirmação do pagamento.{% endif %}
     &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
   </div>
 
@@ -55,7 +55,7 @@
                 <img src="{{ logo_url }}" width="160" alt="Katsumi Joias" style="display:block; width:160px; max-width:160px; height:auto; border:0; border-radius:4px;">
               </a>
               <p style="margin:14px 0 0 0; font-family:Marcellus, Georgia, 'Times New Roman', serif; font-size:12px; font-weight:600; letter-spacing:0.25em; text-transform:uppercase; color:#D9C18A;">
-                Tradição em pedras preciosas desde 1942
+                A arte de transformar histórias em joias eternas
               </p>
             </td>
           </tr>
@@ -70,7 +70,7 @@
 
               <p style="margin:0 0 24px 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:24px; color:#444444;">
                 O pedido <strong style="color:#1f5b40;">#{{ order_number }}</strong>, realizado em {{ order_date }}, foi registrado
-                e suas gemas estão reservadas. Falta apenas a confirmação do pagamento para
+                e suas peças estão reservadas. Falta apenas a confirmação do pagamento para
                 iniciarmos a preparação.
               </p>
 
@@ -98,7 +98,7 @@
                     </h2>
                     <p style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:22px; color:#444444;">
                       Copie o código abaixo e cole na área PIX do seu banco.
-                      A reserva das suas gemas é válida até <strong>{{ pix_expiration }}</strong>.
+                      A reserva das suas peças é válida até <strong>{{ pix_expiration }}</strong>.
                       após esse prazo, o pedido é cancelado automaticamente.
                     </p>
 
@@ -137,7 +137,7 @@
                       Não foi possível processar seu cartão
                     </h2>
                     <p style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:22px; color:#444444;">
-                      Seu pedido está registrado e suas gemas seguem reservadas, mas a operadora
+                      Seu pedido está registrado e suas peças seguem reservadas, mas a operadora
                       não autorizou o pagamento. Isso costuma ser limite, dados digitados
                       incorretamente ou bloqueio preventivo do banco. Você pode tentar novamente
                       com o mesmo cartão, outro cartão ou PIX.
@@ -194,7 +194,7 @@
                 Resumo do pedido
               </p>
               <h2 style="margin:0 0 18px 0; font-family:Georgia, 'Times New Roman', serif; font-size:19px; line-height:26px; font-weight:normal; color:#1f5b40;">
-                Suas gemas selecionadas
+                Suas peças selecionadas
               </h2>
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -231,8 +231,8 @@
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="border-top:1px solid #ece8de; padding-top:24px; font-family:Georgia, 'Times New Roman', serif; font-size:13px; line-height:21px; color:#8a8578; font-style:italic;" align="center">
-                    Cada pedra deste pedido foi garimpada, lapidada e selecionada à mão
-                    em Minas Gerais, como fazemos há três gerações.
+                    Cada peça deste pedido é conferida à mão antes do envio.
+                    KATSUMI — além do tempo.
                   </td>
                 </tr>
               </table>
@@ -249,7 +249,7 @@
                 Dúvidas sobre seu pedido? Responda este e-mail ou fale conosco.<br>
                 <a href="{{ site_url }}/account" target="_blank" style="color:#cfe3d8; text-decoration:underline;">Minha conta</a>
                 &nbsp;·&nbsp;
-                <a href="{{ site_url }}/guias/certificacao-gemologica" target="_blank" style="color:#cfe3d8; text-decoration:underline;">Certificação Gemológica</a>
+                <a href="{{ site_url }}/joias" target="_blank" style="color:#cfe3d8; text-decoration:underline;">Nossas joias</a>
                 &nbsp;·&nbsp;
                 <a href="https://www.instagram.com/katsumijoias/" target="_blank" style="color:#cfe3d8; text-decoration:underline;">Instagram</a>
               </p>

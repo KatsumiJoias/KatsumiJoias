@@ -1,28 +1,36 @@
-<!-- "O que procura?" / Falar com especialista section (shared) -->
+<!-- "Crie sua jóia" / Falar com especialista section (shared) -->
 {% set is_pdp = pdp_context|default(false) %}
-{% set cat = product_category|default('gema') %}
+{% set is_gem = pdp_is_gem|default(false) %}
+{% set cat = product_category|default('pedra') %}
 {% set _banner_img = 'images/oqueprocura.jpg' if is_pdp else 'images/outra-diferente.jpg' %}
 <section class="bg-black text-white">
     <div class="grid md:grid-cols-2">
         <div class="aspect-[4/3] md:aspect-auto md:min-h-[36rem] overflow-hidden">
-            <img src="{{ url_for('static', filename=_banner_img) }}" alt="Pedras preciosas" loading="lazy" class="w-full h-full object-cover">
+            <img src="{{ url_for('static', filename=_banner_img) }}" alt="Joias sob medida Katsumi" loading="lazy" class="w-full h-full object-cover">
         </div>
         <div class="flex items-center px-6 sm:px-12 lg:px-20 py-20">
             <div class="max-w-md">
-                {% if is_pdp %}
+                {% if is_pdp and is_gem %}
                 <p class="brand-eyebrow text-white/50 mb-6">Busca personalizada</p>
-                <h2 class="brand-display text-3xl lg:text-4xl">Procurando uma {{ cat }} diferente?</h2>
+                <h2 class="brand-display text-3xl lg:text-4xl">Procurando uma {{ cat|lower }} diferente?</h2>
                 <p class="mt-8 text-[15px] text-white/65 leading-relaxed">
-                    Outro tamanho, cor ou faixa de preço? Temos acesso a praticamente qualquer {{ cat }} do mercado. Conte o que busca e receba opções selecionadas para o seu perfil.
+                    Outro tamanho, cor ou faixa de preço? Conte o que busca e nossa equipe seleciona opções para você — ou transforme esta pedra em uma joia sob medida.
                 </p>
+                <div class="mt-10 flex flex-col sm:flex-row gap-3">
+                    <a href="/o-que-procura" class="brand-btn brand-btn--outline-light">Falar com a equipe</a>
+                    <a href="/crie-sua-joia" class="brand-btn brand-btn--light">Crie sua jóia</a>
+                </div>
                 {% else %}
-                <p class="brand-eyebrow text-white/50 mb-6">Gemas sob medida</p>
-                <h2 class="brand-display text-3xl lg:text-4xl">Está buscando algo específico?</h2>
+                <p class="brand-eyebrow text-white/50 mb-6">Joias sob medida</p>
+                <h2 class="brand-display text-3xl lg:text-4xl">Imagine uma jóia só sua</h2>
                 <p class="mt-8 text-[15px] text-white/65 leading-relaxed">
-                    Tamanho, cor, origem ou faixa de investimento. Temos acesso a praticamente qualquer gema do mercado — Tanzanitas, Alexandritas, Paraíbas, Safiras e muito mais — e selecionamos opções exclusivamente para o seu perfil.
+                    Escolha o tipo de peça, o metal e as pedras, veja uma prévia na hora e receba um orçamento do nosso ateliê. Cada detalhe importa. Cada criação carrega uma identidade própria.
                 </p>
+                <div class="mt-10 flex flex-col sm:flex-row gap-3">
+                    <a href="/crie-sua-joia" class="brand-btn brand-btn--light">Crie sua jóia</a>
+                    <a href="/o-que-procura" class="brand-btn brand-btn--outline-light">Falar com a equipe</a>
+                </div>
                 {% endif %}
-                <a href="/o-que-procura" class="brand-btn brand-btn--outline-light mt-10">Falar com um especialista</a>
             </div>
         </div>
     </div>
