@@ -138,6 +138,7 @@ Acesse: http://localhost:5000
 | `FIREBASE_PROJECT_ID`         | ✅          | Project ID do Firebase                           |
 | `FIREBASE_MESSAGING_SENDER_ID`| ✅          | Messaging Sender ID do Firebase                  |
 | `FIREBASE_APP_ID`             | ✅          | App ID do Firebase                               |
+| `SITE_URL`                    | ✅ (prod)   | URL pública (`https://…run.app` ou domínio custom.) — login por e-mail e links transacionais |
 | `PAGARME_API_KEY`             | ✅          | Chave de API (secret) do Pagar.me                |
 | `PAGARME_CHAVE_PUBLICA`       | ✅          | Chave pública do Pagar.me                        |
 | `API_KEY_BREVO`               |             | Chave de API do Brevo para envio de e-mails      |
@@ -145,7 +146,6 @@ Acesse: http://localhost:5000
 | `WHATSGW_PHONE_NUMBER`        |             | Número do WhatsApp para envio                    |
 | `WHATSGW_INSTANCIA_ID`        |             | ID da instância WhatsGW                          |
 | `SUPPORT_WHATSAPP_NUMBER`     |             | Número de suporte exibido no site (padrão 5511971581675) |
-| `SITE_URL`                    |             | URL pública do site                              |
 | `EXCHANGE_RATE_CRON_SECRET`   |             | Segredo para endpoint de atualização de câmbio   |
 
 > *Forneça `FIREBASE_CREDENTIALS_JSON` **ou** `FIREBASE_CREDENTIALS_PATH` (não ambos).
@@ -274,6 +274,17 @@ Para o **Crie sua jóia**, adicione também `OPENAI_API_KEY` e/ou `GEMINI_API_KE
 `OPENAI_IMAGE_MODEL` e `QUOTES_NOTIFY_EMAIL`.
 
 No Cloud Run, o Admin SDK usa a **service account do serviço** (ADC) — não precisa de `FIREBASE_CREDENTIALS_PATH`. Garanta que essa SA tenha acesso Firestore/Storage (ou use secret `FIREBASE_CREDENTIALS_JSON`).
+
+**Checklist pós-deploy (login e catálogo):**
+
+| Problema | Causa comum | O que fazer |
+|----------|-------------|-------------|
+| Google login abre `none` (DNS error) | Variáveis Firebase no Cloud Run com valor literal `None` ou vazias | Em **Variables**, use os valores reais do Firebase Console (Configurações → Seus apps → Web). Remova entradas erradas. `FIREBASE_AUTH_DOMAIN` deve ser algo como `katsumijoias-6cc8d.firebaseapp.com` (copie do Console). |
+| `POST /api/auth/send-login-link` → 500 | `SITE_URL` ausente ou link não habilitado no Firebase | Defina `SITE_URL=https://katsumijoias-app-….run.app` (sem barra final). Em Authentication → E-mail/Senha, ative **Email link (passwordless sign-in)**. |
+| E-mail não chega | `API_KEY_BREVO` ausente ou remetente não verificado | Crie chave em Brevo; verifique o domínio `katsumijoias.com.br` e o remetente `contato@katsumijoias.com.br` (já usado no código). |
+| Catálogo vazio com dados no Firestore | SA do Cloud Run sem permissão no Firestore | IAM → conta `…@…gserviceaccount.com` do serviço Run → papéis **Cloud Datastore User** e **Firebase Admin** (ou SA dedicada via `FIREBASE_CREDENTIALS_JSON`). |
+
+Após corrigir variáveis, faça **Redeploy** ou **Edit & deploy new revision** no Cloud Run.
 
 ## Firebase
 

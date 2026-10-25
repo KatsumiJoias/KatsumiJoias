@@ -10,6 +10,14 @@ import threading
 import requests
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
+from env_utils import (
+    env_str,
+    firebase_auth_domain,
+    firebase_messaging_sender_id,
+    firebase_storage_bucket,
+    gcp_project_id,
+    public_site_url,
+)
 from functools import wraps
 import firebase_admin
 from firebase_admin import auth as firebase_auth
@@ -317,7 +325,7 @@ def brl_filter(value):
 
 
 def _site_url():
-    return (os.getenv('SITE_URL') or '').rstrip('/')
+    return public_site_url(request)
 
 
 def _abs_url(path):
@@ -5038,13 +5046,14 @@ def crm_logs():
 
 def get_firebase_config():
     """Get Firebase config for client-side SDK"""
+    project_id = gcp_project_id()
     return {
-        'apiKey': os.getenv('FIREBASE_API_KEY'),
-        'authDomain': os.getenv('FIREBASE_AUTH_DOMAIN'),
-        'projectId': os.getenv('FIREBASE_PROJECT_ID'),
-        'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET'),
-        'messagingSenderId': os.getenv('FIREBASE_MESSAGING_SENDER_ID'),
-        'appId': os.getenv('FIREBASE_APP_ID')
+        'apiKey': env_str('FIREBASE_API_KEY'),
+        'authDomain': firebase_auth_domain(),
+        'projectId': project_id,
+        'storageBucket': firebase_storage_bucket(),
+        'messagingSenderId': firebase_messaging_sender_id(),
+        'appId': env_str('FIREBASE_APP_ID'),
     }
 
 @app.route('/login')
@@ -5159,14 +5168,25 @@ def send_login_link():
         'Verifique também a pasta de spam.'
     )
 
+    continue_url = f'{_site_url()}/login/finish'
+    if not continue_url.startswith('http'):
+        print('[Login] SITE_URL missing or invalid; cannot build email sign-in link.')
+        return jsonify({
+            'error': (
+                'Login por e-mail não está configurado no servidor (SITE_URL). '
+                'Defina SITE_URL no Cloud Run com a URL pública do site.'
+            )
+        }), 503
+
     try:
         action_code_settings = firebase_auth.ActionCodeSettings(
-            url=f'{_site_url()}/login/finish',
+            url=continue_url,
             handle_code_in_app=True,
         )
         firebase_link = firebase_auth.generate_sign_in_with_email_link(email, action_code_settings)
     except Exception as exc:
         exc_text = str(exc)
+        print(f'[Login] generate_sign_in_with_email_link failed: {type(exc).__name__}: {exc}')
         if 'OPERATION_NOT_ALLOWED' in exc_text:
             return jsonify({
                 'error': (

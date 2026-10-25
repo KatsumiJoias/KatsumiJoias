@@ -153,7 +153,7 @@
 
         try { localStorage.setItem('pp_wa_name', name); } catch (_) {}
 
-        const body = 'Olá, meu nome é ' + name + '. ' + message + ' (Vim pelo site da Katsumi Joias.)';
+        const body = 'Olá, meu nome é ' + name + ', ' + message + '. Vim pelo site da Katsumi Joias.';
         const url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(body);
         window.open(url, '_blank', 'noopener,noreferrer');
         setOpen(false);

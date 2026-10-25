@@ -9,13 +9,13 @@ from flask import render_template
 from markupsafe import Markup, escape
 
 import whatsapp_service
+from env_utils import env_str, public_site_url
 
 _BRT = timezone(timedelta(hours=-3))
 
 BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 SENDER = {'name': 'Katsumi Joias', 'email': 'contato@katsumijoias.com.br'}
 PAID_STATUSES = frozenset({'paid', 'authorized'})
-DEFAULT_SITE_URL = os.getenv('SITE_URL', '')
 
 
 def is_paid_status(status):
@@ -36,7 +36,7 @@ def _log_email(message):
 
 
 def _get_api_key():
-    return os.getenv('API_KEY_BREVO', '').strip()
+    return env_str('API_KEY_BREVO')
 
 
 def _format_order_number(order):
@@ -54,7 +54,9 @@ def _format_brl(value):
 
 
 def _site_url():
-    return (os.getenv('SITE_URL') or DEFAULT_SITE_URL).rstrip('/')
+    from flask import has_request_context, request
+    req = request if has_request_context() else None
+    return public_site_url(req)
 
 
 def _parse_datetime(value):

@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
+from env_utils import firebase_storage_bucket
 import uuid
 from werkzeug.utils import secure_filename
 import tempfile
@@ -22,16 +23,7 @@ load_dotenv()
 
 def _resolve_storage_bucket_name():
     """Firebase Storage bucket; required for storage.bucket() at import time."""
-    explicit = (os.getenv('FIREBASE_STORAGE_BUCKET') or '').strip()
-    if explicit:
-        return explicit
-    project = (
-        (os.getenv('FIREBASE_PROJECT_ID') or '').strip()
-        or (os.getenv('GOOGLE_CLOUD_PROJECT') or '').strip()
-        or (os.getenv('GCP_PROJECT') or '').strip()
-        or 'katsumijoias'
-    )
-    return f'{project}.firebasestorage.app'
+    return firebase_storage_bucket()
 
 
 _STORAGE_BUCKET_NAME = _resolve_storage_bucket_name()
