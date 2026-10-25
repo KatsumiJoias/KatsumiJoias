@@ -193,6 +193,12 @@
                 case 'auth/network-request-failed':
                     errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
                     break;
+                case 'auth/operation-not-allowed':
+                    errorMessage = (
+                        'Login com Google não está habilitado no Firebase. '
+                        'Console Firebase → Authentication → Sign-in method → Google → Ativar → Salvar.'
+                    );
+                    break;
             }
 
             showMessage(errorMessage, true);

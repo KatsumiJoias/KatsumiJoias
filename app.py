@@ -5195,6 +5195,22 @@ def send_login_link():
                     '"Email link (passwordless sign-in)" e salve.'
                 )
             }), 503
+        if 'INVALID_CONTINUE_URI' in exc_text or 'UNAUTHORIZED_DOMAIN' in exc_text:
+            return jsonify({
+                'error': (
+                    'URL de retorno não autorizada no Firebase. '
+                    'Em Authentication → Settings → Authorized domains, inclua o domínio '
+                    f'de {continue_url}.'
+                )
+            }), 503
+        if 'PERMISSION_DENIED' in exc_text or 'Credential' in exc_text or '403' in exc_text:
+            return jsonify({
+                'error': (
+                    'Servidor sem permissão para gerar links (Firebase Admin). '
+                    'No GCP IAM, conceda à service account do Cloud Run os papéis '
+                    'Firebase Authentication Admin e Cloud Datastore User.'
+                )
+            }), 503
         return jsonify({
             'error': 'Não foi possível gerar o link de acesso. Tente novamente em instantes.'
         }), 500

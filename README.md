@@ -282,7 +282,37 @@ No Cloud Run, o Admin SDK usa a **service account do serviço** (ADC) — não p
 | Google login abre `none` (DNS error) | Variáveis Firebase no Cloud Run com valor literal `None` ou vazias | Em **Variables**, use os valores reais do Firebase Console (Configurações → Seus apps → Web). Remova entradas erradas. `FIREBASE_AUTH_DOMAIN` deve ser algo como `katsumijoias-6cc8d.firebaseapp.com` (copie do Console). |
 | `POST /api/auth/send-login-link` → 500 | `SITE_URL` ausente ou link não habilitado no Firebase | Defina `SITE_URL=https://katsumijoias-app-….run.app` (sem barra final). Em Authentication → E-mail/Senha, ative **Email link (passwordless sign-in)**. |
 | E-mail não chega | `API_KEY_BREVO` ausente ou remetente não verificado | Crie chave em Brevo; verifique o domínio `katsumijoias.com.br` e o remetente `contato@katsumijoias.com.br` (já usado no código). |
-| Catálogo vazio com dados no Firestore | SA do Cloud Run sem permissão no Firestore | IAM → conta `…@…gserviceaccount.com` do serviço Run → papéis **Cloud Datastore User** e **Firebase Admin** (ou SA dedicada via `FIREBASE_CREDENTIALS_JSON`). |
+| Catálogo vazio com dados no Firestore | SA do Cloud Run sem permissão no Firestore | Veja comandos IAM abaixo. |
+| `auth/operation-not-allowed` (Google) | Provedor Google desligado no Firebase | **Authentication → Sign-in method → Google → Enable → Save**. |
+| Login por e-mail 500 / permissão | SA do Cloud Run sem Firebase Auth Admin | Papel **Firebase Authentication Admin** na SA do serviço. |
+
+### IAM da service account do Cloud Run (catálogo + login por e-mail)
+
+No Cloud Run → serviço → **Security**, copie o e-mail da **Service account** (ex.: `491109262402-compute@developer.gserviceaccount.com` ou SA customizada).
+
+Substitua `SA_EMAIL` e rode no Cloud Shell (projeto `katsumijoias`):
+
+```bash
+PROJECT=katsumijoias
+SA_EMAIL="491109262402-compute@developer.gserviceaccount.com"
+
+for ROLE in roles/datastore.user roles/firebaseauth.admin roles/serviceusage.serviceUsageConsumer; do
+  gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="$ROLE" \
+    --quiet
+done
+```
+
+Aguarde 1–2 minutos e teste de novo `/joias` e o login por e-mail.
+
+**Firebase Authentication (Console):**
+
+1. **Sign-in method → Google** → Ativar (escolha e-mail de suporte do projeto).
+2. **Sign-in method → E-mail/Senha** → Ativar **e** marcar **Email link (passwordless sign-in)**.
+3. **Settings → Authorized domains** → URL `….run.app` já listada.
+
+**Secret `FIREBASE_MESSAGING_SENDER_ID`:** use o número do app Web (`510058748229` no `FIREBASE_APP_ID`), **não** o número `491109262402` da URL do Cloud Run. O código também deriva isso do `FIREBASE_APP_ID` após deploy.
 
 Após corrigir variáveis, faça **Redeploy** ou **Edit & deploy new revision** no Cloud Run.
 

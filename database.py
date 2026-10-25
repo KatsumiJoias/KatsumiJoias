@@ -228,7 +228,13 @@ def get_all_products():
         
         return products
     except Exception as e:
+        err = str(e)
         print(f"Error getting all products: {e}")
+        if '403' in err or 'Permission' in err or 'Missing' in err:
+            print(
+                '[Firestore] Cloud Run service account may lack roles/datastore.user — '
+                'see README IAM checklist.'
+            )
         return []
 
 def get_product_by_id(product_id):

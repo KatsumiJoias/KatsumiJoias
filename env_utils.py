@@ -40,15 +40,13 @@ def firebase_storage_bucket() -> str:
 
 
 def firebase_messaging_sender_id() -> str:
-    explicit = env_str('FIREBASE_MESSAGING_SENDER_ID')
-    if explicit:
-        return explicit
+    """Sender ID must match FIREBASE_APP_ID (not the GCP project number)."""
     app_id = env_str('FIREBASE_APP_ID')
     if app_id.startswith('1:'):
         parts = app_id.split(':')
         if len(parts) >= 2 and parts[1].isdigit():
             return parts[1]
-    return ''
+    return env_str('FIREBASE_MESSAGING_SENDER_ID')
 
 
 def public_site_url(request=None) -> str:
