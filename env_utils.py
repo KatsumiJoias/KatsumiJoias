@@ -26,10 +26,15 @@ def project_id_from_credentials_json() -> str:
         return ''
 
 
-def gcp_project_id(default: str = '') -> str:
-    """Firebase / Firestore project id (NOT necessarily the Cloud Run hosting GCP project)."""
+# Firestore + Auth live here. Cloud Run may be hosted on a different GCP project.
+FIREBASE_DATA_PROJECT_ID = 'katsumijoias-6cc8d'
+
+
+def gcp_project_id(default: str = FIREBASE_DATA_PROJECT_ID) -> str:
+    """Firebase Auth/Firestore project id — never the Cloud Run hosting project by default."""
     return (
-        env_str('FIREBASE_PROJECT_ID')
+        env_str('FIRESTORE_PROJECT_ID')
+        or env_str('FIREBASE_PROJECT_ID')
         or project_id_from_credentials_json()
         or default
     )

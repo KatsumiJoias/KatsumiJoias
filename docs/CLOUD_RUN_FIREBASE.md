@@ -12,7 +12,13 @@ Neste repositório há **dois IDs de projeto**:
 Localmente o `FIREBASE_CREDENTIALS_PATH=./account_service.json` aponta para **`katsumijoias-6cc8d`**.  
 No Cloud Run, **sem** `FIREBASE_CREDENTIALS_JSON`, o Admin SDK usa a service account padrão do projeto **`katsumijoias`**, onde **não existe** banco Firestore `(default)` — daí catálogo vazio, login 500/401 e logs `does not exist for project katsumijoias`.
 
-**Correção obrigatória em produção:** secret `FIREBASE_CREDENTIALS_JSON` = JSON completo do `account_service.json` (mesmo arquivo local).
+**Correção obrigatória em produção (um comando, na pasta do repo):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\bind_firebase_to_cloudrun.ps1
+```
+
+Isso sobe `account_service.json` como secret no GCP `katsumijoias` e anexa ao Cloud Run. Sem isso, o Admin SDK usa ADC de `katsumijoias` e o Firestore responde 404.
 
 **Ajuste de secrets do app Web:**
 
@@ -49,7 +55,7 @@ Em **Cloud Run → katsumijoias-app → Edit → Variables & Secrets**, cada sec
 |-------------------|-------------|
 | `FIREBASE_API_KEY` | apiKey do app Web |
 | `FIREBASE_APP_ID` | appId (ex.: `1:510058748229:web:…`) |
-| `FIREBASE_PROJECT_ID` | `katsumijoias` |
+| `FIREBASE_PROJECT_ID` | `katsumijoias-6cc8d` |
 | `FIREBASE_AUTH_DOMAIN` | authDomain (ex.: `katsumijoias-6cc8d.firebaseapp.com`) |
 | `FIREBASE_STORAGE_BUCKET` | `katsumijoias.firebasestorage.app` |
 | `FIREBASE_MESSAGING_SENDER_ID` | Número **dentro do appId** (`510058748229`), não o `491109262402` da URL do Run |

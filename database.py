@@ -1,8 +1,15 @@
+import json
 import os
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
-from env_utils import cloud_run_gcp_project_id, env_str, firebase_storage_bucket, project_id_from_credentials_json
+from env_utils import (
+    FIREBASE_DATA_PROJECT_ID,
+    cloud_run_gcp_project_id,
+    env_str,
+    firebase_storage_bucket,
+    gcp_project_id,
+)
 import uuid
 from werkzeug.utils import secure_filename
 import tempfile
@@ -28,79 +35,95 @@ def _resolve_storage_bucket_name():
 
 _STORAGE_BUCKET_NAME = _resolve_storage_bucket_name()
 
+def _parse_service_account_json(raw):
+    """Parse FIREBASE_CREDENTIALS_JSON; tolerate extra quotes from Secret Manager."""
+    text = env_str('FIREBASE_CREDENTIALS_JSON') if raw is None else str(raw).strip()
+    if not text or text.lower() in ('none', 'null', 'undefined'):
+        return None
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    if isinstance(parsed, str):
+        try:
+            parsed = json.loads(parsed)
+        except json.JSONDecodeError:
+            return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _admin_init_options():
+    return {
+        'projectId': gcp_project_id(),
+        'storageBucket': _STORAGE_BUCKET_NAME,
+    }
+
+
 # Initialize Firebase Admin SDK
 try:
-    # Try to get existing app
     firebase_app = firebase_admin.get_app()
 except ValueError:
-    # Initialize if not already initialized
-    firebase_credentials_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
-    firebase_credentials_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
-    
-    if firebase_credentials_json:
-        # Use JSON string from environment variable (recommended for production)
-        import json
-        try:
-            cred_dict = json.loads(firebase_credentials_json)
-            cred = credentials.Certificate(cred_dict)
-            firebase_app = firebase_admin.initialize_app(cred, {
-                'storageBucket': _STORAGE_BUCKET_NAME,
-            })
-            print("Firebase inicializado via FIREBASE_CREDENTIALS_JSON")
-        except json.JSONDecodeError as e:
-            print(f"✗ ERRO: JSON inválido em FIREBASE_CREDENTIALS_JSON: {e}")
-            print("Execute: python fix_env.py para corrigir")
-            raise
-    elif firebase_credentials_path:
-        # Use service account file path (for local development)
-        cred = credentials.Certificate(firebase_credentials_path)
-        firebase_app = firebase_admin.initialize_app(cred, {
-            'storageBucket': _STORAGE_BUCKET_NAME,
-        })
-    else:
-        # Use default credentials (for Cloud Run/GCP environments with default service account)
-        firebase_app = firebase_admin.initialize_app(options={
-            'storageBucket': _STORAGE_BUCKET_NAME,
-        })
+    cred_dict = _parse_service_account_json(os.getenv('FIREBASE_CREDENTIALS_JSON'))
+    cred_path = env_str('FIREBASE_CREDENTIALS_PATH')
+    options = _admin_init_options()
 
-# Initialize Firestore client (Firebase Console → Firestore; default database id is "(default)")
+    if cred_dict:
+        cred_project = (cred_dict.get('project_id') or '').strip()
+        if cred_project:
+            options['projectId'] = cred_project
+        firebase_app = firebase_admin.initialize_app(credentials.Certificate(cred_dict), options)
+        print(f"[Firebase] Admin SDK via FIREBASE_CREDENTIALS_JSON project={options['projectId']!r}")
+    elif cred_path:
+        firebase_app = firebase_admin.initialize_app(credentials.Certificate(cred_path), options)
+        print(f"[Firebase] Admin SDK via FIREBASE_CREDENTIALS_PATH project={options['projectId']!r}")
+    else:
+        firebase_app = firebase_admin.initialize_app(options=options)
+        print(
+            f"[Firebase] Admin SDK via ADC project={options['projectId']!r} "
+            f"(host={cloud_run_gcp_project_id()!r}). "
+            "Em Cloud Run, prefira o secret FIREBASE_CREDENTIALS_JSON (account_service.json)."
+        )
+
+
 def _create_firestore_client():
-    database_id = (os.getenv('FIRESTORE_DATABASE_ID') or '(default)').strip()
-    if database_id in ('', '(default)'):
-        return firestore.client()
-    try:
-        return firestore.client(database_id=database_id)
-    except TypeError as exc:
-        raise RuntimeError(
-            f'FIRESTORE_DATABASE_ID={database_id!r} requer firebase-admin>=6.2. '
-            'Ative o venv do projeto e rode: pip install -r requirements.txt'
-        ) from exc
+    """Always target the Firebase data project — never inherit Cloud Run's GCP project."""
+    project = gcp_project_id()
+    database_id = env_str('FIRESTORE_DATABASE_ID') or '(default)'
+    kwargs = {'app': firebase_app, 'project': project}
+    if database_id not in ('', '(default)'):
+        kwargs['database_id'] = database_id
+        try:
+            return firestore.client(**kwargs)
+        except TypeError as exc:
+            raise RuntimeError(
+                f'FIRESTORE_DATABASE_ID={database_id!r} requer firebase-admin>=6.2. '
+                'Ative o venv do projeto e rode: pip install -r requirements.txt'
+            ) from exc
+    return firestore.client(app=firebase_app, project=project)
 
 
 db = _create_firestore_client()
 
 
 def _log_firebase_bootstrap():
-    cred_mode = 'adc'
-    if os.getenv('FIREBASE_CREDENTIALS_JSON'):
-        cred_mode = 'json'
-    elif os.getenv('FIREBASE_CREDENTIALS_PATH'):
-        cred_mode = 'file'
-    fs_project = getattr(db, 'project', None) or project_id_from_credentials_json() or '?'
-    print(f'[Firebase] Admin SDK credentials={cred_mode} firestore_project={fs_project!r}')
-    env_pid = env_str('FIREBASE_PROJECT_ID')
-    if env_pid and fs_project != '?' and env_pid != fs_project:
+    fs_project = getattr(db, 'project', None) or gcp_project_id()
+    host = cloud_run_gcp_project_id()
+    print(
+        f"[Firebase] Firestore client project={fs_project!r} "
+        f"expected={FIREBASE_DATA_PROJECT_ID!r} host_gcp={host!r}"
+    )
+    if fs_project == host and host != FIREBASE_DATA_PROJECT_ID:
         print(
-            f'[Firebase] AVISO: FIREBASE_PROJECT_ID={env_pid!r} != Firestore {fs_project!r} '
-            f'(ajuste o secret / .env para {fs_project!r}).'
+            f"[Firebase] ERRO: cliente aponta para o GCP do Cloud Run ({host!r}), "
+            f"nao para o Firebase ({FIREBASE_DATA_PROJECT_ID!r}). "
+            "Defina FIREBASE_PROJECT_ID=katsumijoias-6cc8d e "
+            "FIREBASE_CREDENTIALS_JSON (account_service.json)."
         )
-    if cred_mode == 'adc':
-        host_project = cloud_run_gcp_project_id()
-        if host_project and fs_project != '?' and host_project != fs_project:
-            print(
-                f'[Firebase] Cloud Run hospedado em GCP {host_project!r}, dados em {fs_project!r}. '
-                'Configure secret FIREBASE_CREDENTIALS_JSON (conteúdo do account_service.json).'
-            )
+    elif fs_project and fs_project != FIREBASE_DATA_PROJECT_ID:
+        print(
+            f"[Firebase] AVISO: Firestore em {fs_project!r}; "
+            f"o seed e o Console usam {FIREBASE_DATA_PROJECT_ID!r}."
+        )
 
 
 _log_firebase_bootstrap()
