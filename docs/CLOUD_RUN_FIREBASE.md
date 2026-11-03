@@ -101,9 +101,9 @@ done
 
 ## E. E-mail (Brevo + alias)
 
-1. Brevo: verificar domínio `katsumijoias.com.br`.
-2. Remetente `contato@katsumijoias.com.br` autorizado.
-3. `API_KEY_BREVO` no Run.
+1. `API_KEY_BREVO` no Run.
+2. Enquanto `katsumijoias.com.br` não estiver autenticado, o app envia pelo **remetente padrão da conta Brevo** e usa `contato@katsumijoias.com.br` só como Reply-To.
+3. Depois de verificar o domínio e o remetente `contato@katsumijoias.com.br` no Brevo, o próximo envio (em até ~5 min) passa a sair desse endereço sozinho.
 
 **Validar:** receber e-mail de teste; link abre `/auth/login?token=…` e conclui em `/login/finish`.
 

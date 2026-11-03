@@ -14,8 +14,13 @@ from env_utils import env_str, public_site_url
 _BRT = timezone(timedelta(hours=-3))
 
 BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
-SENDER = {'name': 'Katsumi Joias', 'email': 'contato@katsumijoias.com.br'}
+BREVO_SENDERS_URL = 'https://api.brevo.com/v3/senders'
+PREFERRED_SENDER = {'name': 'Katsumi Joias', 'email': 'contato@katsumijoias.com.br'}
+SENDER = PREFERRED_SENDER  # kept for callers / tests that still read the constant
 PAID_STATUSES = frozenset({'paid', 'authorized'})
+_SENDER_CACHE_SHORT = timedelta(minutes=5)
+_SENDER_CACHE_LONG = timedelta(hours=1)
+_sender_cache = {'sender': None, 'fetched_at': None, 'ttl': _SENDER_CACHE_SHORT}
 
 
 def is_paid_status(status):
@@ -233,14 +238,133 @@ def _html_to_text(html_content):
     return text.strip()
 
 
+def _preferred_sender():
+    email = (env_str('BREVO_SENDER_EMAIL') or PREFERRED_SENDER['email']).strip().lower()
+    name = (env_str('BREVO_SENDER_NAME') or PREFERRED_SENDER['name']).strip() or PREFERRED_SENDER['name']
+    return {'name': name, 'email': email}
+
+
+def _brevo_headers(api_key):
+    return {
+        'api-key': api_key,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    }
+
+
+def _list_active_senders(api_key):
+    """Verified senders on the Brevo account (the first one is the account default)."""
+    try:
+        response = requests.get(
+            BREVO_SENDERS_URL,
+            headers=_brevo_headers(api_key),
+            timeout=10,
+        )
+        if response.status_code != 200:
+            _log_email(f'Brevo senders list failed status={response.status_code}')
+            return []
+        senders = []
+        for item in (response.json() or {}).get('senders') or []:
+            email = (item.get('email') or '').strip().lower()
+            if not email or item.get('active') is False:
+                continue
+            senders.append({
+                'name': (item.get('name') or PREFERRED_SENDER['name']).strip() or PREFERRED_SENDER['name'],
+                'email': email,
+            })
+        return senders
+    except requests.RequestException as exc:
+        _log_email(f'Brevo senders list request failed: {type(exc).__name__}')
+        return []
+
+
+def _invalidate_sender_cache():
+    _sender_cache['sender'] = None
+    _sender_cache['fetched_at'] = None
+
+
+def _resolve_sender(api_key, force_refresh=False, exclude_email=None):
+    """
+    Use contato@katsumijoias.com.br when that sender is verified on Brevo.
+    Until the domain is authenticated, fall back to the account's default sender.
+    The cache is short while on fallback so the switch happens soon after verification.
+    """
+    now = datetime.now(timezone.utc)
+    cached = _sender_cache.get('sender')
+    fetched_at = _sender_cache.get('fetched_at')
+    ttl = _sender_cache.get('ttl') or _SENDER_CACHE_SHORT
+    if (
+        not force_refresh
+        and not exclude_email
+        and cached
+        and fetched_at
+        and now - fetched_at < ttl
+    ):
+        return cached
+
+    preferred = _preferred_sender()
+    active = _list_active_senders(api_key)
+    if exclude_email:
+        active = [s for s in active if s['email'] != exclude_email.lower()]
+
+    preferred_ok = any(s['email'] == preferred['email'] for s in active)
+    if preferred_ok:
+        chosen = preferred
+        ttl = _SENDER_CACHE_LONG
+        _log_email(f'Using preferred sender {chosen["email"]}')
+    elif active:
+        chosen = dict(active[0])
+        chosen['name'] = preferred['name']
+        ttl = _SENDER_CACHE_SHORT
+        _log_email(
+            f'Preferred sender {preferred["email"]} not verified yet; '
+            f'using Brevo default {chosen["email"]}'
+        )
+    else:
+        fallback_email = env_str('BREVO_FALLBACK_SENDER_EMAIL').strip().lower()
+        if fallback_email:
+            chosen = {'name': preferred['name'], 'email': fallback_email}
+            ttl = _SENDER_CACHE_SHORT
+            _log_email(f'Using BREVO_FALLBACK_SENDER_EMAIL={chosen["email"]}')
+        else:
+            chosen = preferred
+            ttl = _SENDER_CACHE_SHORT
+            _log_email(f'No verified senders listed; trying {preferred["email"]}')
+
+    _sender_cache['sender'] = chosen
+    _sender_cache['fetched_at'] = now
+    _sender_cache['ttl'] = ttl
+    return chosen
+
+
+def _is_invalid_sender_error(response):
+    text = (response.text or '').lower()
+    return response.status_code in (400, 401, 402, 403) and (
+        'sender' in text
+        and any(token in text for token in ('not valid', 'invalid', 'not authenticated', 'authenticate'))
+    )
+
+
+def _post_brevo_email(api_key, payload):
+    return requests.post(
+        BREVO_API_URL,
+        json=payload,
+        headers=_brevo_headers(api_key),
+        timeout=15,
+    )
+
+
 def _send_email(to_email, to_name, subject, html_content):
     api_key = _get_api_key()
     if not api_key:
         _log_email('API_KEY_BREVO not configured — skipping send')
         return False
 
+    sender = _resolve_sender(api_key)
+    preferred = _preferred_sender()
     payload = {
-        'sender': SENDER,
+        'sender': sender,
+        'replyTo': preferred,
         'to': [{'email': to_email, 'name': to_name or to_email}],
         'subject': subject,
         'htmlContent': html_content,
@@ -248,16 +372,16 @@ def _send_email(to_email, to_name, subject, html_content):
     }
 
     try:
-        response = requests.post(
-            BREVO_API_URL,
-            json=payload,
-            headers={
-                'api-key': api_key,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-            timeout=15,
-        )
+        response = _post_brevo_email(api_key, payload)
+        if _is_invalid_sender_error(response):
+            failed_email = sender.get('email', '')
+            _log_email(f'Sender {failed_email} rejected by Brevo; retrying with account default')
+            _invalidate_sender_cache()
+            sender = _resolve_sender(api_key, force_refresh=True, exclude_email=failed_email)
+            if sender.get('email') != failed_email:
+                payload['sender'] = sender
+                response = _post_brevo_email(api_key, payload)
+
         if response.status_code in (200, 201):
             message_id = ''
             try:
@@ -267,7 +391,7 @@ def _send_email(to_email, to_name, subject, html_content):
                 message_id = ''
             _log_email(
                 f'Sent successfully (HTTP {response.status_code}) '
-                f'messageId={message_id or "?"} to={to_email}'
+                f'from={sender.get("email")} messageId={message_id or "?"} to={to_email}'
             )
             return True
 

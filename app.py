@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response, has_request_context
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -268,6 +268,30 @@ def set_security_headers(response):
 _nav_categories_cache = {'data': None, 'ts': 0}
 _NAV_CATEGORIES_TTL = 120
 
+# Static cover images for "Explore por tipo" (and any other nav_jewelry_types tiles).
+# CRM category image_url still wins when set.
+_JEWELRY_TYPE_STATIC_IMAGES = {
+    'aneis': 'images/anel.jpg',
+    'anel': 'images/anel.jpg',
+    'brincos': 'images/brincos.jpg',
+    'brinco': 'images/brincos.jpg',
+    'colares': 'images/colar.jpg',
+    'colar': 'images/colar.jpg',
+    'aliancas': 'images/aliancas.jpg',
+    'alianca': 'images/aliancas.jpg',
+    'pulseiras': 'images/pulseira.jpg',
+    'pulseira': 'images/pulseira.jpg',
+}
+
+
+def _jewelry_type_fallback_image(name):
+    filename = _JEWELRY_TYPE_STATIC_IMAGES.get(seo.category_slug(name))
+    if not filename:
+        return ''
+    if has_request_context():
+        return url_for('static', filename=filename)
+    return f'/static/{filename}'
+
 
 def _invalidate_nav_categories_cache():
     _nav_categories_cache['data'] = None
@@ -288,7 +312,7 @@ def get_nav_jewelry_types():
                 'name': name,
                 'slug': seo.category_slug(name),
                 'url': seo.category_path(name, kind=PRODUCT_TYPE_JOIA),
-                'image_url': cat.get('image_url') or '',
+                'image_url': cat.get('image_url') or _jewelry_type_fallback_image(name),
                 'description': cat.get('description') or '',
             }
             for name, cat in items if cat.get('show_in_nav', True)
