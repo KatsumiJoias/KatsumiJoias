@@ -24,18 +24,31 @@ function showMessage(message, isError = false) {
     const messageText = document.getElementById('auth-message-text');
     if (!messageDiv || !messageText) return;
 
-    messageDiv.classList.remove('hidden', 'bg-red-50', 'bg-green-50');
+    messageDiv.classList.remove('hidden', 'bg-red-50', 'bg-green-50', 'border-red-100', 'border-green-200');
     messageText.classList.remove('text-red-800', 'text-green-800');
 
     if (isError) {
-        messageDiv.classList.add('bg-red-50');
+        messageDiv.classList.add('bg-red-50', 'border-red-100');
         messageText.classList.add('text-red-800');
     } else {
-        messageDiv.classList.add('bg-green-50');
+        messageDiv.classList.add('bg-green-50', 'border-green-200');
         messageText.classList.add('text-green-800');
     }
 
     messageText.textContent = message;
+    messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function showLinkSent(message) {
+    const panel = document.getElementById('login-success');
+    const text = document.getElementById('login-success-text');
+    const methods = document.getElementById('login-methods');
+    const messageDiv = document.getElementById('auth-message');
+    if (text) text.textContent = message;
+    if (panel) panel.classList.remove('hidden');
+    if (methods) methods.classList.add('hidden');
+    if (messageDiv) messageDiv.classList.add('hidden');
+    if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function safeNext(value) {
@@ -129,7 +142,7 @@ function bindLoginPage(auth) {
             const data = await response.json().catch(() => ({}));
 
             if (response.ok) {
-                showMessage(data.message || 'Link enviado! Verifique seu e-mail.', false);
+                showLinkSent(data.message || 'Link enviado! Verifique seu e-mail.');
             } else {
                 showMessage(data.error || 'Não foi possível enviar o link. Tente novamente.', true);
             }

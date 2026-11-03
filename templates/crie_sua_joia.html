@@ -33,11 +33,16 @@
     .cj-history-item img { aspect-ratio: 1 / 1; object-fit: cover; }
 </style>
 
-<section class="bg-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 lg:pt-14">
-        <p class="text-[11px] tracking-[0.3em] uppercase text-neutral-500 mb-3">Ateliê Katsumi</p>
-        <h1 class="font-serif text-3xl lg:text-5xl text-black">Crie sua jóia</h1>
-        <p class="mt-4 max-w-2xl text-sm lg:text-base text-neutral-600 leading-relaxed">
+<section class="relative overflow-hidden bg-black text-white">
+    <img src="{{ url_for('static', filename='images/sua-historia-banner.jpg') }}"
+         alt=""
+         aria-hidden="true"
+         class="absolute inset-0 w-full h-full object-cover">
+    <div class="absolute inset-0 bg-black/50"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-14 lg:pt-24 lg:pb-20">
+        <p class="text-[11px] tracking-[0.3em] uppercase text-white/70 mb-3">Ateliê Katsumi</p>
+        <h1 class="font-serif text-3xl lg:text-5xl text-white">Crie sua jóia</h1>
+        <p class="mt-4 max-w-2xl text-sm lg:text-base text-white/80 leading-relaxed">
             Escolha o tipo de peça, o metal e as pedras. Em instantes você vê uma prévia ilustrativa
             da sua ideia — e, se gostar, pede um orçamento para o nosso ateliê produzir.
         </p>

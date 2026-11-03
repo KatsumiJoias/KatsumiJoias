@@ -115,7 +115,7 @@
             'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
         ) }}
 
-        {% for setting in settings if setting.key not in ('exchange_rate', 'exchange_rate_increase', 'product_categories', 'price_increase_rate', 'shipping_config') %}
+        {% for setting in settings if setting.key not in ('exchange_rate', 'exchange_rate_increase', 'product_categories', 'price_increase_rate', 'shipping_config', 'seed_meta') %}
         <li>
             <a href="{{ url_for('edit_setting', setting_key=setting.key) }}"
                class="block hover:bg-gray-50 transition-colors duration-150">

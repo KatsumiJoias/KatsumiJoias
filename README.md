@@ -73,7 +73,7 @@ pip install -r requirements.txt
 ```env
 # --- Obrigatórias ---
 FLASK_SECRET_KEY=sua-chave-secreta-aqui
-FIREBASE_STORAGE_BUCKET=katsumijoias.firebasestorage.app
+FIREBASE_STORAGE_BUCKET=katsumijoias-6cc8d.firebasestorage.app
 FIREBASE_CREDENTIALS_JSON='{"type":"service_account","project_id":"katsumijoias",...}'
 # OU aponte para o arquivo JSON:
 # FIREBASE_CREDENTIALS_PATH=./serviceAccountKey.json
@@ -262,7 +262,7 @@ Mínimo para subir:
 | Variável | Exemplo |
 |----------|---------|
 | `FLASK_SECRET_KEY` | string longa aleatória |
-| `FIREBASE_STORAGE_BUCKET` | `katsumijoias.firebasestorage.app` |
+| `FIREBASE_STORAGE_BUCKET` | `katsumijoias-6cc8d.firebasestorage.app` |
 | `FIREBASE_CREDENTIALS_JSON` | JSON do `account_service.json` (**obrigatório** no Run) |
 | `FIREBASE_PROJECT_ID` | `katsumijoias-6cc8d` |
 | `FIREBASE_API_KEY` | do Firebase Console (app Web) |
@@ -283,7 +283,7 @@ Firestore e seed estão no Firebase **`katsumijoias-6cc8d`**; o serviço Run pod
 |----------|-------------|-------------|
 | Google login abre `none` (DNS error) | Variáveis Firebase no Cloud Run com valor literal `None` ou vazias | Em **Variables**, use os valores reais do Firebase Console (Configurações → Seus apps → Web). Remova entradas erradas. `FIREBASE_AUTH_DOMAIN` deve ser algo como `katsumijoias-6cc8d.firebaseapp.com` (copie do Console). |
 | `POST /api/auth/send-login-link` → 500 | `SITE_URL` ausente ou link não habilitado no Firebase | Defina `SITE_URL=https://katsumijoias-app-….run.app` (sem barra final). Em Authentication → E-mail/Senha, ative **Email link (passwordless sign-in)**. |
-| E-mail não chega | `API_KEY_BREVO` ausente ou remetente não verificado | Crie chave em Brevo; verifique o domínio `katsumijoias.com.br` e o remetente `contato@katsumijoias.com.br` (já usado no código). |
+| E-mail não chega | `API_KEY_BREVO` ausente, remetente não verificado, ou conferência no painel errado | Crie chave em Brevo; verifique o domínio `katsumijoias.com.br` e o remetente `contato@katsumijoias.com.br`. Logs transacionais ficam em **Transactional → Email → Logs**, não no usage de campanhas de marketing. |
 | Catálogo vazio com dados no Firestore | SA do Cloud Run sem permissão no Firestore | Veja comandos IAM abaixo. |
 | `auth/operation-not-allowed` (Google) | Provedor Google desligado no Firebase | **Authentication → Sign-in method → Google → Enable → Save**. |
 | Login por e-mail 500 / permissão | SA do Cloud Run sem Firebase Auth Admin | Papel **Firebase Authentication Admin** na SA do serviço. |

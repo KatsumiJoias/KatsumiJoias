@@ -81,7 +81,14 @@ from database import (
     create_activity_log,
     diff_for_log,
     get_activity_logs,
+    get_activity_log,
     get_distinct_log_actors,
+    activity_log_can_revert,
+    mark_activity_log_reverted,
+    get_entity_document,
+    restore_entity_document,
+    update_entity_fields,
+    delete_entity_document,
     get_orders_by_customer_id,
     serialize_order_for_display,
     LOG_ACTION_CREATE,
@@ -2255,11 +2262,34 @@ def _current_actor():
     }
 
 
-def _log_action(entity_type, entity_id, entity_label, action, changes=None, note='', automatic=False):
+def _snapshot_for_log(doc):
+    """Full document state before a change, used to revert the log later."""
+    if not doc or not isinstance(doc, dict):
+        return None
+    snap = dict(doc)
+    snap.pop('id', None)
+    return snap
+
+
+STORAGE_UPLOAD_HINT = (
+    'O upload da imagem falhou: o bucket do Firebase Storage não existe ainda. '
+    'No Firebase Console (projeto katsumijoias-6cc8d), abra Build → Storage → Começar. '
+    'Depois defina FIREBASE_STORAGE_BUCKET=katsumijoias-6cc8d.firebasestorage.app no Cloud Run e no .env.'
+)
+
+_PAYMENT_REVERT_FIELDS = (
+    'payments', 'balance_brl', 'paid_total_brl', 'payment_status',
+    'next_charge_date', 'status', 'paid_at',
+)
+
+
+def _log_action(entity_type, entity_id, entity_label, action, changes=None, note='',
+                automatic=False, snapshot_before=None):
     """
     Record an audit entry. `automatic=True` marks changes made by the system as a
     side effect of another action (e.g. stock write-off when an order is created),
     so the log makes clear the user didn't edit that record by hand.
+    Pass `snapshot_before` on update/delete so the CRM can revert the action.
     """
     actor = _current_actor()
     create_activity_log(
@@ -2270,6 +2300,7 @@ def _log_action(entity_type, entity_id, entity_label, action, changes=None, note
         changes=changes,
         note=note,
         source='automatic' if automatic else 'manual',
+        snapshot_before=snapshot_before,
         **actor,
     )
 
@@ -2427,6 +2458,9 @@ def _register_order_payment(order, amount_brl, method, paid_at, note='', next_ch
         'registered_by': session.get('user_email') or 'admin',
         'registered_at': _now_brt_iso(),
     }
+    snapshot_before = _snapshot_for_log(order)
+    if snapshot_before is not None:
+        snapshot_before['payments'] = list(order.get('payments') or [])
     order['payments'] = list(order.get('payments') or []) + [payment]
 
     extra = {}
@@ -2443,6 +2477,7 @@ def _register_order_payment(order, amount_brl, method, paid_at, note='', next_ch
              'after': f"R$ {result['balance_brl']:.2f}"},
         ],
         note=payment['note'],
+        snapshot_before=snapshot_before,
     )
     return payment, result
 
@@ -3256,7 +3291,11 @@ def crm_solicitacao_reply(solicitacao_id):
 @require_admin
 def crm_ajustes():
     """Página de ajustes do sistema."""
-    settings = get_all_settings()
+    hidden_keys = {
+        'exchange_rate', 'exchange_rate_increase', 'product_categories',
+        'price_increase_rate', 'shipping_config', 'seed_meta',
+    }
+    settings = [s for s in get_all_settings() if s.get('key') not in hidden_keys]
     return render_template('crm_ajustes.html', settings=settings)
 
 @app.route('/crm/ajustes/<setting_key>/edit', methods=['GET', 'POST'])
@@ -3720,11 +3759,14 @@ def new_product():
             product_data['specifications'] = specifications
             
             # Handle main image
+            upload_failed = False
             main_image = request.files.get('main_image')
             if main_image and main_image.filename:
                 main_image_url = upload_image(main_image, main_image.filename)
                 if main_image_url:
                     product_data['main_image_url'] = main_image_url
+                else:
+                    upload_failed = True
             
             # Handle additional images
             additional_images = request.files.getlist('additional_images')
@@ -3736,6 +3778,8 @@ def new_product():
                             product_data['image_2_url'] = image_url
                         else:
                             product_data['image_3_url'] = image_url
+                    else:
+                        upload_failed = True
             
             # YouTube URL
             youtube_url = request.form.get('youtube_url', '').strip()
@@ -3755,6 +3799,8 @@ def new_product():
                     LOG_ACTION_CREATE,
                     changes=diff_for_log({}, product_data, ignore_fields=('specifications',)),
                 )
+                if upload_failed:
+                    flash(STORAGE_UPLOAD_HINT, 'error')
                 flash(f'Produto criado com sucesso! SKU {sku}', 'success')
                 return redirect(url_for('crm_produtos'))
             else:
@@ -3821,15 +3867,18 @@ def edit_product(product_id):
                 if key and value:  # Only add if both key and value are provided
                     specifications[key] = value
             
-            # Handle main image
+            # Handle main image (upload first; only replace the old file if the new one succeeds)
+            upload_failed = False
             main_image = request.files.get('main_image')
             if main_image and main_image.filename:
-                # Delete old main image if it exists
-                if product.get('main_image_url'):
-                    old_image_name = product['main_image_url'].split('/')[-1]
-                    delete_image(old_image_name)
-                # Upload new main image
-                main_image_url = upload_image(main_image, main_image.filename)
+                uploaded_url = upload_image(main_image, main_image.filename)
+                if uploaded_url:
+                    if product.get('main_image_url'):
+                        delete_image(product['main_image_url'].split('/')[-1])
+                    main_image_url = uploaded_url
+                else:
+                    upload_failed = True
+                    main_image_url = product.get('main_image_url')
             else:
                 main_image_url = product.get('main_image_url')
             
@@ -3841,13 +3890,13 @@ def edit_product(product_id):
             new_images = request.files.getlist('additional_images')
             for idx, image in enumerate(new_images[:2], start=2):  # Only process up to 2 additional images
                 if image and image.filename:
-                    # Delete old image if it exists
+                    new_url = upload_image(image, image.filename)
+                    if not new_url:
+                        upload_failed = True
+                        continue
                     old_url = product.get(f'image_{idx}_url')
                     if old_url:
-                        old_image_name = old_url.split('/')[-1]
-                        delete_image(old_image_name)
-                    # Upload new image
-                    new_url = upload_image(image, image.filename)
+                        delete_image(old_url.split('/')[-1])
                     if idx == 2:
                         image_2_url = new_url
                     else:
@@ -3931,7 +3980,10 @@ def edit_product(product_id):
                     f"{updated_product.get('name') or product.get('name')} ({updated_product.get('sku') or product.get('sku') or '—'})",
                     LOG_ACTION_UPDATE,
                     changes=diff_for_log(product, updated_product),
+                    snapshot_before=_snapshot_for_log(product),
                 )
+                if upload_failed:
+                    flash(STORAGE_UPLOAD_HINT, 'error')
                 flash('Produto atualizado com sucesso!', 'success')
                 return redirect(url_for('crm_produtos'))
             else:
@@ -4027,6 +4079,7 @@ def delete_product_route(product_id):
             {'field': 'name', 'before': product.get('name') or '—', 'after': '—'},
             {'field': 'price', 'before': str(product.get('price') or '—'), 'after': '—'},
         ],
+        snapshot_before=_snapshot_for_log(product),
     )
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -4142,6 +4195,7 @@ def edit_customer(customer_id):
                 _log_action(
                     'customer', customer_id, updated_customer['name'], LOG_ACTION_UPDATE,
                     changes=diff_for_log(customer, updated_customer),
+                    snapshot_before=_snapshot_for_log(customer),
                 )
                 flash('Cliente atualizado com sucesso!', 'success')
                 return redirect(url_for('crm_customer_detail', customer_id=customer_id))
@@ -4171,6 +4225,7 @@ def delete_customer_route(customer_id):
             {'field': 'name', 'before': customer.get('name') or '—', 'after': '—'},
             {'field': 'email', 'before': customer.get('email') or '—', 'after': '—'},
         ],
+        snapshot_before=_snapshot_for_log(customer),
     )
     flash('Cliente deletado com sucesso!', 'success')
     return redirect(url_for('crm_clientes'))
@@ -4327,6 +4382,7 @@ def crm_set_order_tracking(order_id):
             'before': order.get('tracking_code') or '—',
             'after': tracking_code,
         }],
+        snapshot_before=_snapshot_for_log(order),
     )
 
     order = get_order_by_id(order_id)
@@ -4437,6 +4493,9 @@ def crm_order_delete_payment(order_id, payment_id):
         flash('Pagamento não encontrado.', 'error')
         return redirect(url_for('crm_order_detail', order_id=order_id))
 
+    snapshot_before = _snapshot_for_log(order)
+    if snapshot_before is not None:
+        snapshot_before['payments'] = list(payments)
     order['payments'] = [p for p in payments if p.get('id') != payment_id]
     result = _persist_order_financials(order)
     _log_action(
@@ -4446,6 +4505,7 @@ def crm_order_delete_payment(order_id, payment_id):
             {'field': 'balance_brl', 'before': f"R$ {float(order.get('balance_brl') or 0):.2f}",
              'after': f"R$ {result['balance_brl']:.2f}"},
         ],
+        snapshot_before=snapshot_before,
     )
     flash('Pagamento removido. Saldo devedor recalculado.', 'success')
     return redirect(url_for('crm_order_detail', order_id=order_id))
@@ -4473,6 +4533,7 @@ def crm_order_set_next_charge(order_id):
             'before': _format_date_br(order.get('next_charge_date')) or '—',
             'after': _format_date_br(next_charge_date) or '—',
         }],
+        snapshot_before=_snapshot_for_log(order),
     )
     flash('Data da próxima cobrança atualizada.', 'success')
     return redirect(url_for('crm_order_detail', order_id=order_id))
@@ -4867,6 +4928,7 @@ def crm_api_create_order():
                 before,
                 {k: v for k, v in result.items() if k != 'already_applied'},
             ),
+            snapshot_before=_snapshot_for_log(before),
             note=(
                 f"Baixa pelo pedido #{order_number} ({plan['numero_pedras']} unidade(s))"
                 if is_joia(before) else
@@ -4952,7 +5014,8 @@ def crm_vendedores():
                 return redirect(url_for('crm_vendedores'))
             if update_seller(seller_id, seller_data):
                 _log_action('seller', seller_id, name, LOG_ACTION_UPDATE,
-                            changes=diff_for_log(existing, seller_data))
+                            changes=diff_for_log(existing, seller_data),
+                            snapshot_before=_snapshot_for_log(existing))
                 flash('Vendedor atualizado com sucesso!', 'success')
             else:
                 flash('Erro ao atualizar vendedor.', 'error')
@@ -4994,7 +5057,8 @@ def crm_delete_vendedor(seller_id):
         return redirect(url_for('crm_vendedores'))
     delete_seller(seller_id)
     _log_action('seller', seller_id, seller.get('name', 'Vendedor'), LOG_ACTION_DELETE,
-                changes=[{'field': 'name', 'before': seller.get('name') or '—', 'after': '—'}])
+                changes=[{'field': 'name', 'before': seller.get('name') or '—', 'after': '—'}],
+                snapshot_before=_snapshot_for_log(seller))
     flash('Vendedor removido.', 'success')
     return redirect(url_for('crm_vendedores'))
 
@@ -5030,6 +5094,10 @@ def crm_logs():
             ]).lower()
         ]
 
+    for log in logs:
+        log['can_revert'] = activity_log_can_revert(log)
+        log.pop('snapshot_before', None)
+
     return render_template(
         'crm_logs.html',
         logs=logs,
@@ -5038,6 +5106,130 @@ def crm_logs():
         action_labels=LOG_ACTION_LABELS,
         actors=get_distinct_log_actors(),
     )
+
+
+def _revert_changed_fields(log):
+    """Build a Firestore update that restores only the fields this log changed."""
+    snapshot = log.get('snapshot_before') or {}
+    try:
+        from google.cloud.firestore_v1 import DELETE_FIELD
+    except ImportError:
+        DELETE_FIELD = None
+
+    fields = {}
+    for change in log.get('changes') or []:
+        field = change.get('field')
+        if not field or field in ('id', 'created_at', 'updated_at'):
+            continue
+        if field in snapshot:
+            fields[field] = snapshot[field]
+        elif DELETE_FIELD is not None:
+            fields[field] = DELETE_FIELD
+    return fields
+
+
+def _apply_log_revert(log):
+    """
+    Apply the inverse of an activity log.
+    Returns (ok: bool, message: str, inverse_action: str, inverse_snapshot).
+    """
+    entity_type = log.get('entity_type')
+    entity_id = log.get('entity_id')
+    action = log.get('action')
+    snapshot = log.get('snapshot_before')
+    current = get_entity_document(entity_type, entity_id)
+
+    if entity_type == 'payment':
+        if not snapshot:
+            return False, 'Este log de pagamento não tem estado anterior gravado.', None, None
+        if not current:
+            return False, 'Pedido deste pagamento não existe mais.', None, None
+        fields = {key: snapshot[key] for key in _PAYMENT_REVERT_FIELDS if key in snapshot}
+        if 'payments' not in fields:
+            return False, 'Não foi possível restaurar os pagamentos deste pedido.', None, None
+        if not update_entity_fields('payment', entity_id, fields):
+            return False, 'Falha ao reverter o pagamento no pedido.', None, None
+        inverse = LOG_ACTION_DELETE if action == LOG_ACTION_CREATE else LOG_ACTION_CREATE if action == LOG_ACTION_DELETE else LOG_ACTION_UPDATE
+        return True, 'Pagamento revertido e saldo recalculado.', inverse, _snapshot_for_log(current)
+
+    if action == LOG_ACTION_CREATE:
+        if not current:
+            return False, 'O registro já não existe — nada a reverter.', None, None
+        if entity_type == 'product':
+            ok = delete_product(entity_id)
+        elif entity_type == 'customer':
+            ok = delete_customer(entity_id)
+        elif entity_type == 'seller':
+            ok = delete_seller(entity_id)
+        else:
+            ok = delete_entity_document(entity_type, entity_id)
+        if not ok:
+            return False, 'Falha ao remover o registro criado.', None, None
+        return True, 'Criação desfeita: o registro foi removido.', LOG_ACTION_DELETE, _snapshot_for_log(current)
+
+    if action == LOG_ACTION_DELETE:
+        if not snapshot:
+            return False, 'Este log antigo não gravou o estado anterior, então não dá para restaurar.', None, None
+        if current:
+            return False, 'O registro já existe de novo. Remova-o antes de restaurar este log.', None, None
+        if not restore_entity_document(entity_type, entity_id, snapshot):
+            return False, 'Falha ao restaurar o registro deletado.', None, None
+        return True, 'Deleção desfeita: o registro foi restaurado.', LOG_ACTION_CREATE, None
+
+    if action == LOG_ACTION_UPDATE:
+        if not current:
+            return False, 'O registro não existe mais, então a edição não pode ser desfeita.', None, None
+        if not snapshot:
+            return False, 'Este log antigo não gravou o estado anterior, então não dá para reverter.', None, None
+        fields = _revert_changed_fields(log)
+        if not fields:
+            return False, 'Não há campos para reverter neste log.', None, None
+        if not update_entity_fields(entity_type, entity_id, fields):
+            return False, 'Falha ao restaurar os valores anteriores.', None, None
+        return True, 'Edição desfeita: os valores anteriores foram restaurados.', LOG_ACTION_UPDATE, _snapshot_for_log(current)
+
+    return False, 'Este tipo de ação não pode ser revertido.', None, None
+
+
+@app.route('/crm/logs/<log_id>/revert', methods=['POST'])
+@require_admin
+def crm_log_revert(log_id):
+    """Undo the action described by an activity log (create↔delete, update→previous values)."""
+    log = get_activity_log(log_id)
+    if not log:
+        flash('Log não encontrado.', 'error')
+        return redirect(url_for('crm_logs'))
+    if not activity_log_can_revert(log):
+        if log.get('reverted_at'):
+            flash('Esta ação já foi revertida.', 'error')
+        else:
+            flash('Este log não pode ser revertido (falta o estado anterior).', 'error')
+        return redirect(url_for('crm_logs'))
+
+    ok, message, inverse_action, inverse_snapshot = _apply_log_revert(log)
+    if not ok:
+        flash(message, 'error')
+        return redirect(url_for('crm_logs'))
+
+    mark_activity_log_reverted(log_id, _current_actor()['actor_email'])
+    inverse_changes = []
+    for change in log.get('changes') or []:
+        inverse_changes.append({
+            'field': change.get('field'),
+            'before': change.get('after'),
+            'after': change.get('before'),
+        })
+    _log_action(
+        log.get('entity_type'),
+        log.get('entity_id'),
+        log.get('entity_label') or '',
+        inverse_action or LOG_ACTION_UPDATE,
+        changes=inverse_changes,
+        note=f"Reversão do log {log_id[:8]}",
+        snapshot_before=inverse_snapshot,
+    )
+    flash(message, 'success')
+    return redirect(url_for('crm_logs'))
 
 
 # ============================================
@@ -5171,11 +5363,6 @@ def send_login_link():
     if not _is_valid_email(email):
         return jsonify({'error': 'Informe um e-mail válido.'}), 400
 
-    success_message = (
-        'Se o e-mail estiver correto, você receberá um link de acesso em instantes. '
-        'Verifique também a pasta de spam.'
-    )
-
     continue_url = f'{_site_url()}/login/finish'
     if not continue_url.startswith('http'):
         print('[Login] SITE_URL missing or invalid; cannot build email sign-in link.')
@@ -5237,8 +5424,20 @@ def send_login_link():
     masked_link = f'{_site_url()}/auth/login?token={token}'
     if not email_service.send_login_link_email(email, masked_link):
         print(f"[Login] Failed to send login link email to {email}")
+        return jsonify({
+            'error': (
+                'Não foi possível enviar o e-mail agora. '
+                'Tente de novo em instantes ou entre com Google.'
+            )
+        }), 502
 
-    return jsonify({'success': True, 'message': success_message}), 200
+    return jsonify({
+        'success': True,
+        'message': (
+            f'Enviamos um link de acesso para {email}. '
+            'Abra a caixa de entrada (e o spam) e clique no link. Ele vale por 1 hora.'
+        ),
+    }), 200
 
 
 @app.route('/auth/login')
@@ -6162,7 +6361,8 @@ def crm_orcamento_detalhe(quote_id):
             update['quoted_price_brl'] = quoted_price
         updated = designer_service.update_quote(quote_id, update, _current_actor()['actor_email'], note=(request.form.get('history_note') or '').strip()[:300])
         _log_action('quote', quote_id, f"Orçamento #{quote_id[:8].upper()}", LOG_ACTION_UPDATE,
-                    changes=diff_for_log(quote, {k: v for k, v in (updated or {}).items() if k in update}))
+                    changes=diff_for_log(quote, {k: v for k, v in (updated or {}).items() if k in update}),
+                    snapshot_before=_snapshot_for_log(quote))
         flash('Orçamento atualizado.', 'success')
         return redirect(url_for('crm_orcamento_detalhe', quote_id=quote_id))
 

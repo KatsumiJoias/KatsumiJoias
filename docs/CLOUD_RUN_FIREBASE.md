@@ -57,7 +57,7 @@ Em **Cloud Run → katsumijoias-app → Edit → Variables & Secrets**, cada sec
 | `FIREBASE_APP_ID` | appId (ex.: `1:510058748229:web:…`) |
 | `FIREBASE_PROJECT_ID` | `katsumijoias-6cc8d` |
 | `FIREBASE_AUTH_DOMAIN` | authDomain (ex.: `katsumijoias-6cc8d.firebaseapp.com`) |
-| `FIREBASE_STORAGE_BUCKET` | `katsumijoias.firebasestorage.app` |
+| `FIREBASE_STORAGE_BUCKET` | `katsumijoias-6cc8d.firebasestorage.app` |
 | `FIREBASE_MESSAGING_SENDER_ID` | Número **dentro do appId** (`510058748229`), não o `491109262402` da URL do Run |
 | `SITE_URL` | `https://katsumijoias-app-491109262402.southamerica-east1.run.app` (sem `/` final) |
 | `FLASK_SECRET_KEY` | string aleatória longa |
@@ -106,6 +106,21 @@ done
 3. `API_KEY_BREVO` no Run.
 
 **Validar:** receber e-mail de teste; link abre `/auth/login?token=…` e conclui em `/login/finish`.
+
+## E2. Firebase Storage (upload de imagens no CRM)
+
+O upload grava no **Firebase** `katsumijoias-6cc8d`, não no GCP do Cloud Run (`katsumijoias`). Se o bucket não existir, o log mostra `404 The specified bucket does not exist` para `*.firebasestorage.app`.
+
+1. Abra [Firebase Console](https://console.firebase.google.com/) → projeto **katsumijoias-6cc8d**.
+2. Menu **Build → Storage → Get started** (Começar).
+3. Comece em modo de produção (as regras do repo já restringem escrita a admin).
+4. Localização: **southamerica-east1** (mesma do Cloud Run), se o assistente pedir.
+5. Ao terminar, em Storage → **Files** aparece o bucket. O nome costuma ser `katsumijoias-6cc8d.firebasestorage.app` (às vezes `katsumijoias-6cc8d.appspot.com`). Copie exatamente o que o Console mostrar.
+6. Cloud Run → **Edit → Variables & secrets** → `FIREBASE_STORAGE_BUCKET` = esse nome. No `.env` local, o mesmo valor.
+7. A service account do `account_service.json` precisa de **Storage Object Admin** no projeto `katsumijoias-6cc8d` (Firebase Admin já ignora `storage.rules`, mas precisa de IAM no bucket).
+8. Nova revisão do Cloud Run. Nos logs deve aparecer `[Firebase] Storage bucket='katsumijoias-6cc8d.firebasestorage.app'`.
+
+**Não** crie o bucket no projeto GCP `katsumijoias` (hospedagem). O Admin SDK autentica no Firebase `katsumijoias-6cc8d`.
 
 ## F. GCP APIs
 

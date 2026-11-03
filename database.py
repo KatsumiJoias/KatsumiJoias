@@ -136,6 +136,7 @@ def _log_firebase_bootstrap():
 _log_firebase_bootstrap()
 
 # Initialize Storage bucket
+print(f"[Firebase] Storage bucket={_STORAGE_BUCKET_NAME!r}")
 bucket = storage.bucket(_STORAGE_BUCKET_NAME)
 
 def upload_image(file, filename, folder='product-images'):
@@ -187,6 +188,12 @@ def upload_image(file, filename, folder='product-images'):
 
     except Exception as e:
         print(f"Error in upload_image: {e}")
+        print(
+            f"[Storage] bucket={getattr(bucket, 'name', _STORAGE_BUCKET_NAME)!r}. "
+            "Se o erro for 404/notFound, ative o Firebase Storage no projeto "
+            f"{FIREBASE_DATA_PROJECT_ID} (Build → Storage → Get started) e defina "
+            f"FIREBASE_STORAGE_BUCKET={FIREBASE_DATA_PROJECT_ID}.firebasestorage.app"
+        )
         return None
 
     finally:
@@ -1350,11 +1357,35 @@ def diff_for_log(before, after, ignore_fields=None):
     return changes
 
 
+LOG_ENTITY_COLLECTIONS = {
+    'product': 'products',
+    'customer': 'customers',
+    'order': 'orders',
+    'payment': 'orders',
+    'seller': 'sellers',
+    'quote': 'quotes',
+    'setting': 'settings',
+}
+
+
+def _sanitize_log_snapshot(data):
+    """Copy a Firestore document for storage on the audit log (no `id` field)."""
+    if not data or not isinstance(data, dict):
+        return None
+    snap = {}
+    for key, value in data.items():
+        if key == 'id':
+            continue
+        snap[key] = value
+    return snap or None
+
+
 def create_activity_log(entity_type, entity_id, entity_label, action,
-                        changes=None, actor_email='', actor_uid='', source=None, note=''):
+                        changes=None, actor_email='', actor_uid='', source=None, note='',
+                        snapshot_before=None):
     """Persist one audit entry. Never raises — logging must not break the operation."""
     try:
-        db.collection('activity_logs').document().set({
+        payload = {
             'entity_type': entity_type,
             'entity_id': entity_id or '',
             'entity_label': entity_label or '',
@@ -1365,10 +1396,125 @@ def create_activity_log(entity_type, entity_id, entity_label, action,
             'source': source or '',
             'note': note or '',
             'created_at': utc_now(),
-        })
+        }
+        snap = _sanitize_log_snapshot(snapshot_before)
+        if snap:
+            payload['snapshot_before'] = snap
+        db.collection('activity_logs').document().set(payload)
         return True
     except Exception as e:
         print(f"Error creating activity log: {e}")
+        return False
+
+
+def get_activity_log(log_id):
+    """Return a single audit entry or None."""
+    if not log_id:
+        return None
+    try:
+        doc = db.collection('activity_logs').document(log_id).get()
+        if not doc.exists:
+            return None
+        data = doc.to_dict() or {}
+        data['id'] = doc.id
+        data['created_at_formatted'] = format_datetime_brt(data.get('created_at'))
+        return data
+    except Exception as e:
+        print(f"Error getting activity log {log_id}: {e}")
+        return None
+
+
+def mark_activity_log_reverted(log_id, actor_email=''):
+    """Flag an audit entry as already reverted so it cannot be undone twice."""
+    if not log_id:
+        return False
+    try:
+        db.collection('activity_logs').document(log_id).update({
+            'reverted_at': utc_now(),
+            'reverted_by': actor_email or 'admin',
+        })
+        return True
+    except Exception as e:
+        print(f"Error marking activity log reverted {log_id}: {e}")
+        return False
+
+
+def activity_log_can_revert(log):
+    """Whether the inverse of this log can be applied."""
+    if not log or log.get('reverted_at'):
+        return False
+    if not log.get('entity_id'):
+        return False
+    if log.get('entity_type') not in LOG_ENTITY_COLLECTIONS:
+        return False
+    action = log.get('action')
+    if action == LOG_ACTION_CREATE:
+        # Payments live inside the order — without a snapshot we cannot remove the right one.
+        if log.get('entity_type') == 'payment':
+            return bool(log.get('snapshot_before'))
+        return True
+    if action in (LOG_ACTION_UPDATE, LOG_ACTION_DELETE) and log.get('snapshot_before'):
+        return True
+    return False
+
+
+def get_entity_document(entity_type, entity_id):
+    """Load the live document for an audited entity (payments live on the order)."""
+    collection = LOG_ENTITY_COLLECTIONS.get(entity_type)
+    if not collection or not entity_id:
+        return None
+    try:
+        doc = db.collection(collection).document(entity_id).get()
+        if not doc.exists:
+            return None
+        data = doc.to_dict() or {}
+        data['id'] = doc.id
+        return data
+    except Exception as e:
+        print(f"Error getting {entity_type} {entity_id}: {e}")
+        return None
+
+
+def restore_entity_document(entity_type, entity_id, snapshot):
+    """Overwrite the entity document with a previous snapshot (used to undo a delete)."""
+    collection = LOG_ENTITY_COLLECTIONS.get(entity_type)
+    payload = _sanitize_log_snapshot(snapshot)
+    if not collection or not entity_id or not payload:
+        return False
+    try:
+        payload['updated_at'] = utc_now()
+        db.collection(collection).document(entity_id).set(payload)
+        return True
+    except Exception as e:
+        print(f"Error restoring {entity_type} {entity_id}: {e}")
+        return False
+
+
+def update_entity_fields(entity_type, entity_id, fields):
+    """Patch fields on an audited entity (used to undo an update)."""
+    collection = LOG_ENTITY_COLLECTIONS.get(entity_type)
+    if not collection or not entity_id or not fields:
+        return False
+    try:
+        payload = dict(fields)
+        payload['updated_at'] = utc_now()
+        db.collection(collection).document(entity_id).update(payload)
+        return True
+    except Exception as e:
+        print(f"Error updating {entity_type} {entity_id} during revert: {e}")
+        return False
+
+
+def delete_entity_document(entity_type, entity_id):
+    """Delete the live document (used to undo a create). Products use delete_product instead."""
+    collection = LOG_ENTITY_COLLECTIONS.get(entity_type)
+    if not collection or not entity_id:
+        return False
+    try:
+        db.collection(collection).document(entity_id).delete()
+        return True
+    except Exception as e:
+        print(f"Error deleting {entity_type} {entity_id} during revert: {e}")
         return False
 
 

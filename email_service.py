@@ -35,8 +35,16 @@ def _log_email(message):
     print(f"[Email] {message}")
 
 
+_API_KEY_LOGGED = False
+
+
 def _get_api_key():
-    return env_str('API_KEY_BREVO')
+    global _API_KEY_LOGGED
+    key = env_str('API_KEY_BREVO')
+    if key and not _API_KEY_LOGGED:
+        _log_email(f'API_KEY_BREVO loaded (len={len(key)})')
+        _API_KEY_LOGGED = True
+    return key
 
 
 def _format_order_number(order):
@@ -251,7 +259,16 @@ def _send_email(to_email, to_name, subject, html_content):
             timeout=15,
         )
         if response.status_code in (200, 201):
-            _log_email(f'Sent successfully (HTTP {response.status_code})')
+            message_id = ''
+            try:
+                body = response.json()
+                message_id = body.get('messageId') or body.get('messageIds') or ''
+            except ValueError:
+                message_id = ''
+            _log_email(
+                f'Sent successfully (HTTP {response.status_code}) '
+                f'messageId={message_id or "?"} to={to_email}'
+            )
             return True
 
         _log_email(f'Brevo API error status={response.status_code} response={(response.text or "")[:200]}')

@@ -132,10 +132,15 @@
 </section>
 
 <!-- CTA -->
-<section class="border-t border-white/10">
-    <div class="max-w-3xl mx-auto px-6 py-24 lg:py-32 text-center">
+<section class="relative overflow-hidden border-t border-white/10">
+    <img src="{{ url_for('static', filename='images/sua-historia-banner.jpg') }}"
+         alt=""
+         aria-hidden="true"
+         class="absolute inset-0 w-full h-full object-cover">
+    <div class="absolute inset-0 bg-black/55"></div>
+    <div class="relative max-w-3xl mx-auto px-6 py-24 lg:py-32 text-center">
         <h2 class="brand-display text-3xl lg:text-4xl tracking-[0.14em]">Sua história em uma joia</h2>
-        <p class="mt-6 text-[15px] text-white/60 leading-relaxed">Conheça nossas criações ou comece a desenhar uma joia feita especialmente para você.</p>
+        <p class="mt-6 text-[15px] text-white/80 leading-relaxed">Conheça nossas criações ou comece a desenhar uma joia feita especialmente para você.</p>
         <div class="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
             <a href="/joias" class="brand-btn brand-btn--light">Ver as jóias</a>
             <a href="/crie-sua-joia" class="brand-btn brand-btn--outline-light">Crie sua jóia</a>

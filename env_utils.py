@@ -58,10 +58,19 @@ def firebase_auth_domain() -> str:
 
 
 def firebase_storage_bucket() -> str:
+    """Bucket of Firebase Storage in katsumijoias-6cc8d — never the Cloud Run hosting project."""
     explicit = env_str('FIREBASE_STORAGE_BUCKET')
     if explicit:
+        hosting = cloud_run_gcp_project_id()
+        if explicit.startswith(f'{hosting}.') and hosting != FIREBASE_DATA_PROJECT_ID:
+            print(
+                f'[Firebase] AVISO: FIREBASE_STORAGE_BUCKET={explicit!r} aponta para o '
+                f'projeto Cloud Run ({hosting}), nao para o Firebase '
+                f'({FIREBASE_DATA_PROJECT_ID}). Use {FIREBASE_DATA_PROJECT_ID}.firebasestorage.app '
+                'depois de ativar Storage no Console Firebase.'
+            )
         return explicit
-    return f'{gcp_project_id()}.firebasestorage.app'
+    return f'{FIREBASE_DATA_PROJECT_ID}.firebasestorage.app'
 
 
 def firebase_messaging_sender_id() -> str:
