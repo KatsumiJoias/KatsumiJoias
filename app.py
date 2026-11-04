@@ -775,12 +775,12 @@ def homepage():
             product['specifications'] = translate_specifications(product['specifications'])
         product['display_description'] = get_product_display_description(product, _categories_data)
 
-    # Jewelry-first: joias em destaque (uma por tipo), gemas completam a vitrine
-    products.sort(key=lambda p: (0 if is_joia(p) else 1, -_product_total_price(p)))
+    jewelry = [p for p in products if is_joia(p)]
+    jewelry.sort(key=lambda p: -_product_total_price(p))
 
     seen_categories = set()
     featured_products = []
-    for p in products:
+    for p in jewelry:
         cat = p.get('category', '')
         if cat not in seen_categories:
             seen_categories.add(cat)
@@ -789,7 +789,7 @@ def homepage():
                 break
 
     if len(featured_products) < 6:
-        for p in products:
+        for p in jewelry:
             if p not in featured_products:
                 featured_products.append(p)
                 if len(featured_products) >= 6:
@@ -5460,7 +5460,7 @@ def send_login_link():
         'success': True,
         'message': (
             f'Enviamos um link de acesso para {email}. '
-            'Abra a caixa de entrada (e o spam) e clique no link. Ele vale por 1 hora.'
+            'Clique nele para entrar — vale por 1 hora.'
         ),
     }), 200
 
