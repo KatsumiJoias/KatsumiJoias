@@ -31,7 +31,7 @@
 {% set display_total = base_total * (1 - discount / 100) %}
 {% set product_url = url_for('product_detail', product_id=product.id) %}
 <div class="product-card catalog-card group flex flex-col {{ extra_class }}">
-    <div class="catalog-card-media relative aspect-[4/5] overflow-hidden">
+    <div class="catalog-card-media relative aspect-[4/5] lg:aspect-square overflow-hidden">
         <a href="{{ product_url }}" class="block w-full h-full" tabindex="-1" aria-hidden="true">
             {% if product.main_image_url %}
             <img src="{{ product.main_image_url }}"

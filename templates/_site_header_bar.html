@@ -52,7 +52,7 @@
 
         {# ── Desktop: nav row ── #}
         <nav class="relative">
-            <ul class="flex items-center justify-center gap-10 xl:gap-12 h-11">
+            <ul class="flex items-center justify-center gap-6 xl:gap-10 h-11">
                 <li class="group">
                     <a href="/joias" class="brand-nav-link flex items-center gap-1.5 {{ 'is-active' if cur_path.startswith('/joias') or cur_path.startswith('/products') or cur_path.startswith('/pedras') }}">
                         Jóias
@@ -84,9 +84,9 @@
                         </div>
                     </div>
                 </li>
-                <li><a href="/crie-sua-joia" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/crie-sua-joia') }}">Crie sua jóia</a></li>
-                <li><a href="/o-que-procura" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/o-que-procura') }}">Área do Joalheiro</a></li>
                 <li><a href="/historia" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/historia') }}">Nossa História</a></li>
+                <li><a href="/crie-sua-joia" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/crie-sua-joia') }}">Crie sua jóia</a></li>
+                <li><a href="/o-que-procura" class="brand-nav-link {{ 'is-active' if cur_path.startswith('/o-que-procura') }}">Fale conosco</a></li>
             </ul>
         </nav>
     </div>

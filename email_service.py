@@ -224,6 +224,7 @@ def _prepare_order_context(order):
         'copy_pix_url': f'{site_url}/pix/copiar/{order_id}' if order_id and order.get('pix_qr_code') else order_url,
         'retry_url': order_url if order_id else f'{site_url}/checkout',
         'site_url': site_url,
+        'logo_url': f'{site_url}/static/apple-touch-icon.png' if site_url else '',
         'current_year': datetime.now().year,
     }
 
@@ -456,9 +457,11 @@ def send_login_link_email(email, login_link):
             _log_email('LOGIN_LINK skipped — missing email or link')
             return False
 
+        site_url = _site_url()
         context = {
             'login_link': login_link,
-            'site_url': _site_url(),
+            'site_url': site_url,
+            'logo_url': f'{site_url}/static/apple-touch-icon.png' if site_url else '',
             'current_year': datetime.now().year,
         }
         html_content = render_template('emails/login_link.html', **context)
@@ -486,6 +489,7 @@ def send_solicitacao_reply_email(solicitacao, reply_message, reply_images=None):
             'reply_images': reply_images or [],
             'account_url': f'{site_url}/account',
             'site_url': site_url,
+            'logo_url': f'{site_url}/static/apple-touch-icon.png' if site_url else '',
             'current_year': datetime.now().year,
         }
         html_content = render_template('emails/solicitacao_reply.html', **context)
@@ -549,10 +553,14 @@ def send_admin_quote_notification(quote):
         )
     )
     html_content = (
-        f'<div style="font-family:Arial,sans-serif;font-size:14px;color:#111">'
-        f'<h2 style="font-weight:normal">Novo pedido de orçamento #{number}</h2>'
-        f'<p><img src="{quote.get("selected_image_url", "")}" alt="Prévia" width="320" style="border:1px solid #eee"></p>'
-        f'<table>{rows}</table>'
-        f'<p><a href="{crm_url}">Abrir no CRM</a></p></div>'
+        '<div style="font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:14px;color:#111;max-width:560px">'
+        '<div style="background:#000;padding:28px 32px;text-align:center">'
+        '<p style="margin:0;letter-spacing:.42em;color:#fff;text-transform:uppercase">KATSUMI JOIAS</p>'
+        '<p style="margin:8px 0 0;letter-spacing:.5em;color:#A3A3A3;font-size:9px;text-transform:uppercase">Além do tempo</p>'
+        '</div>'
+        f'<div style="padding:32px 0 8px"><h2 style="font-weight:400;letter-spacing:.06em;text-transform:uppercase;font-size:18px">Novo pedido de orçamento #{number}</h2>'
+        f'<p><img src="{quote.get("selected_image_url", "")}" alt="Prévia" width="320" style="border:1px solid #E5E5E5"></p>'
+        f'<table style="width:100%;border-collapse:collapse">{rows}</table>'
+        f'<p style="margin:28px 0 0"><a href="{crm_url}" style="display:inline-block;padding:13px 28px;background:#000;color:#fff;text-decoration:none;letter-spacing:.22em;text-transform:uppercase;font-size:11px">Abrir no CRM</a></p></div></div>'
     )
     return _send_email(to_email, 'Katsumi Joias', f'Novo orçamento “Crie sua jóia” #{number}', html_content)

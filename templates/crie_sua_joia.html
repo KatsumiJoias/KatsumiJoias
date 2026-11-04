@@ -100,14 +100,14 @@
             <div id="cj-validation" class="space-y-2 mt-4"></div>
 
             <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                <button type="button" id="cj-generate" class="cj-btn cj-btn-primary flex-1" disabled>
+                <button type="button" id="cj-generate" class="cj-btn cj-btn-primary flex-1{% if not session.get('user_id') %} hidden{% endif %}" disabled>
                     Gerar {{ 'prévias' if images_per_generation > 1 else 'prévia' }}
                 </button>
-                <a href="{{ url_for('login', next=url_for('designer_page')) }}" id="cj-login" class="cj-btn cj-btn-outline flex-1 hidden">
+                <a href="{{ url_for('login', next=url_for('designer_page')) }}" id="cj-login" class="cj-btn cj-btn-outline flex-1{% if session.get('user_id') %} hidden{% endif %}">
                     Entrar para gerar
                 </a>
             </div>
-            <p id="cj-login-hint" class="hidden text-xs text-neutral-500 mt-2">
+            <p id="cj-login-hint" class="text-xs text-neutral-500 mt-2{% if session.get('user_id') %} hidden{% endif %}">
                 Para gerar as imagens e guardar suas criações, entre na sua conta — é rápido, só com e-mail. Suas escolhas ficam salvas.
             </p>
         </div>
@@ -201,22 +201,24 @@
 </section>
 
 <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
     import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
     const CATALOG = {{ catalog | tojson }};
     const IMAGES = {{ images_per_generation | int }};
     const INITIAL_DESIGN = {{ initial_design_id | tojson }};
     const STORAGE_KEY = 'katsumi_designer_choices_v1';
+    const SESSION_LOGGED_IN = {{ 'true' if session.get('user_id') else 'false' }};
 
-    const firebaseApp = initializeApp({
+    const firebaseConfig = {
         apiKey: "{{ firebase_config.apiKey }}",
         authDomain: "{{ firebase_config.authDomain }}",
         projectId: "{{ firebase_config.projectId }}",
         storageBucket: "{{ firebase_config.storageBucket }}",
         messagingSenderId: "{{ firebase_config.messagingSenderId }}",
         appId: "{{ firebase_config.appId }}"
-    });
+    };
+    const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
     const auth = getAuth(firebaseApp);
 
     const $ = (id) => document.getElementById(id);
@@ -378,12 +380,16 @@
         updateGenerateButton();
     }
 
+    function isLoggedIn() {
+        return !!(state.user || SESSION_LOGGED_IN);
+    }
+
     function updateGenerateButton() {
-        const loggedIn = !!state.user;
+        const loggedIn = isLoggedIn();
         $('cj-generate').classList.toggle('hidden', !loggedIn);
         $('cj-login').classList.toggle('hidden', loggedIn);
         $('cj-login-hint').classList.toggle('hidden', loggedIn);
-        $('cj-generate').disabled = !state.valid || state.busy;
+        $('cj-generate').disabled = !loggedIn || !state.valid || state.busy;
     }
 
     $('cj-details').addEventListener('input', () => {
@@ -394,12 +400,12 @@
 
     // ── API autenticada ──
     async function api(path, options = {}) {
-        if (!state.user) throw new Error('Entre na sua conta para continuar.');
-        const token = await state.user.getIdToken();
-        const res = await fetch(path, {
-            ...options,
-            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...(options.headers || {}) },
-        });
+        if (!isLoggedIn()) throw new Error('Entre na sua conta para continuar.');
+        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        if (state.user) {
+            headers.Authorization = 'Bearer ' + await state.user.getIdToken();
+        }
+        const res = await fetch(path, { ...options, headers, credentials: 'same-origin' });
         let data = {};
         try { data = await res.json(); } catch (e) {}
         if (res.status === 401 && data.login_url) {
@@ -637,7 +643,7 @@
 
     // ── Histórico ──
     async function loadHistory() {
-        if (!state.user) return;
+        if (!isLoggedIn()) return;
         try {
             const data = await api('/api/designer/my-designs');
             const list = (data.designs || []).filter(d => (d.images || []).some(i => i.url)).slice(0, 16);
@@ -682,7 +688,7 @@
     onAuthStateChanged(auth, async (user) => {
         state.user = user || null;
         updateGenerateButton();
-        if (!user) return;
+        if (!isLoggedIn()) return;
         loadHistory();
         if (INITIAL_DESIGN) openDesign(INITIAL_DESIGN);
         try {
