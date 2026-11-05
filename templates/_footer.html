@@ -1,8 +1,13 @@
 {% set wa_url = 'https://wa.me/' ~ (support_whatsapp_number or '5511971581675') %}
 <footer class="bg-black text-white">
     <!-- Newsletter -->
-    <section class="border-b border-white/15">
-        <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-20 lg:py-24 grid lg:grid-cols-2 gap-12 lg:gap-24 items-end">
+    <section class="relative overflow-hidden border-b border-white/15">
+        <img src="{{ url_for('static', filename='images/newsletter.jpg') }}"
+             alt=""
+             aria-hidden="true"
+             class="absolute inset-0 w-full h-full object-cover">
+        <div class="absolute inset-0 bg-black/25"></div>
+        <div class="relative max-w-[1600px] mx-auto px-6 lg:px-12 py-20 lg:py-24 grid lg:grid-cols-2 gap-12 lg:gap-24 items-end">
             <div>
                 <p class="brand-eyebrow text-white/50 mb-6">Newsletter</p>
                 <h2 class="brand-display text-3xl sm:text-4xl lg:text-5xl">Novas joias<br>chegam primeiro</h2>

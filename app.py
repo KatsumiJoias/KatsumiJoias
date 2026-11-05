@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import calendar
 import os
 import time
 import re
@@ -2653,6 +2654,155 @@ def _validate_cnpj(cnpj):
     return True
 
 
+_RECALL_SKIP_STATUSES = frozenset({
+    'canceled', 'cancelled', 'failed', 'refunded', 'voided', 'chargedback',
+})
+_RECALL_LOOKBACK_DAYS = 30
+RECALL_PRESETS = (
+    {'months': 1, 'label': '1 mês'},
+    {'months': 3, 'label': '3 meses'},
+    {'months': 6, 'label': '6 meses'},
+    {'months': 12, 'label': '1 ano'},
+    {'months': 24, 'label': '2 anos'},
+)
+
+
+def _add_months(day, months):
+    """Add calendar months, clamping the day when the target month is shorter."""
+    month_index = day.month - 1 + int(months)
+    year = day.year + month_index // 12
+    month = month_index % 12 + 1
+    return day.replace(
+        year=year,
+        month=month,
+        day=min(day.day, calendar.monthrange(year, month)[1]),
+    )
+
+
+def _recall_label(months):
+    if months % 12 == 0:
+        years = months // 12
+        return '1 ano' if years == 1 else f'{years} anos'
+    if months == 1:
+        return '1 mês'
+    return f'{months} meses'
+
+
+def _parse_order_day(order):
+    raw = order.get('created_at')
+    if hasattr(raw, 'strftime') and not isinstance(raw, str):
+        try:
+            return raw.date() if hasattr(raw, 'hour') else raw
+        except Exception:
+            return None
+    text = str(raw or '')[:10]
+    for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except (ValueError, TypeError):
+            continue
+    return None
+
+
+def _next_recall_day(purchase, months, today, lookback=_RECALL_LOOKBACK_DAYS):
+    """
+    Next date on which the purchase completes another cycle of `months`.
+    If the previous cycle fell within `lookback` days, that date is returned
+    so a follow-up that just passed stays on the list.
+    """
+    if not purchase or purchase > today or months < 1:
+        return None
+    approx_days = max(28, int(round(months * 30.4375)))
+    cycles = max(1, (today - purchase).days // approx_days)
+    target = _add_months(purchase, months * cycles)
+    guard = 0
+    while target < today and guard < 48:
+        cycles += 1
+        target = _add_months(purchase, months * cycles)
+        guard += 1
+    guard = 0
+    while cycles > 1 and guard < 48:
+        earlier = _add_months(purchase, months * (cycles - 1))
+        if earlier >= today:
+            cycles -= 1
+            target = earlier
+            guard += 1
+        else:
+            break
+    if cycles > 1:
+        previous = _add_months(purchase, months * (cycles - 1))
+        passed = (today - previous).days
+        if 0 < passed <= lookback:
+            return previous
+    return target
+
+
+def _whatsapp_number(phone):
+    digits = re.sub(r'\D', '', str(phone or ''))
+    if not digits:
+        return ''
+    if not digits.startswith('55') and len(digits) in (10, 11):
+        return '55' + digits
+    return digits
+
+
+def _order_items_label(order):
+    names = []
+    for item in order.get('items') or []:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get('name') or item.get('sku') or '').strip()
+        if not name:
+            continue
+        try:
+            qty = int(item.get('quantity') or 1)
+        except (TypeError, ValueError):
+            qty = 1
+        names.append(f'{name} ×{qty}' if qty > 1 else name)
+    if not names:
+        return '—'
+    label = ', '.join(names[:2])
+    extra = len(names) - 2
+    if extra > 0:
+        label += f' e mais {extra}'
+    return label
+
+
+def _build_purchase_reminders(orders, today, months_raw):
+    """Purchases ordered by how close they are to completing another cycle."""
+    try:
+        months = int(months_raw or 12)
+    except (TypeError, ValueError):
+        months = 12
+    months = min(120, max(1, months))
+
+    rows = []
+    for order in orders:
+        if str(order.get('status') or '').lower() in _RECALL_SKIP_STATUSES:
+            continue
+        purchased = _parse_order_day(order)
+        target = _next_recall_day(purchased, months, today) if purchased else None
+        if not target:
+            continue
+        phone = order.get('customer_phone') or ''
+        rows.append({
+            'order_id': order.get('id') or '',
+            'order_number': str(order.get('id') or '')[:8].upper(),
+            'customer_id': order.get('firestore_customer_id') or '',
+            'customer_name': order.get('customer_name') or '—',
+            'customer_phone': phone,
+            'whatsapp': _whatsapp_number(phone),
+            'items_label': _order_items_label(order),
+            'purchased_at': purchased.strftime('%d/%m/%Y'),
+            'target_at': target.strftime('%d/%m/%Y'),
+            'amount_brl': float(order.get('amount_brl') or 0),
+            'days_until': (target - today).days,
+        })
+    rows.sort(key=lambda row: (row['days_until'], str(row['customer_name']).lower()))
+    due_soon = sum(1 for row in rows if 0 <= row['days_until'] <= 30)
+    return rows, months, _recall_label(months), due_soon
+
+
 @app.route('/crm')
 @require_admin
 def crm_dashboard():
@@ -2825,6 +2975,10 @@ def crm_dashboard():
         entry['orders']      += 1
     top_debtors = sorted(debtor_map.values(), key=lambda d: d['balance_brl'], reverse=True)[:6]
 
+    purchase_reminders, recall_months, recall_months_label, recall_due_soon = _build_purchase_reminders(
+        billable_orders, today, request.args.get('recall_months'),
+    )
+
     return render_template(
         'crm_dashboard.html',
         total_products=len(products),
@@ -2871,6 +3025,11 @@ def crm_dashboard():
         chart_labels=chart_labels,
         chart_counts=chart_counts,
         chart_revenue=chart_revenue,
+        purchase_reminders=purchase_reminders,
+        recall_months=recall_months,
+        recall_months_label=recall_months_label,
+        recall_due_soon=recall_due_soon,
+        recall_presets=RECALL_PRESETS,
     )
 
 def _parse_carat_weight(product):
