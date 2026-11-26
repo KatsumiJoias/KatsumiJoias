@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "katsumijoias-6cc8d"
+    "default": "katsumijoias-6cc8d",
+    "hosting": "katsumijoias"
   }
 }

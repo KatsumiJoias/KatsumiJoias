@@ -4,5 +4,18 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": "firebase_public",
+    "ignore": ["firebase.json", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "katsumijoias-app",
+          "region": "southamerica-east1"
+        }
+      }
+    ]
   }
 }
